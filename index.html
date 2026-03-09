@@ -801,6 +801,8 @@
     <button id="btn-more" onclick="toggleMoreButtons()" style="display:none">[ ••• ]</button>
     <button onclick="toggleAddForm()" id="add-btn">[ + ADD ]</button>
     <button class="accent" onclick="openExportModal()">[ EXPORT ]</button>
+    <button onclick="quickSave()" id="vis-save-btn">[ SAVE ]</button>
+    <button onclick="openSaveModal()">[ SAVE AS ]</button>
     <button class="toolbar-secondary" onclick="autoGenerateLTC()" title="LTC automatisch vergeben (10-Min-Abstand)">[ ⏱ LTC ]</button>
     <div class="toolbar-sep"></div>
     <button class="toolbar-secondary" onclick="toggleSelectMode()" id="btn-group">[ ⊞ GRUPPE ]</button>
@@ -857,9 +859,6 @@
     <label><input type="checkbox" id="vis-key" checked onchange="render()"> TONART</label>
     <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
-    <span style="color:var(--line);margin:0 2px">|</span>
-    <button onclick="quickSave()" id="vis-save-btn" style="background:var(--fg);color:var(--bg);border:none;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:4px 10px;cursor:pointer;font-weight:700">SAVE</button>
-    <button onclick="openSaveModal()" style="background:none;border:1px solid #bbb;color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:4px 10px;cursor:pointer">SAVE AS</button>
     <span style="color:var(--line);margin:0 2px">|</span>
     <label style="display:flex;align-items:center;gap:6px">
       SCHRIFT
@@ -1383,10 +1382,48 @@ function render() {
           const txt = document.createElement('span');
           txt.className = 'todo-inline-text' + (item.done ? ' done' : '');
           txt.textContent = item.text;
+          txt.contentEditable = 'true';
+          txt.style.outline = 'none';
+          txt.style.cursor = 'text';
+          txt.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+          txt.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
+          txt.addEventListener('keydown', function(e){
+            if (e.key === 'Enter') { e.preventDefault(); txt.blur(); }
+            if (e.key === 'Escape') { txt.textContent = item.text; txt.blur(); }
+          });
+          txt.addEventListener('blur', function() {
+            const val = txt.textContent.trim();
+            if (val && val !== item.text) { item.text = val; snapshot(); }
+            else if (!val) { todos[tid] = (todos[tid]||[]).filter(function(x){ return x.id !== item.id; }); snapshot(); render(); }
+          });
           row.appendChild(cb);
           row.appendChild(txt);
           body.appendChild(row);
         });
+
+        // Input row to add new todo inline
+        const addRow = document.createElement('div');
+        addRow.className = 'todo-inline-row';
+        addRow.style.cssText = 'gap:6px;';
+        const addInp = document.createElement('input');
+        addInp.type = 'text';
+        addInp.placeholder = '+ Neue Aufgabe…';
+        addInp.style.cssText = 'flex:1;background:none;border:none;border-bottom:1px solid var(--line);color:var(--fg);font-family:monospace;font-size:var(--cell-fs,10px);padding:2px 0;outline:none;';
+        addInp.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+        addInp.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
+        addInp.addEventListener('keydown', function(e){
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const val = addInp.value.trim();
+            if (val) {
+              if (!todos[tid]) todos[tid] = [];
+              todos[tid].push({ id: Date.now(), text: val, done: false, doneAt: null });
+              snapshot(); render();
+            }
+          }
+        });
+        addRow.appendChild(addInp);
+        body.appendChild(addRow);
       }
     }
 
@@ -2531,13 +2568,6 @@ function toggleTC() {
 function updateTrackFontSize(val) {
   val = +val;
   document.documentElement.style.setProperty('--track-name-fs', val + 'px');
-  // Scale cell font proportionally (cell is always a bit smaller than name)
-  const cellFs = Math.max(8, val - 2);
-  document.documentElement.style.setProperty('--cell-fs', cellFs + 'px');
-  // Scale row height
-  const rowH = Math.max(36, val * 3);
-  document.documentElement.style.setProperty('--track-row-h', rowH + 'px');
-
 }
 
 // ── TONART / KEY COLUMN ───────────────────────────────────────
