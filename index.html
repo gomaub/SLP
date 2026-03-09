@@ -2302,11 +2302,14 @@ function toggleTC() {
 // ── TONART / KEY COLUMN ───────────────────────────────────────
 const KEY_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const KEY_MODES = ['Dur','Moll'];
+const KEY_DISPLAY = {'C#':'C#/Db','D#':'D#/Eb','F#':'F#/Gb','G#':'G#/Ab','A#':'A#/Bb'};
+
+function keyLabel(k) { return KEY_DISPLAY[k] || k; }
 
 function renderKeyCell(t) {
   const key  = t.key  || '';
   const mode = t.keyMode || '';
-  const label = key ? key + ' ' + mode : '—';
+  const label = key ? keyLabel(key) + ' ' + mode : '—';
   return '<span class="track-key' + (key ? ' has-key' : '') + '" data-id="' + t.id + '" onclick="openKeyPicker(' + t.id + ', this)" title="Tonart wählen">' + label + '</span>';
 }
 
@@ -2318,8 +2321,9 @@ function _buildKeyPicker(pendingKey, pendingMode, onConfirm, onClear, anchorEl) 
 
   const picker = document.createElement('div');
   picker.id = 'key-picker';
-  picker.style.cssText = 'position:fixed;z-index:9999;background:#111;border:1px solid #444;padding:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;box-shadow:0 4px 20px rgba(0,0,0,.5);';
-  picker.addEventListener('click', function(e){ e.stopPropagation(); });
+  picker.style.cssText = 'position:fixed;z-index:9999;background:#111;border:1px solid #444;padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;box-shadow:0 4px 20px rgba(0,0,0,.5);';
+  picker.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+  picker.addEventListener('touchstart', function(e){ e.stopPropagation(); }, { passive:true });
 
   // Dur / Moll row
   const modeRow = document.createElement('div');
@@ -2328,29 +2332,29 @@ function _buildKeyPicker(pendingKey, pendingMode, onConfirm, onClear, anchorEl) 
     const mb = document.createElement('button');
     mb.textContent = m;
     mb.className = 'mode-btn';
-    function refreshMode() {
+    const isActive = state.mode === m;
+    mb.style.cssText = 'flex:1;background:' + (isActive?'#fff':'#333') + ';color:' + (isActive?'#111':'#aaa') + ';border:none;font-family:monospace;font-size:11px;padding:7px 8px;cursor:pointer;font-weight:' + (isActive?'700':'400') + ';';
+    mb.onclick = function() {
+      state.mode = m;
       picker.querySelectorAll('.mode-btn').forEach(function(b, i) {
         const a = KEY_MODES[i] === state.mode;
         b.style.background = a ? '#fff' : '#333';
         b.style.color = a ? '#111' : '#aaa';
         b.style.fontWeight = a ? '700' : '400';
       });
-    }
-    const isActive = state.mode === m;
-    mb.style.cssText = 'flex:1;background:' + (isActive?'#fff':'#333') + ';color:' + (isActive?'#111':'#aaa') + ';border:none;font-family:monospace;font-size:10px;padding:4px 8px;cursor:pointer;font-weight:' + (isActive?'700':'400') + ';';
-    mb.onclick = function() { state.mode = m; refreshMode(); updatePreview(); };
+      updatePreview();
+    };
     modeRow.appendChild(mb);
   });
   picker.appendChild(modeRow);
 
-  // Preview label (full-width, shows pending selection)
+  // Preview label
   const previewRow = document.createElement('div');
-  previewRow.style.cssText = 'grid-column:1/-1;text-align:center;font-family:monospace;font-size:12px;font-weight:700;color:#fff;min-height:18px;margin-bottom:2px;letter-spacing:.06em;';
+  previewRow.style.cssText = 'grid-column:1/-1;text-align:center;font-family:monospace;font-size:13px;font-weight:700;color:#fff;min-height:20px;margin-bottom:4px;letter-spacing:.06em;';
   picker.appendChild(previewRow);
 
   function updatePreview() {
-    previewRow.textContent = state.key ? state.key + ' ' + state.mode : '—';
-    // Highlight selected key button
+    previewRow.textContent = state.key ? keyLabel(state.key) + ' ' + state.mode : '—';
     picker.querySelectorAll('.key-btn').forEach(function(b) {
       const active = b.dataset.k === state.key;
       b.style.background = active ? '#e8e8e8' : '#222';
@@ -2360,14 +2364,15 @@ function _buildKeyPicker(pendingKey, pendingMode, onConfirm, onClear, anchorEl) 
     });
   }
 
-  // 12 key buttons
+  // 12 key buttons with enharmonic labels
   KEY_NAMES.forEach(function(k) {
     const kb = document.createElement('button');
-    kb.textContent = k;
+    kb.textContent = keyLabel(k);
     kb.dataset.k = k;
     kb.className = 'key-btn';
     const isCur = state.key === k;
-    kb.style.cssText = 'background:' + (isCur?'#e8e8e8':'#222') + ';color:' + (isCur?'#111':'#ccc') + ';border:1px solid ' + (isCur?'#bbb':'#444') + ';font-family:monospace;font-size:10px;padding:5px 6px;cursor:pointer;font-weight:' + (isCur?'700':'400') + ';';
+    const isEnharm = !!KEY_DISPLAY[k];
+    kb.style.cssText = 'background:' + (isCur?'#e8e8e8':'#222') + ';color:' + (isCur?'#111':'#ccc') + ';border:1px solid ' + (isCur?'#bbb':'#444') + ';font-family:monospace;font-size:' + (isEnharm?'8px':'10px') + ';padding:7px 4px;cursor:pointer;font-weight:' + (isCur?'700':'400') + ';white-space:nowrap;';
     kb.onclick = function() { state.key = k; updatePreview(); };
     picker.appendChild(kb);
   });
@@ -2380,12 +2385,12 @@ function _buildKeyPicker(pendingKey, pendingMode, onConfirm, onClear, anchorEl) 
 
   const clearBtn = document.createElement('button');
   clearBtn.textContent = '✕ löschen';
-  clearBtn.style.cssText = 'flex:1;background:none;border:1px solid #444;color:#888;font-family:monospace;font-size:9px;padding:5px;cursor:pointer;';
+  clearBtn.style.cssText = 'flex:1;background:none;border:1px solid #444;color:#888;font-family:monospace;font-size:9px;padding:7px;cursor:pointer;';
   clearBtn.onclick = function() { onClear(); closeKeyPicker(); };
 
   const okBtn = document.createElement('button');
   okBtn.textContent = 'OK';
-  okBtn.style.cssText = 'flex:1;background:#c87020;border:none;color:#fff;font-family:monospace;font-size:10px;font-weight:700;padding:5px;cursor:pointer;letter-spacing:.06em;';
+  okBtn.style.cssText = 'flex:1;background:#c87020;border:none;color:#fff;font-family:monospace;font-size:11px;font-weight:700;padding:7px;cursor:pointer;letter-spacing:.06em;';
   okBtn.onclick = function() { if (state.key) { onConfirm(state.key, state.mode); } closeKeyPicker(); };
 
   bottomRow.appendChild(clearBtn);
@@ -2396,16 +2401,23 @@ function _buildKeyPicker(pendingKey, pendingMode, onConfirm, onClear, anchorEl) 
 
   // Position below anchor
   const rect = anchorEl.getBoundingClientRect();
-  const pw = 190;
+  const pw = 220;
   let left = rect.left;
   if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+  if (left < 5) left = 5;
   picker.style.left = left + 'px';
   picker.style.top  = (rect.bottom + 4) + 'px';
   picker.style.width = pw + 'px';
 
+  // Close on outside mousedown (more reliable than click)
+  function outsideClose(e) {
+    if (!picker.contains(e.target)) { closeKeyPicker(); }
+  }
   setTimeout(function() {
-    document.addEventListener('click', closeKeyPicker, { once: true });
-  }, 0);
+    document.addEventListener('mousedown', outsideClose);
+    document.addEventListener('touchstart', outsideClose, { passive:true });
+    picker._outsideClose = outsideClose;
+  }, 150);
 }
 
 function openKeyPicker(trackId, anchor) {
@@ -2438,7 +2450,13 @@ function openAddKeyPicker(anchor) {
 
 function closeKeyPicker() {
   const p = document.getElementById('key-picker');
-  if (p) p.remove();
+  if (p) {
+    if (p._outsideClose) {
+      document.removeEventListener('mousedown', p._outsideClose);
+      document.removeEventListener('touchstart', p._outsideClose);
+    }
+    p.remove();
+  }
 }
 
 // ── LTC AUTO-GENERATE & CONFLICT CHECK ────────────────────────
