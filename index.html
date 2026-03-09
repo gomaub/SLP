@@ -855,6 +855,7 @@
     <label><input type="checkbox" id="vis-notes-col" checked onchange="syncAllCheckbox();render()"> Notiz-Spalte</label>
     <label><input type="checkbox" id="vis-ltc" checked onchange="toggleTC()"> LTC</label>
     <label><input type="checkbox" id="vis-key" checked onchange="render()"> TONART</label>
+    <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
     <span style="color:var(--line);margin:0 2px">|</span>
     <button onclick="quickSave()" id="vis-save-btn" style="background:var(--fg);color:var(--bg);border:none;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:4px 10px;cursor:pointer;font-weight:700">SAVE</button>
@@ -1101,6 +1102,7 @@ function render() {
 
   // ── Dynamic column system ──────────────────────────────────
   const showKey = visChecked('vis-key');
+  const showTodo = visChecked('vis-todo');
   const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, length:showLength, bpm:showBpm };
   const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', length:'80px', bpm:'60px' };
   const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
@@ -1206,7 +1208,13 @@ function render() {
     const colCells = visCols.map(c => {
       if (c === 'ltc')    return `<span class="track-tc track-inline-edit" contenteditable="true" data-field="ltc" data-id="${t.id}" draggable="false">${t.ltc || '—'}</span>`;
       if (c === 'key')    return renderKeyCell(t);
-      if (c === 'notes')  return `<span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)">${ann.note||'—'}</span>`;
+      if (c === 'notes') {
+        const openTodos = showTodo ? (todos[t.id]||[]).filter(function(x){return !x.done;}).length : 0;
+        const todoHint = showTodo ? (openTodos > 0
+          ? `<span onclick="event.stopPropagation();openTodoFromCell(${t.id})" title="To Dos" style="cursor:pointer;flex-shrink:0;font-size:8px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:8px;font-family:'Space Mono',monospace">${openTodos}</span>`
+          : `<span onclick="event.stopPropagation();openTodoFromCell(${t.id})" title="To Do hinzufügen" style="cursor:pointer;flex-shrink:0;font-size:9px;color:var(--muted);padding:0 3px;line-height:1">☑</span>`) : '';
+        return `<span style="display:flex;align-items:center;gap:4px;overflow:hidden"><span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)" style="flex:1;min-width:0">${ann.note||'—'}</span>${todoHint}</span>`;
+      }
       if (c === 'length') return `<span class="track-length track-inline-edit" contenteditable="true" data-field="length" data-id="${t.id}">${t.length||'—'}</span>`;
       if (c === 'bpm')    return `<span class="track-bpm track-inline-edit ${t.bpm?'filled':''}" contenteditable="true" data-field="bpm" data-id="${t.id}">${t.bpm||'—'}</span>`;
       return '';
@@ -1336,7 +1344,7 @@ function render() {
 
     // — Todo inline rows —
     const trackTodos = (todos[tid] || []);
-    if (trackTodos.length > 0) {
+    if (showTodo && trackTodos.length > 0) {
       const collapsed = _todoCollapsed[tid];
       const openCount = trackTodos.filter(function(x){ return !x.done; }).length;
       const doneCount = trackTodos.filter(function(x){ return x.done; }).length;
