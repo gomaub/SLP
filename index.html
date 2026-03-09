@@ -855,7 +855,6 @@
     <label><input type="checkbox" id="vis-notes-col" checked onchange="syncAllCheckbox();render()"> Notiz-Spalte</label>
     <label><input type="checkbox" id="vis-ltc" checked onchange="toggleTC()"> LTC</label>
     <label><input type="checkbox" id="vis-key" checked onchange="render()"> TONART</label>
-    <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
     <span style="color:var(--line);margin:0 2px">|</span>
     <button onclick="quickSave()" id="vis-save-btn" style="background:var(--fg);color:var(--bg);border:none;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:4px 10px;cursor:pointer;font-weight:700">SAVE</button>
@@ -968,7 +967,7 @@ let pool = [];
 // annotations[trackId] = { intro, outro, transIn, transOut, note }
 let annotations = {};
 let trackColors = {};
-let colOrder = ['ltc','key','notes','todo','length','bpm']; // full column order
+let colOrder = ['ltc','key','notes','length','bpm']; // full column order
 let _currentSaveId = null;
 let todos = {}; // trackId -> [{id, text, done, doneAt}]
 let _todoCollapsed = {}; // trackId -> bool  // ID of last saved archive entry (for quick-save overwrite)
@@ -1102,10 +1101,9 @@ function render() {
 
   // ── Dynamic column system ──────────────────────────────────
   const showKey = visChecked('vis-key');
-  const showTodo = visChecked('vis-todo');
-  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, length:showLength, bpm:showBpm };
-  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', length:'80px', bpm:'60px' };
-  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
+  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, length:showLength, bpm:showBpm };
+  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', length:'80px', bpm:'60px' };
+  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
   const visCols = colOrder.filter(c => COL_VISIBLE[c]);
   const gridTpl = '36px 1fr ' + visCols.map(c => COL_WIDTHS[c]).join(' ') + ' 36px';
 
@@ -1208,7 +1206,6 @@ function render() {
     const colCells = visCols.map(c => {
       if (c === 'ltc')    return `<span class="track-tc track-inline-edit" contenteditable="true" data-field="ltc" data-id="${t.id}" draggable="false">${t.ltc || '—'}</span>`;
       if (c === 'key')    return renderKeyCell(t);
-      if (c === 'todo')   return renderTodoCell(t);
       if (c === 'notes')  return `<span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)">${ann.note||'—'}</span>`;
       if (c === 'length') return `<span class="track-length track-inline-edit" contenteditable="true" data-field="length" data-id="${t.id}">${t.length||'—'}</span>`;
       if (c === 'bpm')    return `<span class="track-bpm track-inline-edit ${t.bpm?'filled':''}" contenteditable="true" data-field="bpm" data-id="${t.id}">${t.bpm||'—'}</span>`;
@@ -1341,24 +1338,28 @@ function render() {
     const trackTodos = (todos[tid] || []);
     if (trackTodos.length > 0) {
       const collapsed = _todoCollapsed[tid];
-      const openTodos = trackTodos.filter(function(x){ return !x.done; });
-      const doneTodos = trackTodos.filter(function(x){ return x.done; });
-      const visible = collapsed ? [] : trackTodos;
+      const openCount = trackTodos.filter(function(x){ return !x.done; }).length;
+      const doneCount = trackTodos.filter(function(x){ return x.done; }).length;
 
-      // Header row with collapse toggle
-      const hdr = document.createElement('div');
-      hdr.className = 'todo-inline-row';
-      hdr.style.cssText = 'cursor:pointer;gap:6px;';
-      const openCount = openTodos.length;
-      const doneCount = doneTodos.length;
-      hdr.innerHTML = '<span style="font-size:8px;letter-spacing:.1em;color:var(--muted)">☑ TO DO</span>' +
-        (openCount ? '<span style="font-size:8px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px">' + openCount + ' offen</span>' : '') +
-        (doneCount ? '<span style="font-size:8px;color:var(--muted)">' + doneCount + ' erledigt</span>' : '') +
-        '<button class="todo-inline-collapse" onclick="event.stopPropagation();toggleTodoCollapse(' + tid + ')">' + (collapsed ? '▶ ZEIGEN' : '▼ ZUKLAPPEN') + '</button>';
-      hdr.addEventListener('click', function(){ toggleTodoCollapse(tid); });
-      body.appendChild(hdr);
+      if (collapsed) {
+        const hdr = document.createElement('div');
+        hdr.className = 'todo-inline-row';
+        hdr.style.cssText = 'cursor:pointer;gap:6px;';
+        hdr.innerHTML = '<span style="font-size:8px;letter-spacing:.1em;color:var(--muted)">☑</span>' +
+          (openCount ? '<span style="font-size:8px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px">' + openCount + ' offen</span>' : '') +
+          (doneCount ? '<span style="font-size:8px;color:var(--muted)">' + doneCount + ' erledigt</span>' : '') +
+          '<button class="todo-inline-collapse" onclick="event.stopPropagation();toggleTodoCollapse(' + tid + ')">&#9658; ZEIGEN</button>';
+        hdr.addEventListener('click', function(){ toggleTodoCollapse(tid); });
+        body.appendChild(hdr);
+      } else {
+        const hdr = document.createElement('div');
+        hdr.className = 'todo-inline-row';
+        hdr.style.cssText = 'cursor:pointer;gap:6px;';
+        hdr.innerHTML = '<span style="font-size:8px;letter-spacing:.1em;color:var(--muted)">&#9745; TO DO</span>' +
+          '<button class="todo-inline-collapse" onclick="event.stopPropagation();toggleTodoCollapse(' + tid + ')">&#9660; ZUKLAPPEN</button>';
+        hdr.addEventListener('click', function(){ toggleTodoCollapse(tid); });
+        body.appendChild(hdr);
 
-      if (!collapsed) {
         trackTodos.forEach(function(item) {
           const row = document.createElement('div');
           row.className = 'todo-inline-row';
@@ -1367,8 +1368,8 @@ function render() {
           cb.checked = item.done;
           cb.addEventListener('mousedown', function(e){ e.stopPropagation(); });
           cb.addEventListener('change', function() {
-            item.done = true;
-            item.doneAt = new Date().toISOString();
+            item.done = cb.checked;
+            item.doneAt = cb.checked ? new Date().toISOString() : null;
             snapshot(); render();
           });
           const txt = document.createElement('span');
