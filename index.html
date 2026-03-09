@@ -237,6 +237,12 @@
 
 
   .track-tc { font-size:var(--cell-fs,10px); color:#666; font-family:'Space Mono',monospace; letter-spacing:.01em; white-space:nowrap; line-height:1; user-select:none; cursor:grab; }
+  .todo-inline-row { display:flex; align-items:center; gap:8px; padding:3px 8px 3px 16px; border-bottom:1px solid var(--line); background:rgba(0,0,0,.03); }
+  .todo-inline-row input[type=checkbox] { accent-color:var(--accent); cursor:pointer; flex-shrink:0; width:12px; height:12px; }
+  .todo-inline-text { font-size:var(--cell-fs,10px); font-family:'Space Mono',monospace; color:#666; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .todo-inline-text.done { text-decoration:line-through; opacity:.4; }
+  .todo-inline-collapse { font-size:8px; letter-spacing:.08em; color:var(--muted); cursor:pointer; padding:2px 6px; border:1px solid var(--line); background:none; font-family:'Space Mono',monospace; }
+  .todo-inline-collapse:hover { color:var(--fg); }
   .track-todo-cell { font-size:var(--cell-fs,10px); color:#888; font-family:'Space Mono',monospace; cursor:pointer; padding:2px 4px; border-radius:2px; display:flex; align-items:center; justify-content:center; }
   .track-todo-cell:hover { background:rgba(0,0,0,.08); }
   .todo-badge { background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:10px; font-family:'Space Mono',monospace; }
@@ -838,7 +844,7 @@
 
   <!-- Visibility toggles -->
   
-<div class="tc-conflict-banner" id="tc-conflict-banner">⚠ TIMECODE KONFLIKT — Startpunkte überlappen sich</div>
+<div class="tc-conflict-banner" id="tc-conflict-banner">⚠ TIMECODE KONFLIKT — Startpunkte überlappen sich <button onclick="scrollToFirstConflict()" style="margin-left:12px;background:#fff;color:#cc2211;border:none;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;padding:3px 8px;cursor:pointer;letter-spacing:.08em">→ ZEIGEN</button></div>
 <div class="vis-bar" id="vis-bar">
     <span>ANZEIGEN:</span>
     <label style="font-weight:700"><input type="checkbox" id="vis-all" checked onchange="setAllVis(this.checked)"> Alle</label>
@@ -851,6 +857,9 @@
     <label><input type="checkbox" id="vis-key" checked onchange="render()"> TONART</label>
     <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
+    <span style="color:var(--line);margin:0 2px">|</span>
+    <button onclick="quickSave()" id="vis-save-btn" style="background:var(--fg);color:var(--bg);border:none;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:4px 10px;cursor:pointer;font-weight:700">SAVE</button>
+    <button onclick="openSaveModal()" style="background:none;border:1px solid #bbb;color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:4px 10px;cursor:pointer">SAVE AS</button>
     <span style="color:var(--line);margin:0 2px">|</span>
     <label style="display:flex;align-items:center;gap:6px">
       SCHRIFT
@@ -961,7 +970,8 @@ let annotations = {};
 let trackColors = {};
 let colOrder = ['ltc','key','notes','todo','length','bpm']; // full column order
 let _currentSaveId = null;
-let todos = {}; // trackId -> [{id, text, done, doneAt}]  // ID of last saved archive entry (for quick-save overwrite)
+let todos = {}; // trackId -> [{id, text, done, doneAt}]
+let _todoCollapsed = {}; // trackId -> bool  // ID of last saved archive entry (for quick-save overwrite)
 let _currentSaveName = '';  // name of last saved entry
 let columnOrder = ['length','bpm']; // legacy, kept for save/load compat
 let blocks = []; // [{id, label, color, trackIds:[]}]
@@ -1124,7 +1134,7 @@ function render() {
   const renderedBlocks = new Set();
   const tcData = on ? calcTimecodes() : { tcs: {}, conflicts: [] }; // conflicts only
   const banner = document.getElementById('tc-conflict-banner');
-  if (banner) banner.classList.toggle('active', on && tcData.conflicts.length > 0);
+  if (banner) { banner.classList.toggle('active', on && tcData.conflicts.length > 0); if (tcData.conflicts.length > 0) window._tcConflicts = tcData.conflicts; }
 
   let trackNum = 0;
   setlist.forEach((tid, i) => {
@@ -1325,6 +1335,50 @@ function render() {
       const ar = makeAnnRow('trans', '→ ÜBERGANG', ann.transOut, tid, 'transOut');
       if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); }
       body.appendChild(ar);
+    }
+
+    // — Todo inline rows —
+    const trackTodos = (todos[tid] || []);
+    if (trackTodos.length > 0) {
+      const collapsed = _todoCollapsed[tid];
+      const openTodos = trackTodos.filter(function(x){ return !x.done; });
+      const doneTodos = trackTodos.filter(function(x){ return x.done; });
+      const visible = collapsed ? [] : trackTodos;
+
+      // Header row with collapse toggle
+      const hdr = document.createElement('div');
+      hdr.className = 'todo-inline-row';
+      hdr.style.cssText = 'cursor:pointer;gap:6px;';
+      const openCount = openTodos.length;
+      const doneCount = doneTodos.length;
+      hdr.innerHTML = '<span style="font-size:8px;letter-spacing:.1em;color:var(--muted)">☑ TO DO</span>' +
+        (openCount ? '<span style="font-size:8px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px">' + openCount + ' offen</span>' : '') +
+        (doneCount ? '<span style="font-size:8px;color:var(--muted)">' + doneCount + ' erledigt</span>' : '') +
+        '<button class="todo-inline-collapse" onclick="event.stopPropagation();toggleTodoCollapse(' + tid + ')">' + (collapsed ? '▶ ZEIGEN' : '▼ ZUKLAPPEN') + '</button>';
+      hdr.addEventListener('click', function(){ toggleTodoCollapse(tid); });
+      body.appendChild(hdr);
+
+      if (!collapsed) {
+        trackTodos.forEach(function(item) {
+          const row = document.createElement('div');
+          row.className = 'todo-inline-row';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = item.done;
+          cb.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+          cb.addEventListener('change', function() {
+            item.done = true;
+            item.doneAt = new Date().toISOString();
+            snapshot(); render();
+          });
+          const txt = document.createElement('span');
+          txt.className = 'todo-inline-text' + (item.done ? ' done' : '');
+          txt.textContent = item.text;
+          row.appendChild(cb);
+          row.appendChild(txt);
+          body.appendChild(row);
+        });
+      }
     }
 
   });
@@ -1759,7 +1813,7 @@ function buildExportRows(opts) {
   const on = ltcEnabled();
   const tcData = on ? calcTimecodes() : { tcs: {}, conflicts: [] }; // conflicts only
   const banner = document.getElementById('tc-conflict-banner');
-  if (banner) banner.classList.toggle('active', on && tcData.conflicts.length > 0);
+  if (banner) { banner.classList.toggle('active', on && tcData.conflicts.length > 0); if (tcData.conflicts.length > 0) window._tcConflicts = tcData.conflicts; }
   const tcColHeader = document.getElementById('tc-col-header');
   if (tcColHeader) tcColHeader.style.display = on ? '' : 'none';
 
@@ -2730,6 +2784,23 @@ function updateTodoBadge(trackId) {
   snapshot();
 }
 
+function scrollToFirstConflict() {
+  const ids = window._tcConflicts || [];
+  if (!ids.length) return;
+  const firstId = ids[0];
+  const el = document.querySelector('.track-row[data-id="' + firstId + '"]') || document.querySelector('.track-row[data-id="' + firstId + '"]');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.style.outline = '2px solid #cc2211';
+    setTimeout(function(){ el.style.outline = ''; }, 2000);
+  }
+}
+
+function toggleTodoCollapse(trackId) {
+  _todoCollapsed[trackId] = !_todoCollapsed[trackId];
+  render();
+}
+
 function closeKeyPicker() {
   const p = document.getElementById('key-picker');
   if (p) {
@@ -3199,9 +3270,8 @@ function quickSave() {
       saveArchive(archive);
       // Brief visual feedback on the tab
       // Brief flash on pool save button
-      document.querySelectorAll('.pool-header button').forEach(function(b){
-        if(b.textContent==='SAVE'){b.textContent='✓';setTimeout(function(){b.textContent='SAVE';},1200);}
-      });
+      const sb = document.getElementById('vis-save-btn');
+      if(sb){sb.textContent='✓ SAVED';setTimeout(function(){sb.textContent='SAVE';},1400);}
       return;
     }
   }
