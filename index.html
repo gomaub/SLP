@@ -58,6 +58,8 @@
   .track-row.special-intro  .track-name::before { content:"↳ "; color:var(--green); }
   .track-row.special-outro  .track-name::before { content:"↲ "; color:var(--accent); }
   .track-row.special-ansage .track-name::before { content:"🎤 "; }
+  .track-row.special-zugabe .track-name { color:#fff; letter-spacing:.08em; font-size:.9em; opacity:.9; }
+  .track-row.special-zugabe .track-num { color:transparent; user-select:none; }
   .add-form { display:none; background:var(--card); border:1px solid var(--line); padding:16px 20px; margin-bottom:16px; gap:10px; flex-wrap:wrap; align-items:flex-end; }
   .add-form.open { display:flex; }
   .add-form label { display:flex; flex-direction:column; gap:4px; font-size:9px; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; }
@@ -71,7 +73,7 @@
   .setlist-wrap { border-top:2px solid var(--fg); }
   .col-headers { position:relative; display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:9px; letter-spacing:.12em; color:#333; text-transform:uppercase; gap:8px; font-weight:700; }
 
-  .track-row { display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:0 8px; border-bottom:1px solid var(--line); align-items:center; gap:8px; cursor:grab; transition:background .1s; min-height:44px; margin-bottom:4px; }
+  .track-row { display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:var(--track-row-py,2px) 8px; border-bottom:1px solid var(--line); align-items:center; gap:8px; cursor:grab; transition:background .1s; min-height:var(--track-row-h,44px); margin-bottom:4px; }
   .track-row.in-block { margin-bottom:0; min-height:38px; position:relative; overflow:visible; }
   /* Vertical line */
   .track-row.in-block::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); pointer-events:none; z-index:1; }
@@ -94,7 +96,8 @@
   .track-row.dragging { opacity:.4; cursor:grabbing; }
   .track-row.drag-over { background:rgba(230,51,35,.08); border-top:2px solid var(--accent); }
   .track-row.uncertain { background:rgba(255,140,0,.1); }
-  .track-row.zugabe { background:#111 !important; color:#ffffff; border-left:3px solid #fff !important; }
+  .track-row.zugabe { background:#333 !important; color:#ffffff; border-top:1px solid #666 !important; border-left:none !important; }
+  .track-row.special-zugabe { background:#2a2a2a !important; color:#fff; border-top:1px solid #555 !important; border-left:none !important; }
   .track-row.zugabe .track-num { color:#888; }
   .track-row.zugabe .track-name { color:#fff; }
   .track-row.zugabe .track-length, .track-row.zugabe .track-bpm { color:#ddd; }
@@ -110,7 +113,7 @@
   .drag-handle { touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; cursor:grab; font-size:18px; color:#888; display:flex; align-items:center; justify-content:center; transition:color .15s; min-width:32px; min-height:44px; padding:0 4px; }
   .drag-handle:hover { color:#333; }
   .track-row:hover .drag-handle { color:#666; }
-  .track-name { font-size:12px; font-weight:700; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .track-name { font-size:var(--track-name-fs,12px); font-weight:700; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .track-length { font-size:var(--cell-fs,10px); color:#333; font-variant-numeric:tabular-nums; }
   .track-note-inline { font-size:var(--cell-fs,10px); color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:grab; user-select:none; padding:1px 4px; border-radius:2px; transition:background .1s; align-self:center; }
   .track-note-inline:hover { background:rgba(0,0,0,.06); }
@@ -126,7 +129,7 @@
   .track-row:hover .track-delete-btn { opacity:1; }
 
   /* ANNOTATION ROWS (intro/outro/transition/note) */
-  .annotation-row { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 16px; border-bottom:1px solid var(--line); position:relative; overflow:visible; }
+  .annotation-row { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 16px; border-bottom:1px solid var(--line); position:relative; overflow:visible; background:rgba(0,0,0,.03); }
   .annotation-row.in-block::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); pointer-events:none; z-index:1; }
   .ann-arrow { flex-shrink:0; font-size:13px; line-height:1; width:16px; text-align:center; }
   .ann-type-intro .ann-arrow  { color:var(--green); }
@@ -234,6 +237,9 @@
 
 
   .track-tc { font-size:var(--cell-fs,10px); color:#666; font-family:'Space Mono',monospace; letter-spacing:.01em; white-space:nowrap; line-height:1; user-select:none; cursor:grab; }
+  .track-todo-cell { font-size:var(--cell-fs,10px); color:#888; font-family:'Space Mono',monospace; cursor:pointer; padding:2px 4px; border-radius:2px; display:flex; align-items:center; justify-content:center; }
+  .track-todo-cell:hover { background:rgba(0,0,0,.08); }
+  .todo-badge { background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:10px; font-family:'Space Mono',monospace; }
   .track-key { font-size:var(--cell-fs,10px); color:#888; font-family:'Space Mono',monospace; letter-spacing:.04em; white-space:nowrap; cursor:pointer; padding:2px 4px; border-radius:2px; }
   .track-key:hover { background:rgba(0,0,0,.08); color:#111; }
   .track-key.has-key { color:#c87020; font-weight:700; }
@@ -489,6 +495,10 @@
       <button class="pool-sort-btn" id="sort-none" onclick="setSort('none')">ORIGINAL</button>
     </div>
     <div class="pool-meta" id="pool-meta">— TRACKS</div>
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button onclick="quickSave()" style="flex:1;background:var(--fg);color:var(--bg);border:none;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:6px 8px;cursor:pointer;font-weight:700">SAVE</button>
+      <button onclick="openSaveModal()" style="flex:1;background:none;border:1px solid #555;color:#ccc;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:6px 8px;cursor:pointer">SAVE AS</button>
+    </div>
   </div>
   <div class="pool-list" id="pool-list"></div>
   <div class="pool-add">
@@ -510,6 +520,41 @@
       <button class="em-close" onclick="closeEditModal()">✕</button>
     </div>
     <div class="em-body">
+
+      <!-- METADATEN -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)">
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          NAME
+          <input type="text" id="em-name" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          LÄNGE (m:ss)
+          <input type="text" id="em-length" placeholder="3:30" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          BPM
+          <input type="text" id="em-bpm" placeholder="—" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          LTC
+          <input type="text" id="em-ltc-top" placeholder="01:00:00:00" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box;letter-spacing:.04em">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          TONART
+          <button type="button" id="em-key-btn" onclick="openAddKeyPicker(this)"
+            style="background:var(--bg);border:1px solid var(--line);color:var(--muted);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;text-align:left;cursor:pointer;width:100%;box-sizing:border-box">—</button>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          TYP
+          <select id="em-type" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box">
+            <option value="song">🎵 Song</option>
+            <option value="intro">↳ Intro</option>
+            <option value="outro">↲ Outro</option>
+            <option value="ansage">🎤 Ansage</option>
+            <option value="zugabe">— Zugabe</option>
+          </select>
+        </label>
+      </div>
 
       <!-- INTRO -->
       <div class="em-section">
@@ -584,12 +629,29 @@
         </div>
       </div>
 
-    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line)">
-      <label style="font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;flex-shrink:0">LTC</label>
-      <input type="text" id="em-ltc" placeholder="01:00:00:00"
-        style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:5px 8px;width:130px;outline:none;letter-spacing:.05em">
-      <span style="font-size:9px;color:var(--muted)">bleibt immer am Track</span>
-    </div>
+
+      <!-- TODO SECTION -->
+      <div class="em-section">
+        <div class="em-section-header" onclick="toggleSection('sec-todo')">
+          <span class="em-section-label" style="color:var(--muted)">☑ TO DO</span>
+          <span class="em-toggle" id="sec-todo-indicator">+ hinzufügen</span>
+        </div>
+        <div class="em-section-body" id="sec-todo">
+          <div id="em-todo-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px"></div>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="em-todo-inp" placeholder="Neue Aufgabe…"
+              style="flex:1;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:10px;padding:5px 8px;outline:none"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();addTodoItem()}">
+            <button onclick="addTodoItem()"
+              style="background:var(--fg);color:var(--bg);border:none;font-family:'Space Mono',monospace;font-size:10px;padding:5px 10px;cursor:pointer">+</button>
+          </div>
+          <div id="em-todo-history-wrap" style="margin-top:12px;display:none">
+            <div style="font-size:8px;letter-spacing:.1em;color:var(--muted);margin-bottom:6px">— ERLEDIGT —</div>
+            <div id="em-todo-history" style="display:flex;flex-direction:column;gap:3px"></div>
+          </div>
+        </div>
+      </div>
+
     <div class="em-footer">
       <button onclick="closeEditModal()">Abbrechen</button>
       <button class="primary" onclick="saveEditModal()">Speichern</button>
@@ -703,7 +765,8 @@
       <button class="view-tab" onclick="toggleFileMenu()" id="file-menu-btn">MENU</button>
       <div class="file-menu-dropdown" id="file-menu-dropdown">
         <button onclick="copyShareUrl();closeFileMenu()">⇗ TEILEN</button>
-        <button onclick="exportData();closeFileMenu()">↓ BACKUP</button>
+        <button onclick="exportData('artist');closeFileMenu()">↓ BACKUP ARTIST</button>
+        <button onclick="exportData('admin');closeFileMenu()">↓ BACKUP ADMIN</button>
         <div class="file-menu-sep"></div>
         <button onclick="openImportModal();closeFileMenu()">↑ IMPORT TXT</button>
         <button onclick="importData();closeFileMenu()">↑ IMPORT FILE</button>
@@ -752,7 +815,13 @@
       <button type="button" class="add-type-btn"        id="type-btn-intro"   onclick="setAddType('intro')"   >↳ INTRO</button>
       <button type="button" class="add-type-btn"        id="type-btn-outro"   onclick="setAddType('outro')"   >↲ OUTRO</button>
       <button type="button" class="add-type-btn"        id="type-btn-ansage"  onclick="setAddType('ansage')"  >🎤 ANSAGE</button>
+      <button type="button" class="add-type-btn"        id="type-btn-zugabe"  onclick="setAddType('zugabe')"  >— ZUGABE</button>
     </div>
+    <label style="width:100%">Position
+      <select id="inp-position" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:5px 8px;width:100%;outline:none;margin-top:4px">
+        <option value="end">— Ende der Setlist</option>
+      </select>
+    </label>
     <label>Name<input type="text" id="inp-name" placeholder="Trackname" autocomplete="off" oninput="autocompleteTrackName(this)" onkeydown="autocompleteKeydown(event)" />
     <div id="autocomplete-list" style="display:none;position:absolute;background:var(--bg);border:1px solid var(--fg);z-index:500;max-height:200px;overflow-y:auto;width:240px;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div></label>
     <label>Länge (m:ss)<input type="text" id="inp-length" placeholder="3:00" class="short" /></label>
@@ -778,9 +847,18 @@
     <label><input type="checkbox" id="vis-bpm" checked onchange="syncAllCheckbox();render()"> BPM</label>
     <label><input type="checkbox" id="vis-annotations" checked onchange="syncAllCheckbox();render()"> Übergänge</label>
     <label><input type="checkbox" id="vis-notes-col" checked onchange="syncAllCheckbox();render()"> Notiz-Spalte</label>
-    <label><input type="checkbox" id="vis-ltc" onchange="toggleTC()"> LTC</label>
-    <label><input type="checkbox" id="vis-key" onchange="render()"> TONART</label>
+    <label><input type="checkbox" id="vis-ltc" checked onchange="toggleTC()"> LTC</label>
+    <label><input type="checkbox" id="vis-key" checked onchange="render()"> TONART</label>
+    <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
+    <span style="color:var(--line);margin:0 2px">|</span>
+    <label style="display:flex;align-items:center;gap:6px">
+      SCHRIFT
+      <input type="number" id="track-font-size" min="10" max="24" value="12" step="1"
+        style="width:44px;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;padding:2px 4px;text-align:center;outline:none"
+        oninput="updateTrackFontSize(this.value)"
+        onkeydown="if(event.key==='ArrowUp'){event.preventDefault();this.value=Math.min(24,+this.value+1);updateTrackFontSize(this.value)}else if(event.key==='ArrowDown'){event.preventDefault();this.value=Math.max(10,+this.value-1);updateTrackFontSize(this.value)}">
+    </label>
   </div>
 
   <!-- Select mode bar -->
@@ -881,7 +959,10 @@ let pool = [];
 // annotations[trackId] = { intro, outro, transIn, transOut, note }
 let annotations = {};
 let trackColors = {};
-let colOrder = ['ltc','key','notes','length','bpm']; // full column order
+let colOrder = ['ltc','key','notes','todo','length','bpm']; // full column order
+let _currentSaveId = null;
+let todos = {}; // trackId -> [{id, text, done, doneAt}]  // ID of last saved archive entry (for quick-save overwrite)
+let _currentSaveName = '';  // name of last saved entry
 let columnOrder = ['length','bpm']; // legacy, kept for save/load compat
 let blocks = []; // [{id, label, color, trackIds:[]}]
 let nextBlockId = 1;
@@ -1011,9 +1092,10 @@ function render() {
 
   // ── Dynamic column system ──────────────────────────────────
   const showKey = visChecked('vis-key');
-  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, length:showLength, bpm:showBpm };
-  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', length:'80px', bpm:'60px' };
-  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
+  const showTodo = visChecked('vis-todo');
+  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, length:showLength, bpm:showBpm };
+  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', length:'80px', bpm:'60px' };
+  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
   const visCols = colOrder.filter(c => COL_VISIBLE[c]);
   const gridTpl = '36px 1fr ' + visCols.map(c => COL_WIDTHS[c]).join(' ') + ' 36px';
 
@@ -1088,7 +1170,7 @@ function render() {
 
     // — Track row —
     const row = document.createElement('div');
-    const isZugabe = t.zugabe || /zugabe/i.test(t.name);
+    const isZugabe = t.special === 'zugabe' || t.zugabe || /zugabe/i.test(t.name);
     row.className = 'track-row' + (t.uncertain ? ' uncertain' : '') + (isZugabe ? ' zugabe' : '') + (t.special ? ' special-' + t.special : '');
     row.style.gridTemplateColumns = gridTpl;
     row.draggable = true;
@@ -1116,6 +1198,7 @@ function render() {
     const colCells = visCols.map(c => {
       if (c === 'ltc')    return `<span class="track-tc track-inline-edit" contenteditable="true" data-field="ltc" data-id="${t.id}" draggable="false">${t.ltc || '—'}</span>`;
       if (c === 'key')    return renderKeyCell(t);
+      if (c === 'todo')   return renderTodoCell(t);
       if (c === 'notes')  return `<span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)">${ann.note||'—'}</span>`;
       if (c === 'length') return `<span class="track-length track-inline-edit" contenteditable="true" data-field="length" data-id="${t.id}">${t.length||'—'}</span>`;
       if (c === 'bpm')    return `<span class="track-bpm track-inline-edit ${t.bpm?'filled':''}" contenteditable="true" data-field="bpm" data-id="${t.id}">${t.bpm||'—'}</span>`;
@@ -1310,12 +1393,23 @@ function openEditModal(trackId) {
   const t = getTrack(trackId);
   const ann = getAnn(trackId);
   document.getElementById('em-track-name').textContent = t.name;
+  document.getElementById('em-name').value = t.name || '';
+  document.getElementById('em-length').value = t.length || '';
+  document.getElementById('em-bpm').value = t.bpm || '';
+  document.getElementById('em-ltc-top').value = t.ltc || '';
+  // Key button
+  const keyBtn = document.getElementById('em-key-btn');
+  keyBtn.dataset.key = t.key || '';
+  keyBtn.dataset.keyMode = t.keyMode || 'Dur';
+  keyBtn.textContent = t.key ? t.key + ' ' + (t.keyMode||'Dur') : '—';
+  keyBtn.style.color = t.key ? 'var(--fg)' : 'var(--muted)';
+  // Type select
+  document.getElementById('em-type').value = t.special || 'song';
   document.getElementById('em-intro').value = ann.intro || '';
   document.getElementById('em-outro').value = ann.outro || '';
   document.getElementById('em-trans-in').value = ann.transIn || '';
   document.getElementById('em-trans-out').value = ann.transOut || '';
   document.getElementById('em-note').value = ann.note || '';
-  document.getElementById('em-ltc').value = t.ltc || '';
 
   // Auto-open sections that already have content
   const fieldMap = {'intro':'em-intro','outro':'em-outro','trans-in':'em-trans-in','trans-out':'em-trans-out','note':'em-note'};
@@ -1337,6 +1431,18 @@ function openEditModal(trackId) {
   });
 
   renderColorSwatches(trackId);
+  renderTodoList(trackId);
+  // Auto-open todo section if there are open todos
+  const openTodos = (todos[trackId]||[]).filter(function(x){ return !x.done; });
+  const todoBody = document.getElementById('sec-todo');
+  const todoInd  = document.getElementById('sec-todo-indicator');
+  if (openTodos.length > 0 && todoBody) {
+    todoBody.classList.add('open');
+    if (todoInd) todoInd.textContent = '— entfernen';
+  } else if (todoBody) {
+    todoBody.classList.remove('open');
+    if (todoInd) todoInd.textContent = '+ hinzufügen';
+  }
   const secColor = document.getElementById('sec-color');
   const secColorInd = document.getElementById('sec-color-indicator');
   if (trackColors[trackId]) { secColor.classList.add('open'); secColorInd.textContent = '— entfernen'; }
@@ -1376,10 +1482,22 @@ function saveEditModal() {
     if (col) trackColors[editingTrackId] = col;
     else delete trackColors[editingTrackId];
   }
-  // Save LTC back to track
-  const ltcVal = document.getElementById('em-ltc').value.trim();
+  // Save all metadata back to track
   const editTrack = getTrack(editingTrackId);
-  if (editTrack) editTrack.ltc = ltcVal;
+  if (editTrack) {
+    const newName = document.getElementById('em-name').value.trim();
+    if (newName) editTrack.name = newName;
+    editTrack.length = normalizeLength(document.getElementById('em-length').value.trim());
+    editTrack.bpm = document.getElementById('em-bpm').value.trim();
+    editTrack.ltc = document.getElementById('em-ltc-top').value.trim();
+    const kb = document.getElementById('em-key-btn');
+    editTrack.key = kb.dataset.key || '';
+    editTrack.keyMode = kb.dataset.keyMode || 'Dur';
+    const typeVal = document.getElementById('em-type').value;
+    editTrack.special = typeVal === 'song' ? undefined : typeVal;
+    // Update modal title
+    document.getElementById('em-track-name').textContent = editTrack.name;
+  }
   snapshot(); render(); closeEditModal();
 }
 
@@ -1496,7 +1614,39 @@ function setAddType(type) {
   if (inp) inp.placeholder = type === 'intro' ? 'Intro' : type === 'outro' ? 'Outro' : type === 'ansage' ? 'Ansage…' : 'Trackname';
 }
 
-function toggleAddForm() { document.getElementById('add-form').classList.toggle('open'); document.getElementById('add-btn').classList.toggle('active'); }
+function toggleAddForm() {
+  document.getElementById('add-form').classList.toggle('open');
+  document.getElementById('add-btn').classList.toggle('active');
+  if (document.getElementById('add-form').classList.contains('open')) {
+    populatePositionSelect();
+  }
+}
+
+function populatePositionSelect() {
+  const sel = document.getElementById('inp-position');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="end">— Ende der Setlist</option>';
+  if (setlist.length > 0) {
+    // "Nach Track X" options
+    const firstOpt = document.createElement('option');
+    firstOpt.value = 'start';
+    firstOpt.textContent = '→ Anfang (vor ' + (getTrack(setlist[0])?.name || '?') + ')';
+    sel.appendChild(firstOpt);
+    setlist.forEach(function(tid, i) {
+      const t = getTrack(tid);
+      if (!t) return;
+      const opt = document.createElement('option');
+      opt.value = 'after_' + tid;
+      opt.textContent = 'Nach ' + (i+1) + '. ' + t.name;
+      sel.appendChild(opt);
+    });
+  }
+  // Restore selection if still valid
+  if (current && sel.querySelector('option[value="' + current + '"]')) {
+    sel.value = current;
+  }
+}
 let _pendingNewTrack = null;
 
 function addTrack() {
@@ -1520,7 +1670,8 @@ function addTrack() {
     return;
   }
 
-  _doAddTrack(name, length, bpm, uncertain, _addType, addKey, addKeyMode);
+  const position = document.getElementById('inp-position')?.value || 'end';
+  _doAddTrack(name, length, bpm, uncertain, _addType, addKey, addKeyMode, position);
 }
 
 function resolveDup(action) {
@@ -1551,11 +1702,25 @@ function resolveDup(action) {
   }
 }
 
-function _doAddTrack(name, length, bpm, uncertain, special, key, keyMode) {
+function _doAddTrack(name, length, bpm, uncertain, special, key, keyMode, position) {
   const t = { id:nextId++, name, length, bpm, uncertain };
   if (special && special !== 'song') t.special = special;
   if (key) { t.key = key; t.keyMode = keyMode || 'Dur'; }
-  pool.push(t); setlist.push(t.id); checkZugabe(t);
+  pool.push(t);
+  // Insert at position
+  if (!position || position === 'end') {
+    setlist.push(t.id);
+  } else if (position === 'start') {
+    setlist.unshift(t.id);
+  } else if (position.startsWith('after_')) {
+    const afterId = +position.replace('after_', '');
+    const idx = setlist.indexOf(afterId);
+    if (idx !== -1) setlist.splice(idx + 1, 0, t.id);
+    else setlist.push(t.id);
+  } else {
+    setlist.push(t.id);
+  }
+  checkZugabe(t);
   clearAddForm();
   snapshot(); render();
   if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
@@ -1568,6 +1733,7 @@ function clearAddForm() {
   document.getElementById('inp-bpm').value='';
   document.getElementById('inp-uncertain').checked=false;
   const kb = document.getElementById('inp-key-btn'); if(kb){kb.textContent='—';kb.dataset.key='';kb.dataset.keyMode='';}
+  populatePositionSelect();
 }
 
 
@@ -2299,17 +2465,28 @@ function toggleTC() {
   render();
 }
 
-// ── TONART / KEY COLUMN ───────────────────────────────────────
-const KEY_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const KEY_MODES = ['Dur','Moll'];
-const KEY_DISPLAY = {'C#':'C#/Db','D#':'D#/Eb','F#':'F#/Gb','G#':'G#/Ab','A#':'A#/Bb'};
+function updateTrackFontSize(val) {
+  val = +val;
+  document.documentElement.style.setProperty('--track-name-fs', val + 'px');
+  // Scale cell font proportionally (cell is always a bit smaller than name)
+  const cellFs = Math.max(8, val - 2);
+  document.documentElement.style.setProperty('--cell-fs', cellFs + 'px');
+  // Scale row height
+  const rowH = Math.max(36, val * 3);
+  document.documentElement.style.setProperty('--track-row-h', rowH + 'px');
 
-function keyLabel(k) { return KEY_DISPLAY[k] || k; }
+}
+
+// ── TONART / KEY COLUMN ───────────────────────────────────────
+const KEY_NAMES = ['C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B'];
+const KEY_MODES = ['Dur','Moll'];
+
+function keyLabel(k) { return k; }
 
 function renderKeyCell(t) {
   const key  = t.key  || '';
   const mode = t.keyMode || '';
-  const label = key ? keyLabel(key) + ' ' + mode : '—';
+  const label = key ? key + ' ' + mode : '—';
   return '<span class="track-key' + (key ? ' has-key' : '') + '" data-id="' + t.id + '" onclick="openKeyPicker(' + t.id + ', this)" title="Tonart wählen">' + label + '</span>';
 }
 
@@ -2371,8 +2548,7 @@ function _buildKeyPicker(pendingKey, pendingMode, onConfirm, onClear, anchorEl) 
     kb.dataset.k = k;
     kb.className = 'key-btn';
     const isCur = state.key === k;
-    const isEnharm = !!KEY_DISPLAY[k];
-    kb.style.cssText = 'background:' + (isCur?'#e8e8e8':'#222') + ';color:' + (isCur?'#111':'#ccc') + ';border:1px solid ' + (isCur?'#bbb':'#444') + ';font-family:monospace;font-size:' + (isEnharm?'8px':'10px') + ';padding:7px 4px;cursor:pointer;font-weight:' + (isCur?'700':'400') + ';white-space:nowrap;';
+    kb.style.cssText = 'background:' + (isCur?'#e8e8e8':'#222') + ';color:' + (isCur?'#111':'#ccc') + ';border:1px solid ' + (isCur?'#bbb':'#444') + ';font-family:monospace;font-size:10px;padding:7px 4px;cursor:pointer;font-weight:' + (isCur?'700':'400') + ';white-space:nowrap;';
     kb.onclick = function() { state.key = k; updatePreview(); };
     picker.appendChild(kb);
   });
@@ -2446,6 +2622,112 @@ function openAddKeyPicker(anchor) {
     },
     anchor
   );
+}
+
+// ── TODO SYSTEM ──────────────────────────────────────────────
+
+function renderTodoCell(t) {
+  const items = (todos[t.id] || []).filter(function(x){ return !x.done; });
+  const count = items.length;
+  return '<span class="track-todo-cell" data-id="' + t.id + '" onclick="openTodoFromCell(' + t.id + ')" title="To Dos anzeigen">' +
+    (count > 0 ? '<span class="todo-badge">' + count + '</span>' : '—') +
+    '</span>';
+}
+
+function openTodoFromCell(trackId) {
+  openEditModal(trackId);
+  // Open the todo section after modal opens
+  setTimeout(function() {
+    const body = document.getElementById('sec-todo');
+    const ind  = document.getElementById('sec-todo-indicator');
+    if (body && !body.classList.contains('open')) {
+      body.classList.add('open');
+      if (ind) ind.textContent = '— entfernen';
+    }
+    const inp = document.getElementById('em-todo-inp');
+    if (inp) inp.focus();
+  }, 80);
+}
+
+function renderTodoList(trackId) {
+  const list = todos[trackId] || [];
+  const open = list.filter(function(x){ return !x.done; });
+  const done = list.filter(function(x){ return x.done; });
+
+  const listEl = document.getElementById('em-todo-list');
+  const histEl = document.getElementById('em-todo-history');
+  const histWrap = document.getElementById('em-todo-history-wrap');
+  if (!listEl) return;
+
+  listEl.innerHTML = '';
+  open.forEach(function(item) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.style.cssText = 'cursor:pointer;flex-shrink:0;width:14px;height:14px;accent-color:var(--accent)';
+    cb.onchange = function() {
+      item.done = true;
+      item.doneAt = new Date().toISOString();
+      renderTodoList(trackId);
+      updateTodoBadge(trackId);
+    };
+    const txt = document.createElement('span');
+    txt.textContent = item.text;
+    txt.style.cssText = 'flex:1;font-family:monospace;font-size:10px;color:var(--fg)';
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.style.cssText = 'background:none;border:none;color:var(--muted);font-size:9px;cursor:pointer;padding:0 2px;flex-shrink:0';
+    del.onclick = function() {
+      todos[trackId] = (todos[trackId]||[]).filter(function(x){ return x.id !== item.id; });
+      renderTodoList(trackId);
+      updateTodoBadge(trackId);
+    };
+    row.appendChild(cb); row.appendChild(txt); row.appendChild(del);
+    listEl.appendChild(row);
+  });
+
+  if (open.length === 0) {
+    listEl.innerHTML = '<div style="font-size:9px;color:var(--muted);padding:4px 0">Keine offenen Aufgaben</div>';
+  }
+
+  // History
+  histEl.innerHTML = '';
+  if (done.length > 0) {
+    histWrap.style.display = 'block';
+    done.forEach(function(item) {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;opacity:.5';
+      const d = new Date(item.doneAt);
+      const when = d.toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      row.innerHTML = '<span style="font-size:9px;color:var(--muted);flex-shrink:0">✓ ' + when + '</span>' +
+        '<span style="flex:1;font-family:monospace;font-size:10px;text-decoration:line-through">' + item.text + '</span>';
+      histEl.appendChild(row);
+    });
+  } else {
+    histWrap.style.display = 'none';
+  }
+}
+
+function addTodoItem() {
+  const inp = document.getElementById('em-todo-inp');
+  if (!inp || !editingTrackId) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!todos[editingTrackId]) todos[editingTrackId] = [];
+  todos[editingTrackId].push({ id: Date.now(), text, done: false, doneAt: null });
+  inp.value = '';
+  renderTodoList(editingTrackId);
+  updateTodoBadge(editingTrackId);
+}
+
+function updateTodoBadge(trackId) {
+  // Rerender the todo cell in the table without full render
+  const open = (todos[trackId]||[]).filter(function(x){ return !x.done; }).length;
+  document.querySelectorAll('.track-todo-cell[data-id="' + trackId + '"]').forEach(function(el) {
+    el.innerHTML = open > 0 ? '<span class="todo-badge">' + open + '</span>' : '—';
+  });
+  snapshot();
 }
 
 function closeKeyPicker() {
@@ -2740,11 +3022,13 @@ function confirmImport(mode) {
 const STORAGE_KEY = 'setlist_planner_v1_' + ARTIST_ID;
 
 function getFullState() {
-  return { pool, setlist, annotations, trackColors, columnOrder, blocks, archiveStore, version: 1 };
+  return {
+    todos, pool, setlist, annotations, trackColors, columnOrder, blocks, archiveStore, version: 1 };
 }
 
 function applyFullState(s) {
   if (s.pool)         pool         = s.pool.map(t => ({...t, id:+t.id}));
+  todos = s.todos || {};
   if (s.setlist)      setlist      = s.setlist.map(Number);
   if (s.annotations)  annotations  = s.annotations;
   if (s.trackColors)  trackColors  = s.trackColors;
@@ -2773,27 +3057,42 @@ function loadFromStorage() {
   return false;
 }
 
-function exportData() {
-  const state = getFullState();
-  // Make sure archive is fresh
-  state.archiveStore = archiveStore;
-  state.exportedAt = new Date().toISOString();
-  state.artist = ARTIST_ID;
-
+function exportData(mode) {
   const d = new Date();
   const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   const timeStr = String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0');
   const displayName = getArtistDisplayName(ARTIST_ID).replace(/[^a-zA-Z0-9_-]/g, '-');
-  const artistStr = ARTIST_ID !== 'default' ? displayName + '_' : '';
-  const archiveCount = (archiveStore || []).length;
-  const poolCount = pool.length;
 
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `backup_${artistStr}${dateStr}_${timeStr}.json`;
-  a.click();
-  showDebug(`Backup: ${poolCount} Songs, ${archiveCount} Setlisten gespeichert`);
+  if (mode === 'admin') {
+    // Backup ALL artists from localStorage
+    const artists = getKnownArtists();
+    const allData = { _type: 'admin_backup', exportedAt: d.toISOString(), artists: [] };
+    artists.forEach(function(a) {
+      const key = 'setlist_planner_v1_' + a.id;
+      const raw = localStorage.getItem(key);
+      allData.artists.push({ id: a.id, name: a.name, data: raw ? JSON.parse(raw) : null });
+    });
+    allData.artistList = artists;
+    const blob = new Blob([JSON.stringify(allData, null, 2)], {type:'application/json'});
+    const el = document.createElement('a');
+    el.href = URL.createObjectURL(blob);
+    el.download = 'backup_ADMIN_' + dateStr + '_' + timeStr + '.json';
+    el.click();
+    showDebug('Admin-Backup: ' + artists.length + ' Artists gesichert');
+  } else {
+    // Backup current artist only
+    const state = getFullState();
+    state.archiveStore = archiveStore;
+    state.exportedAt = d.toISOString();
+    state.artist = ARTIST_ID;
+    const artistStr = ARTIST_ID !== 'default' ? displayName + '_' : '';
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+    const el = document.createElement('a');
+    el.href = URL.createObjectURL(blob);
+    el.download = 'backup_' + artistStr + dateStr + '_' + timeStr + '.json';
+    el.click();
+    showDebug('Backup: ' + pool.length + ' Songs, ' + (archiveStore||[]).length + ' Setlisten');
+  }
 }
 
 function importData() {
@@ -2881,6 +3180,35 @@ function switchView(view) {
   if (view === 'archive') renderArchive();
 }
 
+function quickSave() {
+  // If we have a current save, overwrite it; otherwise fall back to Save As
+  if (_currentSaveId) {
+    const archive = loadArchive();
+    const idx = archive.findIndex(e => e.id === _currentSaveId);
+    if (idx !== -1) {
+      const now = new Date();
+      const total = setlist.reduce((s,tid)=>s+toSeconds(getTrack(tid)?.length||''),0);
+      archive[idx] = {
+        ...archive[idx],
+        date: now.toISOString(),
+        trackCount: setlist.length,
+        totalSecs: total,
+        trackNames: setlist.slice(0,5).map(tid => getTrack(tid)?.name||'').filter(Boolean),
+        state: JSON.stringify({ setlist, annotations, trackColors, columnOrder, blocks, pool: pool.map(t=>({...t})) })
+      };
+      saveArchive(archive);
+      // Brief visual feedback on the tab
+      // Brief flash on pool save button
+      document.querySelectorAll('.pool-header button').forEach(function(b){
+        if(b.textContent==='SAVE'){b.textContent='✓';setTimeout(function(){b.textContent='SAVE';},1200);}
+      });
+      return;
+    }
+  }
+  // No existing save — open Save As
+  openSaveModal();
+}
+
 function openSaveModal() {
   const now = new Date();
   const dd = String(now.getDate()).padStart(2,'0');
@@ -2915,6 +3243,8 @@ function confirmSave() {
   const archive = loadArchive();
   archive.unshift(entry);
   saveArchive(archive);
+  _currentSaveId = entry.id;
+  _currentSaveName = name;
   closeSaveModal();
   switchView('archive');
 }
@@ -2971,6 +3301,8 @@ function loadSetlist(id) {
     blocks = s.blocks||[];
     if (s.pool) pool = s.pool;
     nextId = Math.max(nextId, ...pool.map(t=>t.id+1), 1);
+    _currentSaveId = entry.id;
+    _currentSaveName = entry.name;
     snapshot();
     switchView('main');
     render();
