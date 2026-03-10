@@ -556,8 +556,8 @@
   .mobile-menu-btn { display:none; }
 
   @media (max-width:600px) {
-    /* Hide all toolbar buttons, show hamburger instead */
-    .toolbar > button,
+    /* Hide all toolbar buttons except mobile-menu-btn, show hamburger instead */
+    .toolbar > button:not(.mobile-menu-btn),
     .toolbar > a,
     .toolbar-sep { display:none !important; }
 
@@ -2161,8 +2161,8 @@ function exportPdf(opts) {
   .mobile-menu-btn { display:none; }
 
   @media (max-width:600px) {
-    /* Hide all toolbar buttons, show hamburger instead */
-    .toolbar > button,
+    /* Hide all toolbar buttons except mobile-menu-btn, show hamburger instead */
+    .toolbar > button:not(.mobile-menu-btn),
     .toolbar > a,
     .toolbar-sep { display:none !important; }
 
