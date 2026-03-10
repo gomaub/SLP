@@ -3455,8 +3455,13 @@ function confirmImport(mode) {
   }
   closeImportModal();
   snapshot(); render();
-  // Pre-set hash so realtime doesn't overwrite our new state before save fires
-  _lastSavedHash = _stateHash(getFullState());
+  // Save immediately to Supabase — prevents realtime from echoing back the old state
+  // during the normal 1.5s debounce window
+  clearTimeout(window._sbSaveTimer);
+  const importState = getFullState();
+  _lastSavedHash = _stateHash(importState);
+  _sbClient.from(SB_TABLE).upsert({ id: SB_ROW_ID, data: JSON.stringify(importState), updated_at: new Date().toISOString() });
+  autoSaveToStorage();
   if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
   if (mode === 'pool') openPool();
 }
