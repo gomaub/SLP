@@ -3467,6 +3467,8 @@ function confirmImport(mode) {
   }
   closeImportModal();
   snapshot(); render();
+  // Pre-set hash so realtime doesn't overwrite our new state before save fires
+  _lastSavedHash = _stateHash(getFullState());
   if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
   if (mode === 'pool') openPool();
 }
@@ -3880,11 +3882,10 @@ function visChecked(id) {
   try {
     const loaded = await loadFromSupabase();
     if (!loaded) {
-      console.log('Supabase: kein Stand geladen, lade Beispiel-Track');
-      const defaultTrack = { id: 1, name: 'Default', length: '3:30', bpm: '120', uncertain: false };
-      pool = [defaultTrack];
-      setlist = [1];
-      nextId = 2;
+      console.log('Supabase: kein Stand geladen, starte leer');
+      pool = [];
+      setlist = [];
+      nextId = 1;
     }
   } catch(e) {
     console.warn('Supabase init fehlgeschlagen:', e);
