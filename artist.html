@@ -1063,7 +1063,7 @@
     </div>
     <div id="setlist-body"></div>
     <div class="setlist-drop-end" id="setlist-drop-end">— HIER ABLEGEN —</div>
-    <div class="totals-row">
+    <div class="totals-row" id="totals-row">
       <span></span>
       <span class="label">GESAMT</span>
       <span class="val" id="total-time">—</span>
@@ -1527,6 +1527,9 @@ function render() {
   const avg = bpmVals.length ? Math.round(bpmVals.reduce((a,b)=>a+b,0)/bpmVals.length) : null;
   document.getElementById('total-bpm').textContent = avg ? avg+' avg' : '—';
   document.getElementById('stat-bpm').textContent = avg || '—';
+  // Sync totals-row grid to match track rows
+  const totalsRow = document.getElementById('totals-row');
+  if (totalsRow) totalsRow.style.gridTemplateColumns = gridTpl;
 }
 
 function makeAnnRow(type, label, text, trackId, field) {
