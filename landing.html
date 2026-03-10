@@ -280,7 +280,10 @@
     <div class="success-box" id="success-box">
       <div class="success-label">✓ ARTIST ERSTELLT — DEIN LINK:</div>
       <div class="success-link" id="success-link"></div>
-      <button class="copy-btn" onclick="copyLink()">LINK KOPIEREN</button>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="copy-btn" onclick="copyLink()">LINK KOPIEREN</button>
+        <a id="success-open-btn" href="#" target="_blank" style="background:none;border:1px solid var(--accent);color:var(--accent);font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;padding:7px 16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center">SEITE ÖFFNEN →</a>
+      </div>
     </div>
   </div>
 
@@ -367,6 +370,7 @@
       const link = APP_URL + '?artist=' + slug;
       _createdLink = link;
       document.getElementById('success-link').textContent = link;
+      document.getElementById('success-open-btn').href = link;
       document.getElementById('success-box').classList.add('visible');
 
       // Reset form
