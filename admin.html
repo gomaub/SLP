@@ -3454,7 +3454,7 @@ function confirmImport(mode) {
   parsedImportData.forEach(p => {
     if (p.isUpdate) {
       // Track exists in pool — update its fields
-      const t = pool.find(x => x.id === p.existingId);
+      const t = pool.find(x => +x.id === +p.existingId);
       if (t) {
         if (p.length) t.length = p.length;
         if (p.bpm)    t.bpm    = p.bpm;
@@ -3469,17 +3469,16 @@ function confirmImport(mode) {
     }
   });
   if (mode === 'both') {
-    // Force-add all imported track IDs to setlist (skip those already present)
+    const currentSetlistNums = setlist.map(Number);
     newIds.forEach(id => {
-      if (!setlist.map(Number).includes(+id)) setlist.push(+id);
+      if (!currentSetlistNums.includes(+id)) {
+        setlist.push(+id);
+        currentSetlistNums.push(+id); // keep in sync
+      }
     });
   }
   closeImportModal();
-  // Save state immediately — don't rely on debounced timer
-  clearTimeout(window._sbSaveTimer);
   snapshot(); render();
-  autoSaveToStorage();
-  saveToSupabase(); // immediate save, prevents realtime from overwriting
   if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
   if (mode === 'pool') openPool();
 }
