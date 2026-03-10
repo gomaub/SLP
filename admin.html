@@ -1,0 +1,4150 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>SETLIST PLANNER</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap');
+  :root {
+    color-scheme: light;
+    --bg:#d4d0c8; --fg:#0a0a0a; --accent:#cc2211;
+    --muted:#444; --line:#999890; --card:#c4c0b8;
+    --green:#2d7a32; --green-bg:rgba(45,122,50,.12);
+  }
+  html, body { color-scheme: light !important; background:#d4d0c8 !important; color:#0a0a0a !important; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--fg); font-family:'Space Mono',monospace; font-size:11px; min-height:100vh; overflow-x:hidden; }
+
+
+  .shell { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:0 32px 80px; transition:margin-left .3s cubic-bezier(.4,0,.2,1); }
+  body.pool-open .shell { margin-left:300px; max-width:calc(1100px + 300px); }
+
+  header { display:flex; justify-content:space-between; align-items:flex-start; padding:20px 0 0; }
+  .header-meta { display:flex; gap:48px; color:#333; font-size:10px; letter-spacing:.05em; padding-bottom:14px; }
+  .header-right { display:flex; gap:32px; color:var(--muted); font-size:10px; padding-bottom:14px; }
+
+
+
+  /* TOOLBAR */
+  .toolbar { display:flex; align-items:center; gap:2px; margin:28px 0 20px; flex-wrap:wrap; }
+  .file-menu-wrap { position:relative; display:inline-block; }
+  .file-menu-dropdown { display:none; position:absolute; top:100%; right:0; background:#111; color:#fff; width:300px; z-index:500; box-shadow:0 4px 20px rgba(0,0,0,.3); border:1px solid #333; }
+  .file-menu-dropdown.open { display:block; }
+  .file-menu-dropdown button { display:block; width:100%; text-align:left; background:none; border:none; color:#fff; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; padding:11px 16px; cursor:pointer; white-space:nowrap; touch-action:manipulation; }
+  .file-menu-dropdown button:hover { background:rgba(255,255,255,.1); }
+  .file-menu-sep { height:1px; background:#333; margin:2px 0; }
+  .toolbar button { background:none; border:1.5px solid var(--fg); color:var(--fg); font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.08em; padding:6px 12px; cursor:pointer; text-transform:uppercase; transition:all .15s; touch-action:manipulation; -webkit-tap-highlight-color:transparent; font-weight:700; }
+  .toolbar button:hover, .toolbar button.active { background:var(--fg); color:var(--bg); }
+  .toolbar button:disabled { opacity:.3; cursor:default; pointer-events:none; }
+  .toolbar button.accent { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .toolbar button.accent:hover { background:#c0281a; }
+  .toolbar-sep { width:20px; }
+  .stats-bar { margin-left:auto; display:flex; gap:24px; font-size:10px; color:#333; align-items:center; }
+  .stats-bar span b { color:var(--fg); font-weight:700; }
+
+  /* ADD FORM */
+  .add-type-btn { background:none; border:1px solid var(--line); color:var(--muted); font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.07em; padding:4px 10px; cursor:pointer; text-transform:uppercase; transition:all .15s; }
+  .add-type-btn.active { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+  .add-type-btn:hover:not(.active) { border-color:var(--fg); color:var(--fg); }
+  .track-row.special-intro .track-num,
+  .track-row.special-outro .track-num,
+  .track-row.special-ansage .track-num { color:transparent; user-select:none; }
+  .track-row.special-intro  { opacity:.75; font-style:italic; }
+  .track-row.special-outro  { opacity:.75; font-style:italic; }
+  .track-row.special-ansage { opacity:.75; font-style:italic; }
+  .track-row.special-intro  .track-name::before { content:"↳ "; color:var(--green); }
+  .track-row.special-outro  .track-name::before { content:"↲ "; color:var(--accent); }
+  .track-row.special-ansage .track-name::before { content:"🎤 "; }
+  .track-row.special-zugabe .track-name { color:#fff; letter-spacing:.08em; font-size:.9em; opacity:.9; }
+  .track-row.special-zugabe .track-num { color:transparent; user-select:none; }
+  .add-form { display:none; background:var(--card); border:1px solid var(--line); padding:16px 20px; margin-bottom:16px; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .add-form.open { display:flex; }
+  .add-form label { display:flex; flex-direction:column; gap:4px; font-size:9px; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; }
+  .add-form input { background:var(--bg); border:1px solid var(--line); color:var(--fg); font-family:'Space Mono',monospace; font-size:11px; padding:5px 8px; width:180px; outline:none; }
+  .add-form input:focus { border-color:var(--fg); }
+  .add-form input.short { width:80px; }
+  .add-submit-btn { margin-top:14px; padding:8px 18px; background:var(--fg); color:var(--bg); border:none; font-family:"Space Mono",monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; touch-action:manipulation; }
+  .add-submit-btn:hover { background:#333; }
+
+  /* SETLIST */
+  .setlist-wrap { border-top:2px solid var(--fg); }
+  .col-headers { position:relative; display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:9px; letter-spacing:.12em; color:#333; text-transform:uppercase; gap:8px; font-weight:700; }
+
+  .track-row { display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:var(--track-row-py,2px) 8px; border-bottom:1px solid var(--line); align-items:center; gap:8px; cursor:grab; transition:background .1s; min-height:var(--track-row-h,44px); margin-bottom:4px; }
+  .track-row.in-block { margin-bottom:0; min-height:38px; position:relative; overflow:visible; }
+  /* Vertical line */
+  .track-row.in-block::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); pointer-events:none; z-index:1; }
+  /* Top cap */
+  .track-row.block-start::before { top:-8px; }
+  .track-row.block-start::after  { content:''; position:absolute; left:6px; top:-8px; width:10px; height:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); border-radius:1px; pointer-events:none; z-index:1; }
+  /* Bottom cap — ::after on block-end only conflicts if also block-start (single track), handled below */
+  .track-row.block-end { margin-bottom:12px; }
+  .track-row.block-end::before { bottom:-8px; }
+  .track-row.block-end:not(.block-start)::after { content:''; position:absolute; left:6px; bottom:-8px; width:10px; height:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); border-radius:1px; pointer-events:none; z-index:1; }
+  /* Single-track: both caps via before + after on same element */
+  .track-row.block-start.block-end::before { top:-8px; bottom:-8px; }
+  .track-row.block-start.block-end::after  { content:''; position:absolute; left:6px; bottom:-8px; width:10px; height:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); border-radius:1px; pointer-events:none; z-index:1; }
+  .track-row:hover { background:rgba(0,0,0,.04); }
+
+  .track-num { color:#888; font-size:var(--cell-fs,10px); cursor:pointer; user-select:none; text-align:center; }
+  .track-num:hover { color:var(--accent); }
+  .track-num-input { width:28px; background:var(--accent); color:#fff; border:none; font-family:'Space Mono',monospace; font-size:var(--cell-fs,10px); text-align:center; outline:none; padding:2px; }
+
+  .track-row.dragging { opacity:.4; cursor:grabbing; }
+  .track-row.drag-over { background:rgba(230,51,35,.08); border-top:2px solid var(--accent); }
+  .track-row.uncertain { background:rgba(255,140,0,.1); }
+  .track-row.zugabe { background:#333 !important; color:#ffffff; border-top:1px solid #666 !important; border-left:none !important; }
+  .track-row.special-zugabe { background:#2a2a2a !important; color:#fff; border-top:1px solid #555 !important; border-left:none !important; }
+  .track-row.zugabe .track-num { color:#888; }
+  .track-row.zugabe .track-name { color:#fff; }
+  .track-row.zugabe .track-length, .track-row.zugabe .track-bpm { color:#ddd; }
+  .track-row.zugabe .track-edit-btn { border-color:#666; color:#ddd; }
+  .track-row.zugabe .track-delete-btn { color:#666; }
+  /* Zugabe confirm toast */
+  .zugabe-toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%); background:#111; color:#fff; font-family:"Space Mono",monospace; font-size:11px; letter-spacing:.06em; padding:12px 20px; display:flex; align-items:center; gap:12px; z-index:300; border:1px solid #444; box-shadow:0 4px 24px rgba(0,0,0,.4); }
+  .zugabe-toast button { background:none; border:1px solid #555; color:#fff; font-family:"Space Mono",monospace; font-size:10px; letter-spacing:.08em; padding:4px 10px; cursor:pointer; text-transform:uppercase; touch-action:manipulation; }
+  .zugabe-toast button.confirm { background:#fff; color:#111; border-color:#fff; }
+  .zugabe-toast button:hover { opacity:.8; }
+
+  .track-num { font-size:9px; color:#555; font-style:italic; }
+  .drag-handle { touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; cursor:grab; font-size:18px; color:#888; display:flex; align-items:center; justify-content:center; transition:color .15s; min-width:32px; min-height:44px; padding:0 4px; }
+  .drag-handle:hover { color:#333; }
+  .track-row:hover .drag-handle { color:#666; }
+  .track-name { font-size:var(--track-name-fs,12px); font-weight:700; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .track-length { font-size:var(--cell-fs,10px); color:#333; font-variant-numeric:tabular-nums; }
+  .track-note-inline { font-size:var(--cell-fs,10px); color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:grab; user-select:none; padding:1px 4px; border-radius:2px; transition:background .1s; align-self:center; }
+  .track-note-inline:hover { background:rgba(0,0,0,.06); }
+  .track-note-inline.has-note { color:#333; }
+  .track-note-inline:focus { outline:1px solid var(--fg); color:#111; background:#fff; white-space:normal; }
+  .track-bpm { font-size:var(--cell-fs,10px); color:#333; font-variant-numeric:tabular-nums; }
+  .track-bpm.filled { color:var(--fg); font-weight:700; }
+  .uncertain-badge { display:inline-block; width:6px; height:6px; border-radius:50%; background:orange; margin-left:6px; vertical-align:middle; }
+
+  .track-edit-btn { background:none; border:1px solid #888; color:#333; font-family:'Space Mono',monospace; font-size:10px; padding:3px 6px; cursor:pointer; transition:all .15s; touch-action:manipulation; }
+  .track-edit-btn:hover { border-color:var(--fg); color:var(--fg); }
+  .track-delete-btn { background:none; border:none; color:#555; font-size:13px; cursor:pointer; padding:2px; touch-action:manipulation; opacity:0; transition:opacity .15s; }
+  .track-row:hover .track-delete-btn { opacity:1; }
+
+  /* ANNOTATION ROWS (intro/outro/transition/note) */
+  .annotation-row { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 16px; border-bottom:1px solid var(--line); position:relative; overflow:visible; background:rgba(0,0,0,.03); }
+  .annotation-row.in-block::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); pointer-events:none; z-index:1; }
+  .ann-arrow { flex-shrink:0; font-size:13px; line-height:1; width:16px; text-align:center; }
+  .ann-type-intro .ann-arrow  { color:var(--green); }
+  .ann-type-outro .ann-arrow  { color:var(--accent); }
+  .ann-type-trans .ann-arrow  { color:var(--muted); }
+  .ann-type-note .ann-arrow   { color:#ccc; }
+  .ann-badge { font-size:9px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; padding:3px 8px; flex-shrink:0; flex:1; }
+  .ann-badge.intro  { color:var(--green); }
+  .ann-badge.outro  { color:var(--accent); }
+  .ann-badge.trans  { color:#333; }
+  .ann-badge.note   { color:#333; font-style:italic; text-transform:none; letter-spacing:.02em; }
+  .ann-remove { background:none; border:none; color:#888; cursor:pointer; font-size:12px; padding:2px 4px; touch-action:manipulation; flex-shrink:0; opacity:0; transition:opacity .15s; }
+  .annotation-row:hover .ann-remove { opacity:1; }
+  @media(max-width:600px) { .ann-remove { opacity:1; } }
+
+  /* Drop end zone */
+  .setlist-drop-end { min-height:48px; border:2px dashed transparent; transition:all .15s; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
+  .setlist-drop-end.drag-over { border-color:var(--accent); color:var(--accent); background:rgba(230,51,35,.04); }
+
+  .totals-row { display:grid; grid-template-columns:36px 1fr 80px 60px 36px; padding:10px 8px; border-top:2px solid var(--fg); gap:8px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+  .totals-row .label { color:#333; font-weight:700; }
+  .totals-row .val { font-weight:700; font-size:12px; }
+
+  /* ── EDIT MODAL ── */
+  .edit-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; align-items:center; justify-content:center; padding:20px; }
+  .edit-modal-overlay.open { display:flex; }
+  .edit-modal { background:var(--bg); border:2px solid var(--fg); width:100%; max-width:480px; max-height:90vh; overflow-y:auto; font-family:'Space Mono',monospace; }
+  .em-header { background:var(--fg); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
+  .em-title { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:.04em; }
+  .em-close { background:none; border:1px solid rgba(255,255,255,.6); color:#fff; font-size:16px; width:30px; height:30px; cursor:pointer; display:flex; align-items:center; justify-content:center; touch-action:manipulation; }
+  .em-body { padding:20px; display:flex; flex-direction:column; gap:16px; }
+  .em-section { border:1px solid var(--line); }
+  .em-section-header { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--card); cursor:pointer; touch-action:manipulation; user-select:none; color:#111; }
+  .em-section-header:hover { background:var(--line); }
+  .em-section-label { font-size:9px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; }
+  .em-section-label.intro  { color:var(--green); }
+  .em-section-label.outro  { color:var(--accent); }
+  .em-section-label.trans-in  { color:#333; }
+  .em-section-label.trans-out { color:#333; }
+  .em-section-label.note-lbl  { color:#333; }
+  .em-toggle { font-size:10px; color:#444; }
+  .em-section-body { display:none; padding:12px; border-top:1px solid var(--line); }
+  .em-section-body.open { display:block; }
+  .em-textarea { width:100%; background:var(--bg); border:1px solid var(--line); color:var(--fg); font-family:'Space Mono',monospace; font-size:11px; padding:8px 10px; resize:vertical; min-height:60px; outline:none; letter-spacing:.02em; }
+  .em-textarea:focus { border-color:var(--fg); }
+  .em-section-hint { font-size:9px; color:#444; margin-bottom:8px; letter-spacing:.03em; }
+  .em-footer { padding:14px 20px; border-top:1px solid var(--line); display:flex; gap:8px; }
+  .em-footer button { flex:1; padding:10px; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; border:1px solid var(--fg); background:none; color:var(--fg); touch-action:manipulation; }
+  .em-footer button.primary { background:var(--fg); color:var(--bg); }
+  .em-footer button:hover { opacity:.8; }
+
+
+  .col-drag-header { cursor:grab; user-select:none; transition:color .15s; color:#333; font-weight:700; font-size:var(--cell-fs,10px); }
+  .col-drag-header:hover { color:var(--fg); }
+  .col-drag-header.drag-over-col { color:var(--accent); border-bottom:2px solid var(--accent); }
+  .col-drag-header:active { cursor:grabbing; }
+
+
+
+
+
+  /* ARCHIVE VIEW */
+  .view-tabs { display:flex; gap:0; border-bottom:2px solid var(--fg); margin-bottom:0; align-items:stretch; }
+  .view-tab-artist { display:flex; align-items:center; padding:0 14px; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.1em; font-weight:700; color:var(--accent); text-transform:uppercase; border-bottom:2px solid var(--accent); margin-bottom:-2px; }
+  .view-tab-artist:empty { display:none; }
+  .file-menu-admin-label { font-size:8px; color:#666; letter-spacing:.1em; text-align:center; padding:6px 0 2px; }
+  .view-tab { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.06em; padding:10px 24px; cursor:pointer; color:var(--muted); background:none; border:none; border-bottom:3px solid transparent; margin-bottom:-2px; transition:all .15s; touch-action:manipulation; }
+  .view-tab.active { color:var(--fg); border-bottom-color:var(--fg); }
+  .view-tab:hover { color:var(--fg); }
+
+  .archive-view { display:none; }
+  .archive-view.active { display:block; }
+  .main-view { display:block; }
+  .main-view.hidden { display:none; }
+
+  .archive-toolbar { display:flex; align-items:center; gap:8px; margin:24px 0 16px; flex-wrap:wrap; }
+  .archive-toolbar input { background:var(--card); border:1px solid var(--line); color:var(--fg); font-family:'Space Mono',monospace; font-size:11px; padding:6px 10px; outline:none; flex:1; min-width:160px; }
+  .archive-toolbar input:focus { border-color:var(--fg); }
+
+  .archive-list { border-top:2px solid var(--fg); }
+  .archive-item { display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:16px; padding:14px 8px; border-bottom:1px solid var(--line); transition:background .1s; }
+  .archive-item:hover { background:rgba(0,0,0,.03); }
+  .archive-item-left { min-width:0; }
+  .archive-item-name { font-size:14px; font-weight:700; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; color:#0a0a0a; }
+  .archive-item-name:hover { text-decoration:underline; }
+  .archive-item-meta { font-size:9px; color:#444; letter-spacing:.06em; margin-top:3px; }
+  .archive-item-tracks { font-size:11px; color:#333; white-space:nowrap; text-align:right; font-weight:700; }
+  .archive-item-time { font-size:14px; font-weight:700; white-space:nowrap; min-width:48px; text-align:right; }
+  .archive-item-actions { display:flex; gap:4px; }
+  .archive-btn { background:none; border:1.5px solid #888; color:#222; font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.06em; padding:4px 8px; cursor:pointer; text-transform:uppercase; transition:all .15s; touch-action:manipulation; white-space:nowrap; }
+  .archive-btn:hover { border-color:var(--fg); color:var(--fg); }
+  .archive-btn.danger:hover { border-color:var(--accent); color:var(--accent); }
+
+  .archive-empty { padding:48px 0; text-align:center; color:#444; font-size:11px; letter-spacing:.08em; }
+  .archive-track-preview { font-size:9px; color:#444; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-style:italic; }
+
+  /* Save modal */
+  .save-modal { background:var(--bg); border:2px solid var(--fg); padding:24px 28px; min-width:340px; font-family:'Space Mono',monospace; }
+  .save-modal h3 { font-family:'Bebas Neue',sans-serif; font-size:28px; margin-bottom:16px; }
+  .save-modal input { width:100%; background:var(--card); border:1px solid var(--line); color:var(--fg); font-family:'Space Mono',monospace; font-size:12px; padding:8px 10px; outline:none; margin-bottom:12px; }
+  .save-modal input:focus { border-color:var(--fg); }
+
+
+
+
+
+  .track-tc { font-size:var(--cell-fs,10px); color:#666; font-family:'Space Mono',monospace; letter-spacing:.01em; white-space:nowrap; line-height:1; user-select:none; cursor:grab; }
+  .todo-inline-row { display:flex; align-items:center; gap:8px; padding:3px 8px 3px 16px; border-bottom:1px solid var(--line); background:rgba(0,0,0,.03); }
+  .todo-inline-row input[type=checkbox] { accent-color:var(--accent); cursor:pointer; flex-shrink:0; width:12px; height:12px; }
+  .todo-inline-text { font-size:var(--cell-fs,10px); font-family:'Space Mono',monospace; color:#666; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .todo-inline-text.done { text-decoration:line-through; opacity:.4; }
+  .todo-inline-collapse { font-size:8px; letter-spacing:.08em; color:var(--muted); cursor:pointer; padding:2px 6px; border:1px solid var(--line); background:none; font-family:'Space Mono',monospace; }
+  .todo-inline-collapse:hover { color:var(--fg); }
+  .todo-col-cell { font-size:var(--cell-fs,10px); display:flex; flex-direction:column; gap:2px; padding:3px 4px; overflow:visible; min-width:0; }
+  .todo-col-item { display:flex; align-items:center; gap:4px; min-width:0; }
+  .todo-col-item input[type=checkbox] { flex-shrink:0; width:11px; height:11px; accent-color:var(--accent); cursor:pointer; }
+  .todo-col-text { font-size:var(--cell-fs,10px); font-family:'Space Mono',monospace; color:#555; flex:1; min-width:0; outline:none; background:none; border:none; padding:0; cursor:text; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .todo-col-text.done { text-decoration:line-through; opacity:.4; color:#888; }
+  .todo-col-add { font-size:var(--cell-fs,10px); font-family:monospace; color:var(--muted); background:none; border:none; border-bottom:1px solid transparent; padding:0; cursor:text; width:100%; outline:none; }
+  .todo-col-add:focus { border-bottom-color:var(--line); color:var(--fg); }
+  .todo-col-add::placeholder { color:var(--muted); opacity:.6; }
+  .track-todo-cell { font-size:var(--cell-fs,10px); color:#888; font-family:'Space Mono',monospace; cursor:pointer; padding:2px 4px; border-radius:2px; display:flex; align-items:center; justify-content:center; }
+  .track-todo-cell:hover { background:rgba(0,0,0,.08); }
+  .todo-badge { background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:10px; font-family:'Space Mono',monospace; }
+  .track-key { font-size:var(--cell-fs,10px); color:#888; font-family:'Space Mono',monospace; letter-spacing:.04em; white-space:nowrap; cursor:pointer; padding:2px 4px; border-radius:2px; }
+  .track-key:hover { background:rgba(0,0,0,.08); color:#111; }
+  .track-key.has-key { color:#c87020; font-weight:700; }
+  .track-tc.tc-conflict { color:#cc2211 !important; font-weight:700; }
+  .tc-conflict-banner { background:#cc2211; color:#fff; font-size:10px; padding:6px 12px; letter-spacing:.08em; text-align:center; display:none; }
+  .tc-conflict-banner.active { display:block; }
+  /* TC settings bar */
+
+  /* Pool drag-into-setlist */
+  .track-row.drag-over-top { box-shadow:0 -3px 0 0 var(--accent) !important; }
+  .track-row.drag-over-bottom { box-shadow:0 3px 0 0 var(--accent) !important; }
+  .drop-indicator { height:3px; background:var(--accent); margin:0; display:none; }
+  .drop-indicator.active { display:block; }
+  /* Duplicate track modal */
+  #dup-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:7000; align-items:center; justify-content:center; }
+  #dup-modal.open { display:flex; }
+  .dup-box { background:var(--bg); border:1px solid var(--border); max-width:360px; width:92vw; font-family:'Space Mono',monospace; }
+  .dup-box-header { background:#111; color:#fff; padding:14px 18px; font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+  .dup-box-body { padding:18px; font-size:12px; color:var(--fg); line-height:1.6; }
+  .dup-box-name { font-weight:700; color:#cc2211; }
+  .dup-box-footer { display:flex; gap:8px; padding:0 18px 18px; flex-wrap:wrap; }
+  .dup-box-footer button { flex:1; padding:10px; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; border:1px solid var(--border); background:none; color:var(--fg); }
+  .dup-box-footer button.primary { background:#111; color:#fff; border-color:#111; }
+  .dup-box-footer button:hover { opacity:.8; }
+
+  /* Long-press move menu */
+  .move-menu { position:fixed; z-index:8000; background:#111; color:#fff; font-family:'Space Mono',monospace; font-size:11px; border:1px solid #444; box-shadow:0 8px 24px rgba(0,0,0,.4); min-width:200px; }
+  .move-menu-title { padding:10px 14px; font-size:9px; letter-spacing:.1em; color:#888; border-bottom:1px solid #333; text-transform:uppercase; }
+  .move-menu-btn { display:block; width:100%; text-align:left; background:none; border:none; color:#fff; font-family:'Space Mono',monospace; font-size:11px; padding:11px 14px; cursor:pointer; border-bottom:1px solid #222; touch-action:manipulation; }
+  .move-menu-btn:hover, .move-menu-btn:active { background:#222; }
+  .move-menu-btn.danger { color:#cc2211; }
+  .move-menu-btn:last-child { border-bottom:none; }
+  /* EXPORT MODAL */
+  .export-fmt-btn { display:flex; align-items:center; gap:6px; font-size:10px; padding:6px 12px; border:1px solid var(--line); cursor:pointer; background:var(--card); letter-spacing:.04em; user-select:none; }
+  .export-fmt-btn input { accent-color:var(--fg); }
+  .export-fmt-btn:has(input:checked) { background:var(--fg); color:#ffffff; border-color:var(--fg); }
+  .export-check { display:flex; align-items:center; gap:8px; font-size:10px; letter-spacing:.04em; cursor:pointer; }
+  .export-check input { accent-color:var(--fg); width:12px; height:12px; }
+
+  /* IMPORT PREVIEW */
+  .import-preview-row { display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid var(--line); font-size:10px; }
+  .import-preview-row:last-child { border-bottom:none; }
+  .import-preview-name { flex:1; font-weight:700; }
+  .import-preview-meta { color:var(--muted); font-size:9px; min-width:80px; text-align:right; }
+  .import-badge-new { font-size:8px; background:#5a9a5e; color:#fff; padding:1px 5px; letter-spacing:.08em; }
+  .import-badge-update { font-size:8px; background:#e07b20; color:#fff; padding:1px 5px; letter-spacing:.08em; }
+  .import-badge-skip { font-size:8px; background:var(--muted); color:#fff; padding:1px 5px; letter-spacing:.08em; }
+
+  /* COLUMN VISIBILITY */
+  .vis-bar { display:flex; align-items:center; gap:12px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:9px; color:#333; letter-spacing:.08em; flex-wrap:wrap; font-weight:700; }
+  .vis-bar label { display:flex; align-items:center; gap:5px; cursor:pointer; text-transform:uppercase; user-select:none; }
+  .vis-bar input[type=checkbox] { accent-color:var(--fg); width:11px; height:11px; cursor:pointer; }
+
+  /* BLOCK STYLES */
+  .block-wrap { position:relative; margin:0; }
+  .block-label-row { display:flex; align-items:center; gap:8px; padding:3px 8px; margin-top:14px; margin-bottom:2px; }
+  .block-spacer { height:14px; margin-top:8px; margin-bottom:2px; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; }
+  .block-spacer-remove { background:none; border:none; color:#ccc; cursor:pointer; font-size:11px; padding:1px 4px; touch-action:manipulation; }
+  .block-spacer-remove:hover { color:var(--accent); }
+  .block-label-tag { font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#555; }
+  .block-label-time { font-size:9px; color:#333; font-weight:700; }
+  .block-remove { background:none; border:none; color:#ccc; cursor:pointer; font-size:11px; padding:1px 4px; margin-left:auto; touch-action:manipulation; }
+  .block-remove:hover { color:var(--accent); }
+
+  /* SELECT MODE */
+  .track-row.selectable { cursor:pointer; }
+  .track-row.selectable:hover { background:rgba(0,0,0,.06); }
+  .track-row.selected-for-block { background:rgba(100,160,200,.2) !important; outline:2px solid #5b9bd5; }
+  .select-mode-bar { display:none; align-items:center; flex-wrap:wrap; gap:6px; padding:10px 8px; background:var(--fg); color:#fff; font-size:10px; letter-spacing:.08em; margin-bottom:0; }
+  .select-mode-bar.active { display:flex; }
+  .select-mode-bar button { background:none; border:1.5px solid rgba(255,255,255,.8); color:#fff; font-weight:700; font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.08em; text-transform:uppercase; padding:6px 12px; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  .select-mode-bar button.confirm-btn { background:var(--accent); border-color:var(--accent); }
+  .select-mode-bar input { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3); color:#fff; font-family:'Space Mono',monospace; font-size:10px; padding:6px 8px; outline:none; flex:1; min-width:120px; }
+  .select-mode-bar input::placeholder { color:rgba(255,255,255,.4); }
+  .block-color-row { display:flex; gap:6px; align-items:center; }
+  .block-color-opt { width:18px; height:18px; border-radius:50%; cursor:pointer; border:2px solid transparent; touch-action:manipulation; }
+  .block-color-opt:hover, .block-color-opt.active { border-color:rgba(255,255,255,.8); transform:scale(1.1); }
+
+  /* INLINE EDIT */
+  .track-inline-edit { cursor: text; border-radius:2px; transition:background .1s; }
+  .track-inline-edit:hover { background:rgba(0,0,0,.06); }
+  .track-inline-edit:focus { outline:none; background:rgba(0,0,0,.08); }
+  .ann-inline-edit { cursor:text; border-radius:2px; user-select:text; -webkit-user-select:text; }
+  .ann-inline-edit:focus { background:rgba(0,0,0,.06); outline:none; padding:2px 6px; }
+  .ann-inline-edit:focus { outline:none; opacity:.8; }
+
+  /* TRACK COLORS */
+  .track-row.colored { }
+  .color-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-left:6px; vertical-align:middle; flex-shrink:0; }
+
+  /* COLOR PICKER in modal */
+  .color-swatches { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  .color-swatch { width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:transform .15s, border-color .15s; touch-action:manipulation; }
+  .color-swatch:hover { transform:scale(1.15); }
+  .color-swatch.selected { border-color:var(--fg); transform:scale(1.15); }
+  .color-swatch.clear { background:var(--bg)!important; border:2px solid var(--line); font-size:12px; display:flex; align-items:center; justify-content:center; color:var(--muted); }
+
+  /* POOL SIDEBAR */
+  .pool-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; opacity:0; pointer-events:none; transition:opacity .25s; }
+  .pool-overlay.open { opacity:1; pointer-events:all; }
+  @media(min-width:601px) { .pool-overlay { display:none !important; } }
+  .pool-sidebar { position:fixed; top:0; left:0; bottom:0; width:300px; background:#111110; color:#ffffff; z-index:51; transform:translateX(-100%); transition:transform .3s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; overflow:hidden; border-right:1px solid #333; }
+  .pool-sidebar.open { transform:translateX(0); }
+  .pool-header { padding:20px 18px 14px; border-bottom:1px solid #2e2e2a; flex-shrink:0; background:#111110; }
+  .pool-header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .pool-title { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:.04em; color:#ffffff; line-height:1; }
+  .pool-close { background:none; border:1px solid #777; color:#ddd; font-size:16px; width:32px; height:32px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; touch-action:manipulation; }
+  .pool-close:hover { border-color:#fff; color:#fff; }
+  .pool-search { background:#1a1a16; border:1px solid #555; color:#ffffff; font-family:'Space Mono',monospace; font-size:11px; padding:8px 10px; width:100%; outline:none; }
+  .pool-search::placeholder { color:#999; }
+  .pool-search:focus { border-color:#888; }
+  .pool-controls { display:flex; gap:4px; margin-top:8px; }
+  .pool-sort-btn { background:none; border:1px solid #555; color:#bbb; font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.08em; padding:5px 10px; cursor:pointer; text-transform:uppercase; transition:all .15s; touch-action:manipulation; }
+  .pool-sort-btn:hover { border-color:#aaa; color:#ddd; }
+  .pool-sort-btn.active { background:#f0ece0; border-color:#f0ece0; color:#0f0f0d; font-weight:700; }
+  .pool-meta { font-size:9px; color:#fff; letter-spacing:.1em; text-transform:uppercase; margin-top:8px; }
+  .pool-list { flex:1; overflow-y:auto; padding:0; }
+  .pool-list::-webkit-scrollbar { width:3px; }
+  .pool-list::-webkit-scrollbar-thumb { background:#444; }
+  .pool-item { display:flex; align-items:center; padding:11px 18px; border-bottom:1px solid #252520; cursor:grab; color:#e8e8e8 !important; transition:background .1s; gap:10px; user-select:none; }
+  .pool-item:hover { background:#2a2a24; }
+  .pool-item:active { background:#333; cursor:grabbing; }
+  .pool-item.in-setlist { background:#151513; cursor:default; font-style:italic; }
+  .pool-item.pool-dragging { opacity:.25; }
+  .pool-drag-icon { font-size:11px; color:#ffffff; flex-shrink:0; font-size:13px; }
+  .pool-item.in-setlist .pool-drag-icon { color:#333; }
+  .pool-item-name { flex:1; font-size:12px; font-weight:700; color:#e8e8e8 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  .pool-item.in-setlist .pool-item-name { color:#444; }
+  .pool-item-bpm { font-size:11px; font-weight:700; color:#ff7766 !important; flex-shrink:0; min-width:44px; text-align:right; }
+  .pool-item.in-setlist .pool-item-bpm { color:#3a2020; }
+  .pool-item-len { font-size:10px; color:#c0c0c0 !important; flex-shrink:0; min-width:34px; text-align:right; }
+  .pool-item.in-setlist .pool-item-len { color:#333; }
+  .pool-add { border-top:1px solid #2e2e2a; padding:14px 18px; flex-shrink:0; background:#0a0a08; }
+  .pool-add-title { font-size:9px; letter-spacing:.12em; color:#ddd; text-transform:uppercase; margin-bottom:8px; font-weight:700; }
+  .pool-add-row { display:grid; grid-template-columns:1fr 56px 56px; gap:5px; margin-bottom:6px; }
+  .pool-add input { background:#1a1a16; border:1px solid #555; color:#ffffff; font-family:'Space Mono',monospace; font-size:11px; padding:7px 8px; outline:none; width:100%; }
+  .pool-add input::placeholder { color:#999; }
+  .pool-add input:focus { border-color:#888; }
+  .pool-add button { width:100%; padding:10px; background:var(--accent); border:none; color:#fff; font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; touch-action:manipulation; font-weight:700; }
+  .pool-add button:hover { background:#c0281a; }
+
+  /* BPM MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--bg); border:1px solid var(--fg); padding:24px 28px; min-width:320px; max-height:80vh; overflow-y:auto; font-family:'Space Mono',monospace; }
+  .modal h3 { font-family:'Bebas Neue',sans-serif; font-size:28px; margin-bottom:16px; }
+  .modal label { display:flex; flex-direction:column; gap:4px; font-size:9px; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; margin-bottom:12px; }
+  .modal input { background:var(--card); border:1px solid var(--line); color:var(--fg); font-family:'Space Mono',monospace; font-size:11px; padding:6px 8px; outline:none; width:100%; }
+  .modal input:focus { border-color:var(--fg); }
+  .modal-actions { display:flex; gap:8px; margin-top:16px; }
+  .modal-actions button { flex:1; padding:8px; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; border:1px solid var(--fg); background:none; color:var(--fg); touch-action:manipulation; }
+  .modal-actions button.primary { background:var(--fg); color:var(--bg); }
+
+
+
+  /* MOBILE */
+  @media (max-width:600px) {
+    .shell { padding:0 16px 80px; }
+    .hero-title { font-size:22vw; line-height:.88; padding:6px 0 0; }
+    .header-meta { gap:16px; font-size:9px; flex-wrap:wrap; }
+    .header-right { display:none; }
+    .toolbar { flex-direction:column; align-items:stretch; gap:8px; margin:20px 0 16px; }
+    .toolbar-sep { display:none; }
+    .toolbar button { font-size:12px; padding:14px 16px; text-align:center; }
+    .stats-bar { width:100%; margin-left:0; justify-content:space-between; border-top:1px solid var(--line); padding-top:8px; font-size:10px; }
+    .add-form { flex-direction:column; align-items:stretch; padding:14px 16px; }
+    .add-form input, .add-form input.short { width:100%; font-size:14px; padding:10px; }
+    .col-headers { display:none; }
+    .track-row { display:flex; flex-direction:row; align-items:center; padding:12px 0; min-height:unset; gap:0; cursor:default; }
+    .track-num { font-size:10px; min-width:28px; flex-shrink:0; }
+    .track-name { font-size:13px; font-weight:700; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px; }
+    .track-length { font-size:11px; min-width:36px; text-align:right; flex-shrink:0; }
+    .track-bpm { font-size:var(--cell-fs,10px); min-width:36px; text-align:right; flex-shrink:0; margin-left:8px; }
+    .track-edit-btn { flex-shrink:0; margin-left:8px; padding:6px 10px; font-size:11px; }
+    .track-delete-btn { opacity:1; font-size:17px; padding:5px 7px; margin-left:4px; }
+    .annotation-row { padding-left:28px; }
+    .totals-row { display:flex; justify-content:space-between; padding:12px 0; font-size:10px; }
+    .totals-row .val { font-size:13px; }
+    .crosshair { display:none; }
+    .pool-sidebar { width:85vw; max-width:320px; }
+    .edit-modal-overlay { padding:0; align-items:flex-end; }
+    .edit-modal { max-width:100%; border-left:none; border-right:none; border-bottom:none; }
+    .modal-overlay { align-items:flex-end; }
+    .modal { width:100%; border-left:none; border-right:none; border-bottom:none; }
+    footer { font-size:9px; padding-top:10px; }
+  }
+
+  /* ── MOBILE ─────────────────────────────────────────────── */
+  @media (max-width: 600px) {
+
+    /* Toolbar: wrap into 2 rows, smaller buttons */
+    .toolbar { flex-wrap:wrap; gap:4px; padding:8px 0; }
+    .toolbar button { font-size:9px; padding:5px 8px; letter-spacing:.04em; }
+    .toolbar-sep { display:none; }
+    .stats-bar { width:100%; margin-left:0; margin-top:4px; font-size:9px; }
+
+    /* Hide secondary toolbar buttons on mobile - show via ... menu */
+    .toolbar-secondary { display:none; }
+
+    /* Track rows: hide BPM column, simplify */
+    .col-headers { gap:4px; }
+    .track-row   { gap:4px; }
+
+    /* BPM hidden on mobile by default, notes controlled by vis-checkbox */
+    .track-bpm { display:none; }
+    #col-h-bpm-header { display:none; }
+
+    /* Bigger tap targets */
+    .track-row { min-height:44px; padding:4px; }
+    .track-name { font-size:13px; }
+    .track-length { font-size:11px; }
+    .track-num { font-size:9px; min-width:24px; }
+
+    /* Edit + delete buttons */
+    .track-edit-btn { padding:4px 8px; font-size:12px; }
+    .track-delete-btn { font-size:16px; }
+    .drag-handle { font-size:20px; }
+
+    /* Vis bar: only Länge + BPM on mobile */
+    .vis-bar { font-size:8px; gap:6px; padding:5px 8px; }
+    .vis-bar label { gap:4px; }
+    .vis-bar label:not(.vis-keep),
+    .vis-bar span,
+    .vis-bar button,
+    .vis-bar input[type=number] { display:none !important; }
+    .vis-bar label.vis-keep { display:flex !important; }
+
+    /* Modals full-screen on mobile */
+    .modal { width:95vw !important; max-width:95vw !important; min-width:unset !important; max-height:85vh; overflow-y:auto; }
+    .save-modal { width:95vw !important; }
+    .pool-sidebar { width:85vw !important; }
+
+    /* Archive list on mobile */
+    .archive-item { grid-template-columns:1fr auto auto; gap:8px; }
+    .archive-item-tracks { display:none; }
+
+    /* Add form */
+    .add-form { flex-wrap:wrap; }
+    .add-form label { min-width:120px; }
+  }
+
+  /* ── MOBILE COMPACT MODE ─────────────────────────────────── */
+  @media (max-width: 600px) {
+    /* Hide all data columns, only show num + name + eye + edit/delete */
+    .track-row .track-tc,
+    .track-row .track-key,
+    .track-row .track-note-inline,
+    .track-row .track-length,
+    .track-row .track-bpm,
+    .track-row .todo-col-cell,
+    .col-headers { display:none !important; }
+
+    /* Eye button */
+    .track-eye-btn {
+      display:flex !important;
+      background:none; border:none; color:var(--muted);
+      font-size:15px; padding:4px 6px; cursor:pointer;
+      flex-shrink:0; touch-action:manipulation;
+    }
+    .track-eye-btn.open { color:var(--fg); }
+
+    /* Expanded detail panel */
+    .track-detail-panel {
+      display:none;
+      background:var(--hover);
+      border-top:1px solid var(--line);
+      padding:10px 16px 10px 32px;
+      font-size:10px;
+      flex-direction:column;
+      gap:6px;
+    }
+    .track-detail-panel.open { display:flex; }
+    .track-detail-row {
+      display:flex; gap:8px; align-items:baseline;
+    }
+    .track-detail-label {
+      font-size:8px; letter-spacing:.12em; color:var(--muted);
+      min-width:54px; flex-shrink:0;
+    }
+    .track-detail-val { color:var(--fg); font-size:10px; }
+
+    /* Track row on mobile: flex, compact */
+    .track-row {
+      flex-wrap:wrap !important;
+      grid-template-columns:unset !important;
+      display:flex !important;
+      align-items:center;
+      padding:8px 4px !important;
+      gap:4px !important;
+      min-height:44px !important;
+    }
+    .track-name { font-size:13px !important; flex:1 !important; }
+    .track-num { min-width:24px !important; font-size:9px !important; }
+  }
+
+  /* Eye btn hidden on desktop */
+  .track-eye-btn { display:none; }
+
+  /* ── MOBILE HAMBURGER MENU ───────────────────────────────── */
+  .mobile-menu-btn { display:none; }
+
+  @media (max-width:600px) {
+    /* Hide all toolbar buttons, show hamburger instead */
+    .toolbar > button,
+    .toolbar > a,
+    .toolbar-sep { display:none !important; }
+
+    .mobile-menu-btn {
+      display:flex !important;
+      align-items:center; gap:8px;
+      background:none; border:1px solid var(--line);
+      color:var(--fg); font-family:'Space Mono',monospace;
+      font-size:11px; letter-spacing:.08em;
+      padding:8px 14px; cursor:pointer;
+      touch-action:manipulation;
+    }
+
+    .mobile-menu-dropdown {
+      position:fixed; top:0; left:0; right:0; bottom:0;
+      background:var(--bg); z-index:200;
+      display:flex; flex-direction:column;
+      transform:translateY(-100%);
+      transition:transform .25s cubic-bezier(.4,0,.2,1);
+      overflow-y:auto;
+    }
+    .mobile-menu-dropdown.open { transform:translateY(0); }
+
+    .mobile-menu-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:20px 20px 16px;
+      border-bottom:1px solid var(--line);
+    }
+    .mobile-menu-title {
+      font-size:9px; letter-spacing:.18em; color:var(--muted);
+    }
+    .mobile-menu-close {
+      background:none; border:none; color:var(--fg);
+      font-size:20px; cursor:pointer; padding:4px 8px;
+      touch-action:manipulation;
+    }
+
+    .mobile-menu-item {
+      display:flex; align-items:center;
+      padding:18px 24px;
+      border-bottom:1px solid var(--line);
+      font-family:'Space Mono',monospace;
+      font-size:13px; letter-spacing:.06em;
+      color:var(--fg); cursor:pointer;
+      background:none; border-right:none; border-left:none; border-top:none;
+      text-align:left; width:100%;
+      touch-action:manipulation;
+    }
+    .mobile-menu-item:active { background:var(--hover); }
+    .mobile-menu-item.accent { color:var(--accent); }
+    .mobile-menu-item .item-icon { margin-right:14px; opacity:.6; width:20px; text-align:center; }
+
+    .mobile-stats-bar {
+      padding:16px 24px;
+      display:flex; flex-direction:column; gap:6px;
+      border-top:1px solid var(--line); margin-top:auto;
+    }
+    .mobile-stats-bar span {
+      font-size:9px; letter-spacing:.1em; color:var(--muted);
+    }
+    .mobile-stats-bar b { color:var(--fg); }
+  }
+
+</style>
+</head>
+<body>
+
+<!-- Pool Overlay + Sidebar -->
+<div class="pool-overlay" id="pool-overlay" onclick="closePool()"></div>
+<div class="pool-sidebar" id="pool-sidebar">
+  <div class="pool-header">
+    <div class="pool-header-top">
+      <span class="pool-title">TRACK POOL</span>
+      <button class="pool-close" onclick="closePool()">✕</button>
+    </div>
+    <input class="pool-search" id="pool-search" placeholder="Suchen…" oninput="renderPool()" />
+    <div class="pool-controls">
+      <button class="pool-sort-btn active" id="sort-alpha" onclick="setSort('alpha')">A–Z</button>
+      <button class="pool-sort-btn" id="sort-bpm" onclick="setSort('bpm')">BPM ↑</button>
+      <button class="pool-sort-btn" id="sort-none" onclick="setSort('none')">ORIGINAL</button>
+    </div>
+    <div class="pool-meta" id="pool-meta">— TRACKS</div>
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button onclick="quickSave()" style="flex:1;background:var(--fg);color:var(--bg);border:none;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:6px 8px;cursor:pointer;font-weight:700">SAVE</button>
+      <button onclick="openSaveModal()" style="flex:1;background:none;border:1px solid #555;color:#ccc;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.08em;padding:6px 8px;cursor:pointer">SAVE AS</button>
+    </div>
+  </div>
+  <div class="pool-list" id="pool-list"></div>
+  <div class="pool-add">
+    <div class="pool-add-title">+ Neuen Track hinzufügen</div>
+    <div class="pool-add-row">
+      <input type="text" id="pool-inp-name" placeholder="Trackname" />
+      <input type="text" id="pool-inp-length" placeholder="3:00" />
+      <input type="text" id="pool-inp-bpm" placeholder="BPM" />
+    </div>
+    <button onclick="addToPool()">In Pool speichern</button>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="edit-modal-overlay" id="edit-modal">
+  <div class="edit-modal">
+    <div class="em-header">
+      <span class="em-title" id="em-track-name">—</span>
+      <button class="em-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="em-body">
+
+      <!-- METADATEN -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)">
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          NAME
+          <input type="text" id="em-name" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          LÄNGE (m:ss)
+          <input type="text" id="em-length" placeholder="3:30" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          BPM
+          <input type="text" id="em-bpm" placeholder="—" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          LTC
+          <input type="text" id="em-ltc-top" placeholder="01:00:00:00" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box;letter-spacing:.04em">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          TONART
+          <button type="button" id="em-key-btn" onclick="openAddKeyPicker(this)"
+            style="background:var(--bg);border:1px solid var(--line);color:var(--muted);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;text-align:left;cursor:pointer;width:100%;box-sizing:border-box">—</button>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase">
+          TYP
+          <select id="em-type" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:6px 8px;outline:none;width:100%;box-sizing:border-box">
+            <option value="song">🎵 Song</option>
+            <option value="intro">↳ Intro</option>
+            <option value="outro">↲ Outro</option>
+            <option value="ansage">🎤 Ansage</option>
+            <option value="zugabe">— Zugabe</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- INTRO -->
+      <div class="em-section">
+        <div class="em-section-header" onclick="toggleSection('sec-intro')">
+          <span class="em-section-label intro">↳ INTRO</span>
+          <span class="em-toggle" id="sec-intro-indicator">+ hinzufügen</span>
+        </div>
+        <div class="em-section-body" id="sec-intro">
+          <p class="em-section-hint">Was passiert vor diesem Song? (z.B. „Piano solo", „Crowd intro", „Stille")</p>
+          <textarea class="em-textarea" id="em-intro" placeholder="Intro beschreiben…"></textarea>
+        </div>
+      </div>
+
+      <!-- OUTRO -->
+      <div class="em-section">
+        <div class="em-section-header" onclick="toggleSection('sec-outro')">
+          <span class="em-section-label outro">↲ OUTRO</span>
+          <span class="em-toggle" id="sec-outro-indicator">+ hinzufügen</span>
+        </div>
+        <div class="em-section-body" id="sec-outro">
+          <p class="em-section-hint">Wie endet dieser Song? (z.B. „Fade out", „Hard cut", „Outro loop")</p>
+          <textarea class="em-textarea" id="em-outro" placeholder="Outro beschreiben…"></textarea>
+        </div>
+      </div>
+
+      <!-- ÜBERGANG VORHER -->
+      <div class="em-section">
+        <div class="em-section-header" onclick="toggleSection('sec-trans-in')">
+          <span class="em-section-label trans-in">← ÜBERGANG VOM VORHERIGEN TRACK</span>
+          <span class="em-toggle" id="sec-trans-in-indicator">+ hinzufügen</span>
+        </div>
+        <div class="em-section-body" id="sec-trans-in">
+          <p class="em-section-hint">Wie kommt man von dem vorherigen Track hierher?</p>
+          <textarea class="em-textarea" id="em-trans-in" placeholder="z.B. „Beat läuft durch", „kurze Pause", „Applaus"…"></textarea>
+        </div>
+      </div>
+
+      <!-- ÜBERGANG NACHHER -->
+      <div class="em-section">
+        <div class="em-section-header" onclick="toggleSection('sec-trans-out')">
+          <span class="em-section-label trans-out">→ ÜBERGANG ZUM NÄCHSTEN TRACK</span>
+          <span class="em-toggle" id="sec-trans-out-indicator">+ hinzufügen</span>
+        </div>
+        <div class="em-section-body" id="sec-trans-out">
+          <p class="em-section-hint">Wie geht es weiter nach diesem Song?</p>
+          <textarea class="em-textarea" id="em-trans-out" placeholder="z.B. „direkt in nächsten Song", „Moderation"…"></textarea>
+        </div>
+      </div>
+
+      <!-- NOTIZ -->
+      <div class="em-section">
+        <div class="em-section-header" onclick="toggleSection('sec-note')">
+          <span class="em-section-label note-lbl">✎ NOTIZ</span>
+          <span class="em-toggle" id="sec-note-indicator">+ hinzufügen</span>
+        </div>
+        <div class="em-section-body" id="sec-note">
+          <p class="em-section-hint">Sonstige Notizen, Reminders, technische Hinweise…</p>
+          <textarea class="em-textarea" id="em-note" placeholder="Notiz…"></textarea>
+        </div>
+      </div>
+
+    </div>
+      <!-- COLOR -->
+      <div class="em-section">
+        <div class="em-section-header" onclick="toggleSection('sec-color')">
+          <span class="em-section-label" style="color:var(--muted)">● FARBE</span>
+          <span class="em-toggle" id="sec-color-indicator">+ auswählen</span>
+        </div>
+        <div class="em-section-body" id="sec-color">
+          <p class="em-section-hint">Farbliche Markierung für diesen Track</p>
+          <div class="color-swatches" id="color-swatches"></div>
+        </div>
+      </div>
+
+
+      <!-- TODO SECTION -->
+      <div class="em-section">
+        <div class="em-section-header" onclick="toggleSection('sec-todo')">
+          <span class="em-section-label" style="color:var(--muted)">☑ TO DO</span>
+          <span class="em-toggle" id="sec-todo-indicator">+ hinzufügen</span>
+        </div>
+        <div class="em-section-body" id="sec-todo">
+          <div id="em-todo-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px"></div>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="em-todo-inp" placeholder="Neue Aufgabe…"
+              style="flex:1;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:10px;padding:5px 8px;outline:none"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();addTodoItem()}">
+            <button onclick="addTodoItem()"
+              style="background:var(--fg);color:var(--bg);border:none;font-family:'Space Mono',monospace;font-size:10px;padding:5px 10px;cursor:pointer">+</button>
+          </div>
+          <div id="em-todo-history-wrap" style="margin-top:12px;display:none">
+            <div style="font-size:8px;letter-spacing:.1em;color:var(--muted);margin-bottom:6px">— ERLEDIGT —</div>
+            <div id="em-todo-history" style="display:flex;flex-direction:column;gap:3px"></div>
+          </div>
+        </div>
+      </div>
+
+    <div class="em-footer">
+      <button onclick="closeEditModal()">Abbrechen</button>
+      <button class="primary" onclick="saveEditModal()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+<!-- Save Modal -->
+<div class="modal-overlay" id="save-modal">
+  <div class="save-modal">
+    <h3>SETLIST SPEICHERN</h3>
+    <input type="text" id="save-name-inp" placeholder="Name der Setlist (z.B. Berlin 06.03.26)" />
+    <div style="font-size:9px;color:var(--muted);margin-bottom:16px" id="save-preview-info"></div>
+    <div class="modal-actions">
+      <button onclick="closeSaveModal()">Abbrechen</button>
+      <button class="primary" onclick="confirmSave()">SPEICHERN</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal" style="min-width:400px;max-width:520px;width:100%">
+    <h3>EXPORT</h3>
+
+    <p style="font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Format</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px">
+      <label class="export-fmt-btn"><input type="radio" name="exp-fmt" value="txt" checked> TXT</label>
+      <label class="export-fmt-btn"><input type="radio" name="exp-fmt" value="csv"> CSV</label>
+      <label class="export-fmt-btn"><input type="radio" name="exp-fmt" value="pdf-a4"> PDF A4</label>
+      <label class="export-fmt-btn"><input type="radio" name="exp-fmt" value="pdf-fit"> PDF Originalgröße</label>
+    </div>
+
+    <p style="font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Enthaltene Infos</p>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:20px">
+      <label class="export-check"><input type="checkbox" id="exp-length" checked> Länge</label>
+      <label class="export-check"><input type="checkbox" id="exp-bpm" checked> BPM</label>
+      <label class="export-check"><input type="checkbox" id="exp-intro-outro" checked> Intro / Outro</label>
+      <label class="export-check"><input type="checkbox" id="exp-transitions" checked> Übergänge</label>
+      <label class="export-check"><input type="checkbox" id="exp-notes" checked> Notizen</label>
+      <label class="export-check"><input type="checkbox" id="exp-blocks" checked> Gruppen / Blöcke</label>
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closeExportModal()">Abbrechen</button>
+      <button class="primary" onclick="runExport()">EXPORTIEREN</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal" style="min-width:420px;max-width:580px;width:100%">
+    <h3>TRACKS IMPORTIEREN (TXT)</h3>
+    <p style="font-size:9px;color:var(--muted);margin-bottom:12px;letter-spacing:.03em;line-height:1.8">
+      Eine Zeile pro Track — mit <b>|</b> getrennt oder freies Format:<br>
+      <b>Blitzlicht | 2:46 | 158 | 01:00:00:00</b><br>
+      <span style="opacity:.6">Name | Länge | BPM | LTC &nbsp;(alle außer Name optional)</span>
+    </p>
+    <textarea id="import-textarea" style="width:100%;height:180px;background:var(--card);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:10px;outline:none;resize:vertical;letter-spacing:.02em" placeholder="Blitzlicht | 2:46 | 158 | 01:00:00:00&#10;Rettung | 3:23 | 156&#10;Strategie | 2:40 | 160&#10;Nirvana | 3:30" oninput="updateImportPreview()"></textarea>
+    <!-- Global defaults row -->
+    <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 10px;background:var(--card);border:1px solid var(--line);font-size:9px;letter-spacing:.07em;flex-wrap:wrap">
+      <span style="color:var(--muted);font-weight:700">AUF ALLE ÜBERTRAGEN:</span>
+      <label style="display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="imp-def-bpm-chk" onchange="updateImportPreview()">
+        BPM
+        <input type="text" id="imp-def-bpm" placeholder="z.B. 120" style="width:56px;background:var(--bg);border:1px solid var(--line);font-family:'Space Mono',monospace;font-size:9px;padding:3px 5px;color:var(--fg);outline:none" oninput="updateImportPreview()">
+      </label>
+      <label style="display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="imp-def-length-chk" onchange="updateImportPreview()">
+        LÄNGE
+        <input type="text" id="imp-def-length" placeholder="z.B. 3:30" style="width:56px;background:var(--bg);border:1px solid var(--line);font-family:'Space Mono',monospace;font-size:9px;padding:3px 5px;color:var(--fg);outline:none" oninput="updateImportPreview()">
+      </label>
+      <label style="display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="imp-def-ltc-chk" onchange="updateImportPreview()">
+        LTC
+        <input type="text" id="imp-def-ltc" placeholder="z.B. 01:00:00" style="width:78px;background:var(--bg);border:1px solid var(--line);font-family:'Space Mono',monospace;font-size:9px;padding:3px 5px;color:var(--fg);outline:none" oninput="updateImportPreview()">
+      </label>
+    </div>
+    <div id="import-preview" style="margin-top:10px;max-height:200px;overflow-y:auto;border:1px solid var(--line);display:none"></div>
+    <div class="modal-actions">
+      <button onclick="closeImportModal()">Abbrechen</button>
+      <button onclick="confirmImport('pool')">NUR POOL</button>
+      <button class="primary" onclick="confirmImport('both')">POOL + SETLIST</button>
+    </div>
+  </div>
+</div>
+<div class="shell">
+  <header>
+    <div class="header-meta">
+      <span id="clock-display">—</span>
+      <span>SETLIST PLANNER v1.0</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
+        <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
+      </span>
+    </div>
+    <div class="header-right"><span>DE</span></div>
+  </header>
+
+  <!-- View Tabs -->
+  <div class="view-tabs">
+    <button class="view-tab active" id="tab-main" onclick="switchView('main')">SETLIST</button>
+    <button class="view-tab" id="tab-archive" onclick="switchView('archive')">ARCHIV</button>
+    <span class="view-tab-artist" id="tab-artist-label"></span>
+    <div class="file-menu-wrap view-tab-menu" id="file-menu-wrap" style="margin-left:auto">
+      <button class="view-tab" onclick="toggleFileMenu()" id="file-menu-btn">MENU</button>
+      <div class="file-menu-dropdown" id="file-menu-dropdown">
+        <button onclick="copyShareUrl();closeFileMenu()">⇗ TEILEN</button>
+        <button onclick="exportData('artist');closeFileMenu()">↓ BACKUP ARTIST</button>
+        <button onclick="exportData('admin');closeFileMenu()">↓ BACKUP ADMIN</button>
+        <div class="file-menu-sep"></div>
+        <button onclick="openImportModal();closeFileMenu()">↑ IMPORT TXT</button>
+        <button onclick="importData();closeFileMenu()">↑ IMPORT FILE</button>
+        <div class="file-menu-sep"></div>
+        <button onclick="openSaveModal();closeFileMenu()">✦ SPEICHERN</button>
+        <div class="file-menu-sep"></div>
+        <div class="file-menu-admin-label">— ADMIN —</div>
+        <div id="artist-switcher" style="padding:6px 12px 12px;box-sizing:border-box;width:100%">
+          <div style="font-size:9px;color:#888;letter-spacing:.07em;margin-bottom:8px">ARTIST WECHSELN</div>
+          <div id="artist-list" style="display:flex;flex-direction:column;gap:4px"></div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:10px;overflow:hidden">
+            <button onclick="addArtistAndGo()" title="Hinzufügen"
+              style="background:none;border:none;color:#666;font-size:16px;line-height:1;padding:0;cursor:pointer;flex-shrink:0;width:16px">+</button>
+            <input id="new-artist-inp" type="text" placeholder="Neuer Artist…"
+              style="width:0;flex:1;min-width:0;box-sizing:border-box;background:#f0f0f0;border:1px solid #999;color:#111;font-family:'Space Mono',monospace;font-size:11px;padding:7px 10px;outline:none;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-view" id="main-view">
+
+  <div class="toolbar">
+    <!-- Mobile hamburger -->
+    <button class="mobile-menu-btn" onclick="openMobileMenu()">☰ MENÜ</button>
+
+    <button onclick="openPool()" id="pool-btn">[ ◀ POOL ]</button>
+    <button id="btn-more" onclick="toggleMoreButtons()" style="display:none">[ ••• ]</button>
+    <button onclick="toggleAddForm()" id="add-btn">[ + ADD ]</button>
+    <button class="accent" onclick="openExportModal()">[ EXPORT ]</button>
+    <button onclick="quickSave()" id="vis-save-btn">[ SAVE ]</button>
+    <button onclick="openSaveModal()">[ SAVE AS ]</button>
+    <button class="toolbar-secondary" onclick="autoGenerateLTC()" title="LTC automatisch vergeben (10-Min-Abstand)">[ ⏱ LTC ]</button>
+    <div class="toolbar-sep"></div>
+    <button class="toolbar-secondary" onclick="toggleSelectMode()" id="btn-group">[ ⊞ GRUPPE ]</button>
+    <button class="toolbar-secondary" id="btn-undo" onclick="undo()" disabled title="Rückgängig (Ctrl+Z)">[ ↩ ]</button>
+    <button class="toolbar-secondary" id="btn-redo" onclick="redo()" disabled title="Wiederholen (Ctrl+Y)">[ ↪ ]</button>
+    <div class="stats-bar">
+      <span>TRACKS <b id="stat-tracks">0</b></span>
+      <span>LAUFZEIT <b id="stat-time">0:00</b></span>
+      <span>BPM <b id="stat-bpm">—</b></span>
+      <span id="save-status" style="font-size:9px;color:#888">—</span>
+    </div>
+  </div>
+
+  <!-- Mobile Menu Dropdown -->
+  <div class="mobile-menu-dropdown" id="mobile-menu">
+    <div class="mobile-menu-header">
+      <span class="mobile-menu-title">MENÜ</span>
+      <button class="mobile-menu-close" onclick="closeMobileMenu()">✕</button>
+    </div>
+    <button class="mobile-menu-item" onclick="openPool();closeMobileMenu()"><span class="item-icon">◀</span>Pool</button>
+    <button class="mobile-menu-item" onclick="toggleAddForm();closeMobileMenu()"><span class="item-icon">+</span>Track hinzufügen</button>
+    <button class="mobile-menu-item accent" onclick="openExportModal();closeMobileMenu()"><span class="item-icon">↗</span>Export</button>
+    <button class="mobile-menu-item" onclick="quickSave();closeMobileMenu()"><span class="item-icon">✦</span>Save</button>
+    <button class="mobile-menu-item" onclick="openSaveModal();closeMobileMenu()"><span class="item-icon">✦</span>Save As</button>
+    <button class="mobile-menu-item" onclick="autoGenerateLTC();closeMobileMenu()"><span class="item-icon">⏱</span>LTC generieren</button>
+    <button class="mobile-menu-item" onclick="toggleSelectMode();closeMobileMenu()"><span class="item-icon">⊞</span>Gruppen-Modus</button>
+    <button class="mobile-menu-item" onclick="undo();closeMobileMenu()" id="mobile-undo"><span class="item-icon">↩</span>Rückgängig</button>
+    <div class="mobile-stats-bar">
+      <span>TRACKS <b id="mob-stat-tracks">—</b></span>
+      <span>LAUFZEIT <b id="mob-stat-time">—</b></span>
+      <span>BPM <b id="mob-stat-bpm">—</b></span>
+    </div>
+  </div>
+
+  <div class="add-form" id="add-form" style="position:relative">
+    <div style="width:100%;display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
+      <span style="font-size:9px;letter-spacing:.1em;color:var(--muted)">TYP:</span>
+      <button type="button" class="add-type-btn active" id="type-btn-song"    onclick="setAddType('song')"    >🎵 SONG</button>
+      <button type="button" class="add-type-btn"        id="type-btn-intro"   onclick="setAddType('intro')"   >↳ INTRO</button>
+      <button type="button" class="add-type-btn"        id="type-btn-outro"   onclick="setAddType('outro')"   >↲ OUTRO</button>
+      <button type="button" class="add-type-btn"        id="type-btn-ansage"  onclick="setAddType('ansage')"  >🎤 ANSAGE</button>
+      <button type="button" class="add-type-btn"        id="type-btn-zugabe"  onclick="setAddType('zugabe')"  >— ZUGABE</button>
+    </div>
+    <label style="width:100%">Position
+      <select id="inp-position" style="background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;padding:5px 8px;width:100%;outline:none;margin-top:4px">
+        <option value="end">— Ende der Setlist</option>
+      </select>
+    </label>
+    <label>Name<input type="text" id="inp-name" placeholder="Trackname" autocomplete="off" oninput="autocompleteTrackName(this)" onkeydown="autocompleteKeydown(event)" />
+    <div id="autocomplete-list" style="display:none;position:absolute;background:var(--bg);border:1px solid var(--fg);z-index:500;max-height:200px;overflow-y:auto;width:240px;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div></label>
+    <label>Länge (m:ss)<input type="text" id="inp-length" placeholder="3:00" class="short" /></label>
+    <label>BPM<input type="text" id="inp-bpm" placeholder="—" class="short" /></label>
+    <label>Tonart
+      <button type="button" id="inp-key-btn" onclick="openAddKeyPicker(this)"
+        style="display:block;background:var(--bg);border:1px solid var(--line);color:var(--muted);font-family:'Space Mono',monospace;font-size:11px;padding:5px 8px;width:90px;text-align:left;cursor:pointer;letter-spacing:.04em">—</button>
+    </label>
+    <label style="flex-direction:row;align-items:center;gap:8px;padding-top:14px">
+      <input type="checkbox" id="inp-uncertain" /> Unsicher?
+    </label>
+    <button onclick="addTrack()" class="add-submit-btn">HINZUFÜGEN</button>
+  </div>
+
+  <!-- Visibility toggles -->
+  
+<div class="tc-conflict-banner" id="tc-conflict-banner">⚠ TIMECODE KONFLIKT — Startpunkte überlappen sich <button onclick="scrollToFirstConflict()" style="margin-left:12px;background:#fff;color:#cc2211;border:none;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;padding:3px 8px;cursor:pointer;letter-spacing:.08em">→ ZEIGEN</button></div>
+<div class="vis-bar" id="vis-bar">
+    <span>ANZEIGEN:</span>
+    <label style="font-weight:700"><input type="checkbox" id="vis-all" checked onchange="setAllVis(this.checked)"> Alle</label>
+    <span style="color:var(--line);margin:0 2px">|</span>
+    <label class="vis-keep"><input type="checkbox" id="vis-length" checked onchange="syncAllCheckbox();render()"> Länge</label>
+    <label class="vis-keep"><input type="checkbox" id="vis-bpm" checked onchange="syncAllCheckbox();render()"> BPM</label>
+    <label><input type="checkbox" id="vis-annotations" checked onchange="syncAllCheckbox();render()"> Übergänge</label>
+    <label><input type="checkbox" id="vis-notes-col" checked onchange="syncAllCheckbox();render()"> Notiz-Spalte</label>
+    <label><input type="checkbox" id="vis-ltc" checked onchange="toggleTC()"> LTC</label>
+    <label><input type="checkbox" id="vis-key" checked onchange="render()"> TONART</label>
+    <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
+    <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
+    <span style="color:var(--line);margin:0 2px">|</span>
+    <label style="display:flex;align-items:center;gap:6px">
+      SCHRIFT
+      <input type="number" id="track-font-size" min="10" max="24" value="12" step="1"
+        style="width:44px;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;padding:2px 4px;text-align:center;outline:none"
+        oninput="updateTrackFontSize(this.value)"
+        onkeydown="if(event.key==='ArrowUp'){event.preventDefault();this.value=Math.min(24,+this.value+1);updateTrackFontSize(this.value)}else if(event.key==='ArrowDown'){event.preventDefault();this.value=Math.max(10,+this.value-1);updateTrackFontSize(this.value)}">
+    </label>
+  </div>
+
+  <!-- Select mode bar -->
+  <div class="select-mode-bar" id="select-mode-bar">
+    <span style="font-size:9px;letter-spacing:.1em;opacity:.7">GRUPPEN-MODUS</span>
+    <span id="sel-count" style="flex:1">0 ausgewählt</span>
+    <button onclick="selectAllTracks()">ALLE</button>
+    <button onclick="deselectAllTracks()">KEINE</button>
+    <div class="block-color-row" id="block-color-row"></div>
+    <input type="text" id="block-name-inp" placeholder="Gruppenname (optional)…" />
+    <label style="display:flex;align-items:center;gap:5px;font-size:9px;color:rgba(255,255,255,.7);letter-spacing:.06em">
+      OPACITY
+      <input type="range" id="block-opacity-inp" min="10" max="100" value="100" step="5"
+        style="width:70px;accent-color:var(--accent);cursor:pointer"
+        oninput="document.getElementById('block-opacity-val').textContent=this.value+'%'">
+      <span id="block-opacity-val" style="width:32px;text-align:left">100%</span>
+    </label>
+    <button class="confirm-btn" onclick="confirmBlock()">+ GRUPPE</button>
+  </div>
+
+  <div class="setlist-wrap">
+    <div class="col-headers" id="col-headers-row">
+      <span>#</span><span>TRACK</span>
+    </div>
+    <div id="setlist-body"></div>
+    <div class="setlist-drop-end" id="setlist-drop-end">— HIER ABLEGEN —</div>
+    <div class="totals-row">
+      <span></span>
+      <span class="label">GESAMT</span>
+      <span class="val" id="total-time">—</span>
+      <span class="val" id="total-bpm">—</span>
+      <span></span>
+    </div>
+  </div>
+
+  </div><!-- /main-view -->
+
+  <!-- Archive View -->
+  <div class="archive-view" id="archive-view" style="display:none">
+    <div style="padding:24px 0 8px">
+      <div class="hero-title" style="font-size:clamp(40px,8vw,80px)">ARCHIV</div>
+    </div>
+    <div class="archive-toolbar">
+      <input type="text" id="archive-search" placeholder="Setlist suchen…" oninput="renderArchive()" />
+      <button onclick="openSaveModal()" style="background:var(--fg);border:none;color:var(--bg);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:8px 16px;cursor:pointer;touch-action:manipulation;white-space:nowrap">+ AKTUELLE SETLIST SPEICHERN</button>
+    </div>
+    <div class="archive-list" id="archive-list"></div>
+  </div>
+</div>
+
+
+<footer style="position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 32px 32px;display:flex;justify-content:space-between;font-size:9px;color:#333">
+  <span id="footer-count">0 TRACKS</span><span>© 2026</span>
+</footer>
+
+<script>
+function showDebug(msg) {
+  const s = document.getElementById('save-status');
+  if (s) { s.textContent = msg; s.style.color = msg.includes('✓') || msg.includes('GELADEN') || msg.includes('GESPEICHERT') ? '#2d7a32' : '#444'; }
+}
+</script>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+// EN artist seed data — only loaded if artist=en and no saved state exists
+const _EN_POOL = [
+  { id:1,  name:"Intro",                           length:"1:20", bpm:"",    ltc:"00:00:00", uncertain:false },
+  { id:2,  name:"Haifischbecken",                  length:"2:40", bpm:"",    ltc:"00:10:00", uncertain:false },
+  { id:3,  name:"Wand",                            length:"3:00", bpm:"93",  ltc:"00:20:00", uncertain:false },
+  { id:4,  name:"Isar",                            length:"3:36", bpm:"",    ltc:"00:30:00", uncertain:false },
+  { id:5,  name:"Utopie",                          length:"2:44", bpm:"136", ltc:"00:40:00", uncertain:false },
+  { id:6,  name:"Freister Mensch",                 length:"2:50", bpm:"98",  ltc:"00:50:00", uncertain:false },
+  { id:7,  name:"Rimini",                          length:"2:50", bpm:"99",  ltc:"01:10:00", uncertain:false },
+  { id:8,  name:"Hotel Sahara",                    length:"3:20", bpm:"",    ltc:"01:20:00", uncertain:false },
+  { id:9,  name:"Wie lang wird es uns noch geben", length:"3:15", bpm:"",    ltc:"01:30:00", uncertain:false },
+  { id:10, name:"Ohne dich",                       length:"3:00", bpm:"",    ltc:"01:40:00", uncertain:false },
+  { id:11, name:"Jungs",                           length:"2:50", bpm:"100", ltc:"01:50:00", uncertain:false },
+  { id:12, name:"Am Ende dieses Lieds",            length:"3:00", bpm:"",    ltc:"02:00:00", uncertain:false },
+  { id:13, name:"Blitzlicht",                      length:"2:46", bpm:"158", ltc:"02:10:00", uncertain:false },
+  { id:14, name:"Rettung",                         length:"3:23", bpm:"156", ltc:"02:30:00", uncertain:false },
+  { id:15, name:"Strategie",                       length:"2:40", bpm:"160", ltc:"02:40:00", uncertain:false },
+  { id:16, name:"Drachenfrucht",                   length:"3:20", bpm:"156", ltc:"02:50:00", uncertain:false },
+  { id:17, name:"Producer Game",                   length:"5:00", bpm:"",    ltc:"",         uncertain:false },
+  { id:18, name:"Fuehlst du gar nichts",           length:"3:20", bpm:"128", ltc:"03:00:00", uncertain:false },
+  { id:19, name:"Unendlichkeit",                   length:"5:00", bpm:"132", ltc:"03:20:00", uncertain:false },
+  { id:20, name:"Nichts mehr - kitschkrieg",       length:"3:40", bpm:"",    ltc:"03:30:00", uncertain:false },
+  { id:21, name:"Nirvana",                         length:"3:30", bpm:"",    ltc:"",         uncertain:false },
+  { id:22, name:"Kippe",                           length:"3:15", bpm:"",    ltc:"",         uncertain:false },
+  { id:23, name:"Zeit",                            length:"2:18", bpm:"136", ltc:"",         uncertain:false },
+  { id:24, name:"Koenig der Nachbarschaft",        length:"3:15", bpm:"155", ltc:"",         uncertain:false },
+  { id:25, name:"2 Teile",                         length:"3:46", bpm:"",    ltc:"",         uncertain:false },
+];
+const _EN_SETLIST = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25];
+
+// Start empty — filled by loadFromSupabase() on init
+let pool = [];
+
+// annotations[trackId] = { intro, outro, transIn, transOut, note }
+let annotations = {};
+let trackColors = {};
+let colOrder = ['ltc','key','notes','todo','length','bpm']; // full column order
+let _currentSaveId = null;
+let todos = {}; // trackId -> [{id, text, done, doneAt}]
+let _todoCollapsed = {};
+let _eyeOpen = {}; // trackId -> bool  // ID of last saved archive entry (for quick-save overwrite)
+let _currentSaveName = '';  // name of last saved entry
+let columnOrder = ['length','bpm']; // legacy, kept for save/load compat
+let blocks = []; // [{id, label, color, trackIds:[]}]
+let nextBlockId = 1;
+let selectMode = false; // when true, tracks are selectable for grouping
+let selectedTracks = new Set();
+let setlist = [];
+let nextId = 1;
+let dragSrc = null;
+let poolDragId = null;
+let poolSort = 'alpha';
+
+// current track being edited
+let editingTrackId = null;
+
+// ── UNDO/REDO ─────────────────────────────────────────────────
+let undoHistory = [], historyIndex = -1;
+function snapshot() {
+  const state = JSON.stringify({ setlist, annotations, trackColors, columnOrder, blocks });
+  undoHistory = undoHistory.slice(0, historyIndex + 1);
+  undoHistory.push(state);
+  if (undoHistory.length > 60) undoHistory.shift();
+  historyIndex = undoHistory.length - 1;
+  updateUndoButtons();
+  if (typeof autoSaveToStorage === "function") autoSaveToStorage();
+  // Supabase autosave
+  clearTimeout(window._sbSaveTimer);
+  window._sbSaveTimer = setTimeout(saveToSupabase, 1500);
+}
+
+function undo() {
+  if (historyIndex <= 0) return;
+  historyIndex--;
+  restore(undoHistory[historyIndex]);
+}
+function redo() {
+  if (historyIndex >= undoHistory.length - 1) return;
+  historyIndex++;
+  restore(undoHistory[historyIndex]);
+}
+function restore(state) {
+  const s = JSON.parse(state);
+  setlist = s.setlist;
+  annotations = s.annotations;
+  trackColors = s.trackColors||{};
+  columnOrder = s.columnOrder||['length','bpm'];
+  blocks = s.blocks||[];
+  render();
+  if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
+  updateUndoButtons();
+}
+function updateUndoButtons() {
+  document.getElementById('btn-undo').disabled = historyIndex <= 0;
+  document.getElementById('btn-redo').disabled = historyIndex >= undoHistory.length - 1;
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function hexToRgba(hex, alpha) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+const COLOR_PALETTE = [
+  '#e63323','#e07b20','#d4c020','#5a9a5e','#2e86c1',
+  '#8e44ad','#e91e8c','#00bcd4','#795548','#607d8b'
+];
+
+function renderColorSwatches(trackId) {
+  const wrap = document.getElementById('color-swatches');
+  wrap.innerHTML = '';
+  const current = trackColors[trackId] || null;
+  // Clear option
+  const clear = document.createElement('div');
+  clear.className = 'color-swatch clear' + (!current ? ' selected' : '');
+  clear.title = 'Keine Farbe';
+  clear.textContent = '✕';
+  clear.onclick = () => { document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected')); clear.classList.add('selected'); };
+  clear.dataset.color = '';
+  wrap.appendChild(clear);
+  COLOR_PALETTE.forEach(hex => {
+    const s = document.createElement('div');
+    s.className = 'color-swatch' + (current === hex ? ' selected' : '');
+    s.style.background = hex;
+    s.dataset.color = hex;
+    s.title = hex;
+    s.onclick = () => { document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('selected')); s.classList.add('selected'); };
+    wrap.appendChild(s);
+  });
+}
+
+function normalizeLength(str) {
+  if (!str) return '';
+  const p = str.split(':');
+  // h:mm:ss where h is 0 -> strip to m:ss
+  if (p.length === 3 && parseInt(p[0]) === 0) return `${parseInt(p[1])}:${p[2]}`;
+  // h:mm:ss where h > 0 -> keep as-is (long track)
+  if (p.length === 3) return str;
+  // m:ss -> keep
+  return str;
+}
+
+function toSeconds(str) {
+  if (!str) return 0;
+  const p = str.split(':');
+  return p.length === 2 ? +p[0]*60 + +p[1] : +p[0]*3600 + +p[1]*60 + +p[2];
+}
+function formatTime(s) {
+  if (!s) return '—';
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+function getTrack(id) { return pool.find(t => +t.id === +id); }
+function getAnn(id) { return annotations[id] || {}; }
+
+// ── RENDER ────────────────────────────────────────────────────
+function render() {
+  if (typeof updateColHeaders === 'function') updateColHeaders();
+  const body = document.getElementById('setlist-body');
+  body.innerHTML = '';
+  let totalSecs = 0, bpmVals = [];
+
+  const showLength = visChecked('vis-length');
+  const showBpm = visChecked('vis-bpm');
+  const showAnn = visChecked('vis-annotations');
+  const showBlocks = visChecked('vis-blocks');
+  const showNotesCol = visChecked('vis-notes-col');
+
+  const on = ltcEnabled();
+
+  // ── Dynamic column system ──────────────────────────────────
+  const showKey = visChecked('vis-key');
+  const showTodo = visChecked('vis-todo');
+  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, length:showLength, bpm:showBpm };
+  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'140px', length:'80px', bpm:'60px' };
+  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
+  const visCols = colOrder.filter(c => COL_VISIBLE[c]);
+  const gridTpl = '36px 1fr ' + visCols.map(c => COL_WIDTHS[c]).join(' ') + ' 36px';
+
+  // Scale cell font-size with number of visible columns
+  const cellFs = visCols.length <= 2 ? '10px' : visCols.length === 3 ? '9px' : '8px';
+  document.documentElement.style.setProperty('--cell-fs', cellFs);
+
+  // Rebuild col-headers row dynamically
+  const colHeadersRow = document.getElementById('col-headers-row');
+  if (colHeadersRow) {
+    colHeadersRow.style.gridTemplateColumns = gridTpl;
+    while (colHeadersRow.children.length > 2) colHeadersRow.removeChild(colHeadersRow.lastChild);
+    visCols.forEach(c => {
+      const s = document.createElement('span');
+      s.className = 'col-drag-header';
+      s.draggable = true;
+      s.dataset.col = c;
+      s.textContent = COL_LABELS[c];
+      colHeadersRow.appendChild(s);
+    });
+    colHeadersRow.appendChild(document.createElement('span'));
+    initColHeaders();
+  }
+
+  // Track which block label rows have been rendered
+  const renderedBlocks = new Set();
+  const tcData = on ? calcTimecodes() : { tcs: {}, conflicts: [] }; // conflicts only
+  const banner = document.getElementById('tc-conflict-banner');
+  if (banner) { banner.classList.toggle('active', on && tcData.conflicts.length > 0); if (tcData.conflicts.length > 0) window._tcConflicts = tcData.conflicts; }
+
+  let trackNum = 0;
+  setlist.forEach((tid, i) => {
+    const t = getTrack(tid);
+    if (!t) return;
+    if (!t.special) trackNum++;
+    totalSecs += toSeconds(t.length);
+    if (t.bpm && !isNaN(t.bpm)) bpmVals.push(+t.bpm);
+
+    const ann = getAnn(tid);
+    const block = showBlocks ? getBlockForTrack(tid) : null;
+
+    // — Block separator / label row at start of block —
+    if (block && !renderedBlocks.has(block.id)) {
+      renderedBlocks.add(block.id);
+      const hasName = block.label && block.label.trim();
+      const labelRow = document.createElement('div');
+      if (hasName) {
+        labelRow.className = 'block-label-row';
+        labelRow.innerHTML = `<span class="block-label-tag">${block.label}</span>
+          ${selectMode ? `<button class="block-remove" onclick="removeBlock(${block.id})">✕</button>` : ''}`;
+      } else {
+        labelRow.className = 'block-spacer';
+        labelRow.dataset.blockId = block.id;
+        if (selectMode) {
+          labelRow.innerHTML = `<button class="block-remove block-spacer-remove" onclick="removeBlock(${block.id})" title="Gruppe löschen">✕</button>`;
+        }
+      }
+      body.appendChild(labelRow);
+    }
+
+    // — Annotation rows BEFORE track —
+    if (showAnn && ann.intro) {
+      const ar = makeAnnRow('intro', '↳ INTRO', ann.intro, tid, 'intro');
+      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); }
+      body.appendChild(ar);
+    }
+    if (showAnn && ann.transIn) {
+      const ar = makeAnnRow('trans', '← ÜBERGANG', ann.transIn, tid, 'transIn');
+      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); }
+      body.appendChild(ar);
+    }
+
+    // — Track row —
+    const row = document.createElement('div');
+    const isZugabe = t.special === 'zugabe' || t.zugabe || /zugabe/i.test(t.name);
+    row.className = 'track-row' + (t.uncertain ? ' uncertain' : '') + (isZugabe ? ' zugabe' : '') + (t.special ? ' special-' + t.special : '');
+    row.style.gridTemplateColumns = gridTpl;
+    row.draggable = true;
+    row.dataset.id = t.id;
+    if (block) {
+      row.classList.add('in-block');
+      const bOpacity = block.opacity !== undefined ? block.opacity : 1;
+      row.style.setProperty('--block-color', block.color || '#999');
+      row.style.setProperty('--block-opacity', bOpacity);
+      // first track in block?
+      const prevTid = setlist[i - 1];
+      const prevBlock = prevTid ? getBlockForTrack(prevTid) : null;
+      if (!prevBlock || prevBlock.id !== block.id) row.classList.add('block-start');
+      // last track in block?
+      const nextTid = setlist[i + 1];
+      const nextBlock = nextTid ? getBlockForTrack(nextTid) : null;
+      if (!nextBlock || nextBlock.id !== block.id) {
+        row.classList.add('block-end');
+      }
+    }
+    const col = trackColors[t.id];
+    if (col) { row.style.borderLeft = `3px solid ${col}`; row.style.background = hexToRgba(col, 0.06); }
+
+    // Build data cells in colOrder
+    const colCells = visCols.map(c => {
+      if (c === 'ltc')    return `<span class="track-tc track-inline-edit" contenteditable="true" data-field="ltc" data-id="${t.id}" draggable="false">${t.ltc || '—'}</span>`;
+      if (c === 'key')    return renderKeyCell(t);
+      if (c === 'todo')   return `<span class="todo-col-placeholder" data-id="${t.id}"></span>`;
+      if (c === 'notes')  return `<span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)">${ann.note||'—'}</span>`;
+      if (c === 'length') return `<span class="track-length track-inline-edit" contenteditable="true" data-field="length" data-id="${t.id}">${t.length||'—'}</span>`;
+      if (c === 'bpm')    return `<span class="track-bpm track-inline-edit ${t.bpm?'filled':''}" contenteditable="true" data-field="bpm" data-id="${t.id}">${t.bpm||'—'}</span>`;
+      return '';
+    }).join('');
+
+    row.innerHTML = `
+      <span class="track-num" onclick="editPosition(this,${t.id})" title="Klicken um Position zu ändern">${t.special ? '·' : String(trackNum).padStart(2,'00')}</span>
+      <span class="track-name">${t.name}${t.uncertain?'<span class="uncertain-badge"></span>':''}${col?`<span class="color-dot" style="background:${col}"></span>`:''}</span>
+      ${colCells}
+      <span style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
+        <button class="track-edit-btn" onclick="openEditModal(${t.id})">✎</button>
+        <button class="track-delete-btn" onclick="removeFromSetlist(${t.id})">✕</button>
+      </span>`;
+
+
+    // Insert todo column cell (DOM element, can't be in innerHTML directly)
+    const todoPlaceholder = row.querySelector('.todo-col-placeholder');
+    if (todoPlaceholder) {
+      const todoEl = renderTodoCellInline(t);
+      todoPlaceholder.replaceWith(todoEl);
+    }
+
+    // Click to edit note inline
+    const noteEl = row.querySelector('.track-note-inline');
+    if (noteEl) {
+      noteEl.addEventListener('click', () => {
+        const original = ann.note || '';
+        noteEl.contentEditable = 'true';
+        noteEl.style.whiteSpace = 'normal';
+        if (noteEl.textContent === '—') { noteEl.textContent = ''; }
+        const range = document.createRange();
+        range.selectNodeContents(noteEl);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        noteEl.focus();
+        function saveNote() {
+          noteEl.contentEditable = 'false';
+          noteEl.style.whiteSpace = 'nowrap';
+          const val = (noteEl.textContent || '').trim();
+          if (!annotations[t.id]) annotations[t.id] = {};
+          annotations[t.id].note = val;
+          snapshot();
+          render();
+        }
+        noteEl.addEventListener('blur', saveNote, { once: true });
+        noteEl.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); noteEl.blur(); }
+          if (e.key === 'Escape') { noteEl.textContent = original || '—'; noteEl.blur(); }
+        });
+      });
+    }
+
+    // Dblclick to edit name
+    const nameEl = row.querySelector('.track-name');
+    if (nameEl) {
+      nameEl.addEventListener('dblclick', () => {
+        const original = t.name;
+        nameEl.contentEditable = 'true';
+        nameEl.style.cursor = 'text';
+        nameEl.style.outline = 'none';
+        nameEl.style.background = 'rgba(0,0,0,.08)';
+        // put cursor at end
+        const range = document.createRange();
+        range.selectNodeContents(nameEl);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+
+        function save() {
+          nameEl.contentEditable = 'false';
+          nameEl.style.cursor = '';
+          nameEl.style.background = '';
+          const newName = (nameEl.innerText || nameEl.textContent).trim().split('\n')[0];
+          if (newName && newName !== original) { t.name = newName; snapshot(); checkZugabe(t); }
+          render();
+        }
+        nameEl.addEventListener('blur', save, { once: true });
+        nameEl.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+          if (e.key === 'Escape') { nameEl.innerText = original; nameEl.blur(); }
+        });
+      });
+    }
+
+    // Inline edit handlers for length + bpm
+    row.querySelectorAll('.track-inline-edit').forEach(el => {
+      el.addEventListener('focus', () => {
+        if (el.textContent === '—') { el.textContent = ''; }
+        const range = document.createRange(); range.selectNodeContents(el);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      });
+      el.addEventListener('blur', () => {
+        const field = el.dataset.field;
+        const tid = +el.dataset.id;
+        const track = getTrack(tid);
+        if (!track) return;
+        const val = el.textContent.trim();
+        track[field] = field === 'length' ? normalizeLength(val) : val;
+        if (!val || val === '—') { el.textContent = '—'; track[field] = ''; }
+        if (field === 'length' && track[field]) el.textContent = track[field];
+        if (field === 'bpm') el.classList.toggle('filled', !!val && val !== '—');
+        snapshot(); render();
+      });
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+    });
+
+    // Block left border
+
+    // Select mode
+    if (selectMode) {
+      row.classList.add('selectable');
+      if (selectedTracks.has(t.id)) row.classList.add('selected-for-block');
+      const toggleRow = (e) => {
+        e.stopPropagation();
+        if (selectedTracks.has(t.id)) selectedTracks.delete(t.id);
+        else selectedTracks.add(t.id);
+        document.getElementById('sel-count').textContent = selectedTracks.size + ' ausgewählt';
+        row.classList.toggle('selected-for-block', selectedTracks.has(t.id));
+      };
+      row.addEventListener('click', toggleRow);
+      row.addEventListener('touchend', e => { e.preventDefault(); toggleRow(e); }, { passive: false });
+    }
+
+    body.appendChild(row);
+    body.appendChild(detailPanel);
+
+    // — Annotation rows AFTER track —
+    if (showAnn && ann.outro) {
+      const ar = makeAnnRow('outro', '↲ OUTRO', ann.outro, tid, 'outro');
+      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); }
+      body.appendChild(ar);
+    }
+    if (showAnn && ann.transOut) {
+      const ar = makeAnnRow('trans', '→ ÜBERGANG', ann.transOut, tid, 'transOut');
+      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); }
+      body.appendChild(ar);
+    }
+
+  });
+
+  document.getElementById('total-time').textContent = totalSecs ? formatTime(totalSecs) : '—';
+  document.getElementById('stat-time').textContent = totalSecs ? formatTime(totalSecs) : '0:00';
+  document.getElementById('stat-tracks').textContent = setlist.length;
+  document.getElementById('footer-count').textContent = setlist.length + ' TRACKS';
+  const avg = bpmVals.length ? Math.round(bpmVals.reduce((a,b)=>a+b,0)/bpmVals.length) : null;
+  document.getElementById('total-bpm').textContent = avg ? avg+' avg' : '—';
+  document.getElementById('stat-bpm').textContent = avg || '—';
+}
+
+function makeAnnRow(type, label, text, trackId, field) {
+  const div = document.createElement('div');
+  div.className = 'annotation-row ann-type-' + type;
+  // Show text inline if it's different from the default label, else just show badge
+  const defaults = { intro:'Intro', outro:'Outro', trans:'Übergang', note:'' };
+  const isDefault = !text || text === defaults[type];
+  const displayText = isDefault ? (defaults[type] || label) : text;
+  div.innerHTML = `
+    <span class="ann-arrow">${type === "intro" ? "↳" : type === "outro" ? "↲" : type === "trans" ? "→" : "·"}</span>
+    <span class="ann-badge ${type} ann-inline-edit" contenteditable="true" data-track-id="${trackId}" data-field="${field}" title="Klicken zum Bearbeiten">${displayText}</span>
+    <button class="ann-remove" onclick="clearAnnotation(${trackId},'${field}')">✕</button>`;
+
+  const badge = div.querySelector('.ann-inline-edit');
+
+  // Prevent drag-start when clicking into the text field
+  badge.addEventListener('mousedown', e => e.stopPropagation());
+  badge.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+
+  badge.addEventListener('focus', function() {
+    const def = defaults[type] || '';
+    if (this.textContent.trim() === def) {
+      this.textContent = '';
+    }
+  });
+  badge.addEventListener('blur', function() {
+    const val = this.textContent.trim();
+    const tid = +this.dataset.trackId;
+    const fld = this.dataset.field;
+    const def = defaults[type] || '';
+    if (!annotations[tid]) annotations[tid] = {};
+    annotations[tid][fld] = val || def;
+    if (!val) this.textContent = def;
+    snapshot();
+  });
+  badge.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
+    if (e.key === 'Escape') { e.preventDefault(); this.blur(); }
+  });
+  return div;
+}
+
+function clearAnnotation(trackId, field) {
+  if (annotations[trackId]) {
+    delete annotations[trackId][field];
+    if (!Object.values(annotations[trackId]).some(v=>v)) delete annotations[trackId];
+  }
+  snapshot(); render();
+}
+
+// ── EDIT MODAL ────────────────────────────────────────────────
+function openEditModal(trackId) {
+  editingTrackId = trackId;
+  const t = getTrack(trackId);
+  const ann = getAnn(trackId);
+  document.getElementById('em-track-name').textContent = t.name;
+  document.getElementById('em-name').value = t.name || '';
+  document.getElementById('em-length').value = t.length || '';
+  document.getElementById('em-bpm').value = t.bpm || '';
+  document.getElementById('em-ltc-top').value = t.ltc || '';
+  // Key button
+  const keyBtn = document.getElementById('em-key-btn');
+  keyBtn.dataset.key = t.key || '';
+  keyBtn.dataset.keyMode = t.keyMode || 'Dur';
+  keyBtn.textContent = t.key ? t.key + ' ' + (t.keyMode||'Dur') : '—';
+  keyBtn.style.color = t.key ? 'var(--fg)' : 'var(--muted)';
+  // Type select
+  document.getElementById('em-type').value = t.special || 'song';
+  document.getElementById('em-intro').value = ann.intro || '';
+  document.getElementById('em-outro').value = ann.outro || '';
+  document.getElementById('em-trans-in').value = ann.transIn || '';
+  document.getElementById('em-trans-out').value = ann.transOut || '';
+  document.getElementById('em-note').value = ann.note || '';
+
+  // Auto-open sections that already have content
+  const fieldMap = {'intro':'em-intro','outro':'em-outro','trans-in':'em-trans-in','trans-out':'em-trans-out','note':'em-note'};
+  const annFieldMap = {'intro':'intro','outro':'outro','trans-in':'transIn','trans-out':'transOut','note':'note'};
+  ['intro','outro','trans-in','trans-out','note'].forEach(key => {
+    const val = ann[annFieldMap[key]] || '';
+    const body = document.getElementById('sec-'+key);
+    const indicator = document.getElementById('sec-'+key+'-indicator');
+    const ta = document.getElementById(fieldMap[key]);
+    if (val) {
+      body.classList.add('open');
+      indicator.textContent = '— entfernen';
+      ta.dataset.isDefault = 'false';
+    } else {
+      body.classList.remove('open');
+      indicator.textContent = '+ hinzufügen';
+      if (ta) { ta.value = ''; ta.dataset.isDefault = 'false'; }
+    }
+  });
+
+  renderColorSwatches(trackId);
+  renderTodoList(trackId);
+  // Auto-open todo section if there are open todos
+  const openTodos = (todos[trackId]||[]).filter(function(x){ return !x.done; });
+  const todoBody = document.getElementById('sec-todo');
+  const todoInd  = document.getElementById('sec-todo-indicator');
+  if (openTodos.length > 0 && todoBody) {
+    todoBody.classList.add('open');
+    if (todoInd) todoInd.textContent = '— entfernen';
+  } else if (todoBody) {
+    todoBody.classList.remove('open');
+    if (todoInd) todoInd.textContent = '+ hinzufügen';
+  }
+  const secColor = document.getElementById('sec-color');
+  const secColorInd = document.getElementById('sec-color-indicator');
+  if (trackColors[trackId]) { secColor.classList.add('open'); secColorInd.textContent = '— entfernen'; }
+  else { secColor.classList.remove('open'); secColorInd.textContent = '+ auswählen'; }
+  document.getElementById('edit-modal').style.cssText='display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;padding:20px;';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').style.cssText='display:none';
+  editingTrackId = null;
+}
+
+function saveEditModal() {
+  if (!editingTrackId) return;
+  function getVal(id) {
+    const ta = document.getElementById(id);
+    // If section is not open, don't save
+    if (!ta.closest('.em-section-body').classList.contains('open')) return '';
+    return ta.value.trim();
+  }
+  const ann = {
+    intro:    getVal('em-intro'),
+    outro:    getVal('em-outro'),
+    transIn:  getVal('em-trans-in'),
+    transOut: getVal('em-trans-out'),
+    note:     getVal('em-note'),
+  };
+  if (Object.values(ann).some(v=>v)) {
+    annotations[editingTrackId] = ann;
+  } else {
+    delete annotations[editingTrackId];
+  }
+  // save color
+  const selectedSwatch = document.querySelector('.color-swatch.selected');
+  if (selectedSwatch) {
+    const col = selectedSwatch.dataset.color;
+    if (col) trackColors[editingTrackId] = col;
+    else delete trackColors[editingTrackId];
+  }
+  // Save all metadata back to track
+  const editTrack = getTrack(editingTrackId);
+  if (editTrack) {
+    const newName = document.getElementById('em-name').value.trim();
+    if (newName) editTrack.name = newName;
+    editTrack.length = normalizeLength(document.getElementById('em-length').value.trim());
+    editTrack.bpm = document.getElementById('em-bpm').value.trim();
+    editTrack.ltc = document.getElementById('em-ltc-top').value.trim();
+    const kb = document.getElementById('em-key-btn');
+    editTrack.key = kb.dataset.key || '';
+    editTrack.keyMode = kb.dataset.keyMode || 'Dur';
+    const typeVal = document.getElementById('em-type').value;
+    editTrack.special = typeVal === 'song' ? undefined : typeVal;
+    // Update modal title
+    document.getElementById('em-track-name').textContent = editTrack.name;
+  }
+  snapshot(); render(); closeEditModal();
+}
+
+const SECTION_DEFAULTS = {
+  'sec-intro':    'Intro',
+  'sec-outro':    'Outro',
+  'sec-trans-in': 'Übergang',
+  'sec-trans-out':'Übergang',
+  'sec-note':     ''
+};
+
+function toggleSection(id) {
+  const body = document.getElementById(id);
+  const indicator = document.getElementById(id+'-indicator');
+  const isOpen = body.classList.toggle('open');
+  indicator.textContent = isOpen ? '— entfernen' : '+ hinzufügen';
+  if (isOpen) {
+    const ta = body.querySelector('textarea');
+    if (ta) {
+      // Prefill with default only if currently empty
+      if (!ta.value.trim() && SECTION_DEFAULTS[id]) {
+        ta.value = SECTION_DEFAULTS[id];
+        ta.dataset.isDefault = 'true';
+        // Select all so first keystroke replaces it
+        ta.focus();
+        ta.select();
+      } else {
+        ta.dataset.isDefault = 'false';
+        ta.focus();
+      }
+    }
+  }
+}
+
+// Clear default on first real input
+document.addEventListener('input', e => {
+  if (e.target.classList.contains('em-textarea')) {
+    if (e.target.dataset.isDefault === 'true') {
+      e.target.dataset.isDefault = 'false';
+    }
+  }
+}, true);
+
+// ── POOL ──────────────────────────────────────────────────────
+function setSort(mode) {
+  poolSort = mode;
+  document.querySelectorAll('.pool-sort-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sort-'+mode).classList.add('active');
+  renderPool();
+}
+
+function renderPool() {
+  const q = document.getElementById('pool-search').value.toLowerCase();
+  const list = document.getElementById('pool-list');
+  list.innerHTML = '';
+  let filtered = pool.filter(t => t.name.toLowerCase().includes(q));
+  if (poolSort === 'alpha') filtered = [...filtered].sort((a,b)=>a.name.localeCompare(b.name));
+  else if (poolSort === 'bpm') filtered = [...filtered].sort((a,b)=>{
+    const ba=+a.bpm||0, bb=+b.bpm||0;
+    if (!ba&&!bb) return a.name.localeCompare(b.name);
+    if (!ba) return 1; if (!bb) return -1;
+    return ba-bb;
+  });
+  document.getElementById('pool-meta').textContent = `${pool.length} TRACKS IM POOL`;
+
+  filtered.forEach(t => {
+    const inSet = setlist.includes(t.id);
+    const item = document.createElement('div');
+    item.className = 'pool-item' + (inSet ? ' in-setlist' : '');
+    item.draggable = !inSet;
+    item.innerHTML = `
+      <span class="pool-item-status">${inSet?'✓':''}</span>
+      <span class="pool-item-name">${t.name}</span>
+      <span class="pool-item-bpm">${t.bpm||'—'}</span>
+      <span class="pool-item-len">${t.length||'—'}</span>`;
+
+    if (!inSet) {
+      item.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', t.id); poolDragId = t.id; item.classList.add('pool-dragging'); document.getElementById('setlist-drop-end').textContent = '+ HIER ABLEGEN'; });
+      item.addEventListener('dragend', () => { item.classList.remove('pool-dragging'); poolDragId = null; document.getElementById('setlist-drop-end').textContent = '— HIER ABLEGEN —'; });
+      item.addEventListener('click', () => { if (!setlist.includes(t.id)) { setlist.push(t.id); snapshot(); render(); renderPool(); } });
+    }
+    list.appendChild(item);
+  });
+}
+
+function openPool() { document.getElementById('pool-sidebar').classList.add('open'); document.getElementById('pool-overlay').classList.add('open'); document.body.classList.add('pool-open'); renderPool(); }
+function closePool() { document.getElementById('pool-sidebar').classList.remove('open'); document.getElementById('pool-overlay').classList.remove('open'); document.body.classList.remove('pool-open'); }
+function addToPool() {
+  const name = document.getElementById('pool-inp-name').value.trim();
+  if (!name) return;
+  const t = { id:nextId++, name, length:document.getElementById('pool-inp-length').value.trim(), bpm:document.getElementById('pool-inp-bpm').value.trim(), uncertain:false };
+  pool.push(t);
+  document.getElementById('pool-inp-name').value=''; document.getElementById('pool-inp-length').value=''; document.getElementById('pool-inp-bpm').value='';
+  renderPool();
+}
+
+// ── SETLIST ACTIONS ───────────────────────────────────────────
+function removeFromSetlist(id) {
+  // Dissolve any group this track belongs to
+  const grp = blocks.find(b => b.trackIds.includes(id));
+  if (grp) blocks = blocks.filter(b => b.id !== grp.id);
+  setlist = setlist.filter(x => x !== id);
+  snapshot(); render(); renderPool();
+}
+
+let _addType = 'song';
+function setAddType(type) {
+  _addType = type;
+  document.querySelectorAll('.add-type-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('type-btn-' + type);
+  if (btn) btn.classList.add('active');
+  // Auto-fill name placeholder based on type
+  const inp = document.getElementById('inp-name');
+  if (inp) inp.placeholder = type === 'intro' ? 'Intro' : type === 'outro' ? 'Outro' : type === 'ansage' ? 'Ansage…' : 'Trackname';
+}
+
+function toggleAddForm() {
+  document.getElementById('add-form').classList.toggle('open');
+  document.getElementById('add-btn').classList.toggle('active');
+  if (document.getElementById('add-form').classList.contains('open')) {
+    populatePositionSelect();
+  }
+}
+
+function populatePositionSelect() {
+  const sel = document.getElementById('inp-position');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="end">— Ende der Setlist</option>';
+  if (setlist.length > 0) {
+    // "Nach Track X" options
+    const firstOpt = document.createElement('option');
+    firstOpt.value = 'start';
+    firstOpt.textContent = '→ Anfang (vor ' + (getTrack(setlist[0])?.name || '?') + ')';
+    sel.appendChild(firstOpt);
+    setlist.forEach(function(tid, i) {
+      const t = getTrack(tid);
+      if (!t) return;
+      const opt = document.createElement('option');
+      opt.value = 'after_' + tid;
+      opt.textContent = 'Nach ' + (i+1) + '. ' + t.name;
+      sel.appendChild(opt);
+    });
+  }
+  // Restore selection if still valid
+  if (current && sel.querySelector('option[value="' + current + '"]')) {
+    sel.value = current;
+  }
+}
+let _pendingNewTrack = null;
+
+function addTrack() {
+  const name = document.getElementById('inp-name').value.trim(); if (!name) return;
+  const length = document.getElementById('inp-length').value.trim();
+  const bpm = document.getElementById('inp-bpm').value.trim();
+  const uncertain = document.getElementById('inp-uncertain').checked;
+  const keyBtn = document.getElementById('inp-key-btn');
+  const addKey = keyBtn.dataset.key || '';
+  const addKeyMode = keyBtn.dataset.keyMode || '';
+
+  // Check for identical name in pool (case-insensitive)
+  const existing = pool.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if (existing) {
+    _pendingNewTrack = { name, length, bpm, uncertain };
+    const msg = document.getElementById('dup-msg');
+    msg.innerHTML = `„<span class="dup-box-name">${existing.name}</span>" ist bereits in der Datenbank.<br><br>
+      <b>ERSETZEN</b> — überschreibt Länge &amp; BPM des bestehenden Tracks<br>
+      <b>ALS V2</b> — fügt „${name} V2" als neuen Track hinzu`;
+    document.getElementById('dup-modal').classList.add('open');
+    return;
+  }
+
+  const position = document.getElementById('inp-position')?.value || 'end';
+  _doAddTrack(name, length, bpm, uncertain, _addType, addKey, addKeyMode, position);
+}
+
+function resolveDup(action) {
+  document.getElementById('dup-modal').classList.remove('open');
+  if (!_pendingNewTrack) return;
+  const { name, length, bpm, uncertain } = _pendingNewTrack;
+  _pendingNewTrack = null;
+
+  if (action === 'cancel') return;
+
+  if (action === 'replace') {
+    const existing = pool.find(p => p.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      existing.length = length;
+      existing.bpm = bpm;
+      // Add to setlist if not already there
+      if (!setlist.includes(existing.id)) setlist.push(existing.id);
+      clearAddForm();
+      snapshot(); render();
+      if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
+      return;
+    }
+  }
+
+  if (action === 'v2') {
+    _doAddTrack(name + ' V2', length, bpm, uncertain);
+    return;
+  }
+}
+
+function _doAddTrack(name, length, bpm, uncertain, special, key, keyMode, position) {
+  const t = { id:nextId++, name, length, bpm, uncertain };
+  if (special && special !== 'song') t.special = special;
+  if (key) { t.key = key; t.keyMode = keyMode || 'Dur'; }
+  pool.push(t);
+  // Insert at position
+  if (!position || position === 'end') {
+    setlist.push(t.id);
+  } else if (position === 'start') {
+    setlist.unshift(t.id);
+  } else if (position.startsWith('after_')) {
+    const afterId = +position.replace('after_', '');
+    const idx = setlist.indexOf(afterId);
+    if (idx !== -1) setlist.splice(idx + 1, 0, t.id);
+    else setlist.push(t.id);
+  } else {
+    setlist.push(t.id);
+  }
+  checkZugabe(t);
+  clearAddForm();
+  snapshot(); render();
+  if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
+}
+
+function clearAddForm() {
+  setAddType('song');
+  document.getElementById('inp-name').value='';
+  document.getElementById('inp-length').value='';
+  document.getElementById('inp-bpm').value='';
+  document.getElementById('inp-uncertain').checked=false;
+  const kb = document.getElementById('inp-key-btn'); if(kb){kb.textContent='—';kb.dataset.key='';kb.dataset.keyMode='';}
+  populatePositionSelect();
+}
+
+
+
+function openExportModal() { try { const m = document.getElementById('export-modal'); if (!m) { showDebug('NOT FOUND'); return; } m.style.cssText = 'display:flex !important; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9000; align-items:center; justify-content:center; padding:20px;'; showDebug('export-modal opened OK'); } catch(e) { showDebug('error: '+e.message); } }
+function closeExportModal() { const m = document.getElementById('export-modal'); if(m) m.style.cssText = 'display:none'; }
+
+function getExportOpts() {
+  return {
+    fmt:         document.querySelector('input[name="exp-fmt"]:checked')?.value || 'txt',
+    length:      document.getElementById('exp-length').checked,
+    bpm:         document.getElementById('exp-bpm').checked,
+    introOutro:  document.getElementById('exp-intro-outro').checked,
+    transitions: document.getElementById('exp-transitions').checked,
+    notes:       document.getElementById('exp-notes').checked,
+    blocks:      document.getElementById('exp-blocks').checked,
+  };
+}
+
+function buildExportRows(opts) {
+  const rows = [];
+  let currentBlock = null;
+  const on = ltcEnabled();
+  const tcData = on ? calcTimecodes() : { tcs: {}, conflicts: [] }; // conflicts only
+  const banner = document.getElementById('tc-conflict-banner');
+  if (banner) { banner.classList.toggle('active', on && tcData.conflicts.length > 0); if (tcData.conflicts.length > 0) window._tcConflicts = tcData.conflicts; }
+  const tcColHeader = document.getElementById('tc-col-header');
+  if (tcColHeader) tcColHeader.style.display = on ? '' : 'none';
+
+  setlist.forEach((tid, i) => {
+    const t = getTrack(tid); if (!t) return;
+    const ann = getAnn(tid);
+    const block = opts.blocks ? getBlockForTrack(tid) : null;
+    if (block && block !== currentBlock) { currentBlock = block; rows.push({ type:'block', label: block.label }); }
+    if (opts.introOutro && ann.intro)    rows.push({ type:'ann', tag:'INTRO',    text: ann.intro });
+    if (opts.transitions && ann.transIn) rows.push({ type:'ann', tag:'ÜBERGANG', text: ann.transIn });
+    rows.push({ type:'track', num: i+1, name: t.name, length: t.length, bpm: t.bpm, zugabe: t.zugabe });
+    if (opts.introOutro && ann.outro)    rows.push({ type:'ann', tag:'OUTRO',    text: ann.outro });
+    if (opts.transitions && ann.transOut)rows.push({ type:'ann', tag:'ÜBERGANG', text: ann.transOut });
+    if (opts.notes && ann.note)          rows.push({ type:'ann', tag:'NOTIZ',    text: ann.note });
+  });
+  return rows;
+}
+
+function runExport() {
+  const opts = getExportOpts();
+  if (opts.fmt === 'txt') exportTxt(opts);
+  else if (opts.fmt === 'csv') exportCsv(opts);
+  else exportPdf(opts);
+  closeExportModal();
+}
+
+function exportTxt(opts) {
+  const rows = buildExportRows(opts);
+  const total = setlist.reduce((s,tid)=>s+toSeconds(getTrack(tid)?.length||''),0);
+  let out = 'SETLIST\n' + '='.repeat(50) + '\n\n';
+  rows.forEach(r => {
+    if (r.type === 'block') out += `\n── ${r.label.toUpperCase()} ──\n`;
+    else if (r.type === 'ann') out += `   ${r.tag}: ${r.text}\n`;
+    else {
+      const num = String(r.num).padStart(2,'0');
+      const len = opts.length ? (r.length||'—').padEnd(7) : '';
+      const bpm = opts.bpm && r.bpm ? r.bpm+' BPM' : '';
+      out += `${num}  ${r.name.padEnd(36)} ${len}${bpm}\n`;
+    }
+  });
+  out += '\n' + '='.repeat(50) + '\n';
+  out += `GESAMT: ${formatTime(total)} | ${setlist.length} TRACKS\n`;
+  const blob = new Blob([out],{type:'text/plain'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='setlist.txt'; a.click();
+}
+
+function exportCsv(opts) {
+  const cols = ['#','Track'];
+  if (opts.length) cols.push('Länge');
+  if (opts.bpm) cols.push('BPM');
+  if (opts.blocks) cols.push('Gruppe');
+  let out = cols.join(';') + '\n';
+  setlist.forEach((tid,i) => {
+    const t = getTrack(tid); if (!t) return;
+    const block = opts.blocks ? getBlockForTrack(tid) : null;
+    const row = [i+1, `"${t.name}"`];
+    if (opts.length) row.push(t.length||'');
+    if (opts.bpm) row.push(t.bpm||'');
+    if (opts.blocks) row.push(block ? `"${block.label}"` : '');
+    out += row.join(';') + '\n';
+  });
+  const blob = new Blob([out],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='setlist.csv'; a.click();
+}
+
+function exportPdf(opts) {
+  const isA4 = opts.fmt === 'pdf-a4';
+  const rows = buildExportRows(opts);
+  const total = setlist.reduce((s,tid)=>s+toSeconds(getTrack(tid)?.length||''),0);
+  const width = isA4 ? '210mm' : 'auto';
+
+  let body = '';
+  rows.forEach(r => {
+    if (r.type === 'block') {
+      body += `<div class="block-label">── ${r.label} ──</div>`;
+    } else if (r.type === 'ann') {
+      body += `<div class="ann-row">${r.text}</div>`;
+    } else {
+      const len = opts.length ? `<span class="meta">${r.length||''}</span>` : '';
+      const bpm = opts.bpm && r.bpm ? `<span class="meta">${r.bpm} BPM</span>` : '';
+      const cls = r.zugabe ? ' zugabe' : '';
+      body += `<div class="track-row${cls}"><span class="num">${String(r.num).padStart(2,'0')}</span><span class="name">${r.name}</span>${len}${bpm}</div>`;
+    }
+  });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Setlist</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Space Mono',monospace; background:#fff; color:#111; padding:40px; ${isA4 ? 'width:210mm; min-height:297mm;' : 'max-width:600px;'} }
+  h1 { font-family:'Bebas Neue',sans-serif; font-size:64px; line-height:1; margin-bottom:8px; }
+  .subtitle { font-size:10px; color:#888; letter-spacing:.1em; margin-bottom:24px; padding-bottom:16px; border-bottom:2px solid #111; }
+  .track-row { display:flex; align-items:baseline; gap:10px; padding:6px 0; border-bottom:1px solid #eee; }
+  .track-row.zugabe { background:#111; color:#fff; padding:6px 8px; margin:4px 0; }
+  .track-row.zugabe .meta { color:#aaa; }
+  .num { font-size:9px; color:#aaa; min-width:24px; flex-shrink:0; }
+  .track-row.zugabe .num { color:#777; }
+  .name { font-size:13px; font-weight:700; flex:1; }
+  .meta { font-size:10px; color:#888; flex-shrink:0; }
+  .block-label { font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#888; margin:16px 0 4px; padding-top:12px; border-top:1px solid #ddd; }
+  .ann-row { font-size:9px; color:#999; padding:3px 0 3px 14px; border-left:2px solid #ddd; margin:3px 0; font-style:italic; }
+  .footer { margin-top:24px; font-size:9px; color:#aaa; letter-spacing:.08em; border-top:1px solid #eee; padding-top:12px; }
+  @media print { body { padding:20mm; } }
+
+  /* ── MOBILE ─────────────────────────────────────────────── */
+  @media (max-width: 600px) {
+
+    /* Toolbar: wrap into 2 rows, smaller buttons */
+    .toolbar { flex-wrap:wrap; gap:4px; padding:8px 0; }
+    .toolbar button { font-size:9px; padding:5px 8px; letter-spacing:.04em; }
+    .toolbar-sep { display:none; }
+    .stats-bar { width:100%; margin-left:0; margin-top:4px; font-size:9px; }
+
+    /* Hide secondary toolbar buttons on mobile - show via ... menu */
+    .toolbar-secondary { display:none; }
+
+    /* Track rows: hide BPM column, simplify */
+    .col-headers { gap:4px; }
+    .track-row   { gap:4px; }
+
+    /* BPM hidden on mobile by default, notes controlled by vis-checkbox */
+    .track-bpm { display:none; }
+    #col-h-bpm-header { display:none; }
+
+    /* Bigger tap targets */
+    .track-row { min-height:44px; padding:4px; }
+    .track-name { font-size:13px; }
+    .track-length { font-size:11px; }
+    .track-num { font-size:9px; min-width:24px; }
+
+    /* Edit + delete buttons */
+    .track-edit-btn { padding:4px 8px; font-size:12px; }
+    .track-delete-btn { font-size:16px; }
+    .drag-handle { font-size:20px; }
+
+    /* Vis bar: only Länge + BPM on mobile */
+    .vis-bar { font-size:8px; gap:6px; padding:5px 8px; }
+    .vis-bar label { gap:4px; }
+    .vis-bar label:not(.vis-keep),
+    .vis-bar span,
+    .vis-bar button,
+    .vis-bar input[type=number] { display:none !important; }
+    .vis-bar label.vis-keep { display:flex !important; }
+
+    /* Modals full-screen on mobile */
+    .modal { width:95vw !important; max-width:95vw !important; min-width:unset !important; max-height:85vh; overflow-y:auto; }
+    .save-modal { width:95vw !important; }
+    .pool-sidebar { width:85vw !important; }
+
+    /* Archive list on mobile */
+    .archive-item { grid-template-columns:1fr auto auto; gap:8px; }
+    .archive-item-tracks { display:none; }
+
+    /* Add form */
+    .add-form { flex-wrap:wrap; }
+    .add-form label { min-width:120px; }
+  }
+
+  /* ── MOBILE COMPACT MODE ─────────────────────────────────── */
+  @media (max-width: 600px) {
+    /* Hide all data columns, only show num + name + eye + edit/delete */
+    .track-row .track-tc,
+    .track-row .track-key,
+    .track-row .track-note-inline,
+    .track-row .track-length,
+    .track-row .track-bpm,
+    .track-row .todo-col-cell,
+    .col-headers { display:none !important; }
+
+    /* Eye button */
+    .track-eye-btn {
+      display:flex !important;
+      background:none; border:none; color:var(--muted);
+      font-size:15px; padding:4px 6px; cursor:pointer;
+      flex-shrink:0; touch-action:manipulation;
+    }
+    .track-eye-btn.open { color:var(--fg); }
+
+    /* Expanded detail panel */
+    .track-detail-panel {
+      display:none;
+      background:var(--hover);
+      border-top:1px solid var(--line);
+      padding:10px 16px 10px 32px;
+      font-size:10px;
+      flex-direction:column;
+      gap:6px;
+    }
+    .track-detail-panel.open { display:flex; }
+    .track-detail-row {
+      display:flex; gap:8px; align-items:baseline;
+    }
+    .track-detail-label {
+      font-size:8px; letter-spacing:.12em; color:var(--muted);
+      min-width:54px; flex-shrink:0;
+    }
+    .track-detail-val { color:var(--fg); font-size:10px; }
+
+    /* Track row on mobile: flex, compact */
+    .track-row {
+      flex-wrap:wrap !important;
+      grid-template-columns:unset !important;
+      display:flex !important;
+      align-items:center;
+      padding:8px 4px !important;
+      gap:4px !important;
+      min-height:44px !important;
+    }
+    .track-name { font-size:13px !important; flex:1 !important; }
+    .track-num { min-width:24px !important; font-size:9px !important; }
+  }
+
+  /* Eye btn hidden on desktop */
+  .track-eye-btn { display:none; }
+
+  /* ── MOBILE HAMBURGER MENU ───────────────────────────────── */
+  .mobile-menu-btn { display:none; }
+
+  @media (max-width:600px) {
+    /* Hide all toolbar buttons, show hamburger instead */
+    .toolbar > button,
+    .toolbar > a,
+    .toolbar-sep { display:none !important; }
+
+    .mobile-menu-btn {
+      display:flex !important;
+      align-items:center; gap:8px;
+      background:none; border:1px solid var(--line);
+      color:var(--fg); font-family:'Space Mono',monospace;
+      font-size:11px; letter-spacing:.08em;
+      padding:8px 14px; cursor:pointer;
+      touch-action:manipulation;
+    }
+
+    .mobile-menu-dropdown {
+      position:fixed; top:0; left:0; right:0; bottom:0;
+      background:var(--bg); z-index:200;
+      display:flex; flex-direction:column;
+      transform:translateY(-100%);
+      transition:transform .25s cubic-bezier(.4,0,.2,1);
+      overflow-y:auto;
+    }
+    .mobile-menu-dropdown.open { transform:translateY(0); }
+
+    .mobile-menu-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:20px 20px 16px;
+      border-bottom:1px solid var(--line);
+    }
+    .mobile-menu-title {
+      font-size:9px; letter-spacing:.18em; color:var(--muted);
+    }
+    .mobile-menu-close {
+      background:none; border:none; color:var(--fg);
+      font-size:20px; cursor:pointer; padding:4px 8px;
+      touch-action:manipulation;
+    }
+
+    .mobile-menu-item {
+      display:flex; align-items:center;
+      padding:18px 24px;
+      border-bottom:1px solid var(--line);
+      font-family:'Space Mono',monospace;
+      font-size:13px; letter-spacing:.06em;
+      color:var(--fg); cursor:pointer;
+      background:none; border-right:none; border-left:none; border-top:none;
+      text-align:left; width:100%;
+      touch-action:manipulation;
+    }
+    .mobile-menu-item:active { background:var(--hover); }
+    .mobile-menu-item.accent { color:var(--accent); }
+    .mobile-menu-item .item-icon { margin-right:14px; opacity:.6; width:20px; text-align:center; }
+
+    .mobile-stats-bar {
+      padding:16px 24px;
+      display:flex; flex-direction:column; gap:6px;
+      border-top:1px solid var(--line); margin-top:auto;
+    }
+    .mobile-stats-bar span {
+      font-size:9px; letter-spacing:.1em; color:var(--muted);
+    }
+    .mobile-stats-bar b { color:var(--fg); }
+  }
+
+</style>
+</head><body>
+<h1>SET LIST</h1>
+<div class="subtitle">${setlist.length} TRACKS &nbsp;·&nbsp; ${formatTime(total)}</div>
+${body}
+<div class="footer">GESAMT: ${formatTime(total)} · ${setlist.length} TRACKS</div>
+
+<div id="dup-modal">
+  <div class="dup-box">
+    <div class="dup-box-header">Track bereits vorhanden</div>
+    <div class="dup-box-body">
+      <span id="dup-msg"></span>
+    </div>
+    <div class="dup-box-footer">
+      <button onclick="resolveDup('replace')" class="primary">ERSETZEN</button>
+      <button onclick="resolveDup('v2')">ALS V2</button>
+      <button onclick="resolveDup('cancel')">ABBRECHEN</button>
+    </div>
+  </div>
+</div>
+</body></html>`;
+
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (win) {
+    win.onload = () => { win.focus(); win.print(); };
+    showDebug('PDF-Fenster geöffnet — Drucken → Als PDF speichern');
+  } else {
+    // Popup blocked — fallback to download
+    const a = document.createElement('a');
+    a.href = url; a.download = 'setlist.html'; a.click();
+    showDebug('Popup blockiert — Datei heruntergeladen, im Browser öffnen und drucken');
+  }
+}
+
+// Clock
+function updateClock() { const n=new Date(); document.getElementById('clock-display').textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`; }
+setInterval(updateClock,1000); updateClock();
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter' && document.getElementById('add-form').classList.contains('open')) addTrack();
+  if (e.key==='Escape') { closePool(); closeEditModal(); closeImportModal(); closeExportModal(); closeSaveModal(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey) { e.preventDefault(); undo(); }
+  if ((e.ctrlKey||e.metaKey) && (e.key==='y'||(e.key==='z'&&e.shiftKey))) { e.preventDefault(); redo(); }
+});
+
+
+
+
+// ── AUTOCOMPLETE (ADD form) ───────────────────────────────────
+let acSelected = -1;
+
+function autocompleteTrackName(inp) {
+  const q = inp.value.trim().toLowerCase();
+  const list = document.getElementById('autocomplete-list');
+  if (!q || q.length < 1) { list.style.display='none'; return; }
+
+  const matches = pool.filter(t => t.name.toLowerCase().includes(q) && !setlist.includes(t.id));
+  if (!matches.length) { list.style.display='none'; return; }
+
+  list.innerHTML = '';
+  acSelected = -1;
+  matches.slice(0, 8).forEach((t, i) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;';
+    item.innerHTML = `<span style="flex:1;font-weight:700">${t.name}</span><span style="color:#888;font-size:10px">${t.length||''}</span><span style="color:#cc2211;font-size:10px;font-weight:700">${t.bpm||''}</span>`;
+    item.addEventListener('mousedown', e => { e.preventDefault(); fillFromPool(t); });
+    item.addEventListener('mouseover', () => { 
+      list.querySelectorAll('div').forEach((d,j) => d.style.background = j===i ? 'var(--card)' : '');
+      acSelected = i;
+    });
+    list.appendChild(item);
+  });
+  
+  // Position below the input
+  const rect = inp.getBoundingClientRect();
+  const formRect = document.getElementById('add-form').getBoundingClientRect();
+  list.style.top = (inp.offsetTop + inp.offsetHeight + 2) + 'px';
+  list.style.left = inp.offsetLeft + 'px';
+  list.style.width = inp.offsetWidth + 'px';
+  list.style.display = 'block';
+}
+
+function autocompleteKeydown(e) {
+  const list = document.getElementById('autocomplete-list');
+  const items = list.querySelectorAll('div');
+  if (!items.length || list.style.display === 'none') return;
+  
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acSelected = Math.min(acSelected + 1, items.length - 1);
+    items.forEach((d,i) => d.style.background = i===acSelected ? 'var(--card)' : '');
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    acSelected = Math.max(acSelected - 1, 0);
+    items.forEach((d,i) => d.style.background = i===acSelected ? 'var(--card)' : '');
+  } else if (e.key === 'Enter' && acSelected >= 0) {
+    e.preventDefault();
+    const matches = pool.filter(t => t.name.toLowerCase().includes(document.getElementById('inp-name').value.trim().toLowerCase()) && !setlist.includes(t.id));
+    if (matches[acSelected]) fillFromPool(matches[acSelected]);
+  } else if (e.key === 'Escape') {
+    list.style.display = 'none';
+  }
+}
+
+function fillFromPool(t) {
+  document.getElementById('inp-name').value = t.name;
+  document.getElementById('inp-length').value = t.length || '';
+  document.getElementById('inp-bpm').value = t.bpm || '';
+  document.getElementById('autocomplete-list').style.display = 'none';
+}
+
+// Hide autocomplete when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('#add-form')) {
+    const list = document.getElementById('autocomplete-list');
+    if (list) list.style.display = 'none';
+  }
+});
+
+
+function toggleFileMenu() {
+  const dd = document.getElementById('file-menu-dropdown');
+  dd.classList.toggle('open');
+}
+const ARTIST_LIST_KEY = 'setlist_artists_v2';
+
+// Artist registry: [{id: 'abc123', name: 'Kitschkrieg'}]
+function getKnownArtists() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ARTIST_LIST_KEY) || '[]');
+    // Migrate old format (plain strings) to new format
+    if (raw.length && typeof raw[0] === 'string') {
+      const migrated = raw.map(s => ({ id: s, name: s }));
+      localStorage.setItem(ARTIST_LIST_KEY, JSON.stringify(migrated));
+      return migrated;
+    }
+    return raw;
+  } catch(e) { return []; }
+}
+function saveKnownArtists(list) {
+  localStorage.setItem(ARTIST_LIST_KEY, JSON.stringify(list));
+}
+function getArtistDisplayName(id) {
+  const entry = getKnownArtists().find(a => a.id === id);
+  return entry ? entry.name : id;
+}
+
+function initArtistSwitcher() {
+  const list = getKnownArtists();
+  if (ARTIST_ID && !list.find(a => a.id === ARTIST_ID)) {
+    list.push({ id: ARTIST_ID, name: ARTIST_ID });
+    saveKnownArtists(list);
+  }
+  renderArtistList();
+  // Update tab label with display name
+  const tabLbl = document.getElementById('tab-artist-label');
+  if (tabLbl && ARTIST_ID !== 'default') tabLbl.textContent = getArtistDisplayName(ARTIST_ID).toUpperCase();
+}
+
+function renderArtistList() {
+  const el = document.getElementById('artist-list');
+  if (!el) return;
+  const list = getKnownArtists();
+  el.innerHTML = '';
+  list.forEach(entry => {
+    const isCurrent = entry.id === ARTIST_ID;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:4px;width:100%;box-sizing:border-box;';
+
+    const btn = document.createElement('button');
+    btn.textContent = entry.name;
+    btn.title = 'Klicken: wechseln | Doppelklick: umbenennen';
+    btn.style.cssText = 'flex:1;min-width:0;text-align:left;background:' + (isCurrent ? '#ddd' : '#f0f0f0') + ';border:1px solid ' + (isCurrent ? '#888' : '#bbb') + ';color:#111;font-family:monospace;font-size:11px;padding:7px 10px;cursor:pointer;font-weight:' + (isCurrent ? '700' : '400') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;';
+    btn.onclick = () => { goToArtist(entry.id); };
+    btn.ondblclick = (e) => { e.stopPropagation(); startRenameArtist(entry, row); };
+
+    const ren = document.createElement('button');
+    ren.textContent = '✎';
+    ren.title = 'Anzeigename ändern';
+    ren.style.cssText = 'background:none;border:none;color:#888;font-size:12px;padding:4px 5px;cursor:pointer;flex-shrink:0;';
+    ren.onclick = (e) => { e.stopPropagation(); startRenameArtist(entry, row); };
+
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.title = 'Aus Liste entfernen';
+    del.style.cssText = 'background:none;border:none;color:#aaa;font-size:10px;padding:4px 5px;cursor:pointer;flex-shrink:0;';
+    del.onclick = (e) => { e.stopPropagation(); removeArtistFromList(entry.id); };
+
+    row.appendChild(btn);
+    row.appendChild(ren);
+    if (!isCurrent) row.appendChild(del);
+    el.appendChild(row);
+  });
+}
+
+function startRenameArtist(entry, row) {
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = entry.name;
+  inp.style.cssText = 'flex:1;background:#f0f0f0;border:1px solid #aaa;color:#111;font-family:monospace;font-size:9px;padding:5px 8px;outline:none;min-width:0;letter-spacing:.06em;';
+  inp.addEventListener('mousedown', e => e.stopPropagation());
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.textContent = '✓';
+  confirmBtn.style.cssText = 'background:#2d7a32;border:none;color:#fff;font-size:11px;padding:4px 7px;cursor:pointer;flex-shrink:0;';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '✕';
+  cancelBtn.style.cssText = 'background:none;border:1px solid #555;color:#aaa;font-size:9px;padding:4px 6px;cursor:pointer;flex-shrink:0;';
+
+  row.innerHTML = '';
+  row.appendChild(inp);
+  row.appendChild(confirmBtn);
+  row.appendChild(cancelBtn);
+  inp.focus(); inp.select();
+
+  function doRename() {
+    const newName = inp.value.trim();
+    if (!newName) { renderArtistList(); return; }
+    const list = getKnownArtists();
+    const item = list.find(a => a.id === entry.id);
+    if (item) {
+      item.name = newName;
+      saveKnownArtists(list);
+    }
+    renderArtistList();
+    // Update tab if current artist
+    if (entry.id === ARTIST_ID) {
+      const lbl = document.getElementById('artist-label');
+      if (lbl) lbl.textContent = ' · ' + newName.toUpperCase();
+      const tabLbl = document.getElementById('tab-artist-label');
+      if (tabLbl) tabLbl.textContent = newName.toUpperCase();
+    }
+  }
+
+  confirmBtn.onclick = (e) => { e.stopPropagation(); doRename(); };
+  cancelBtn.onclick  = (e) => { e.stopPropagation(); renderArtistList(); };
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); doRename(); }
+    if (e.key === 'Escape') { e.preventDefault(); renderArtistList(); }
+  });
+}
+
+function goToArtist(name) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('artist', name);
+  window.location.href = url.toString();
+}
+
+function addArtistAndGo() {
+  const inp = document.getElementById('new-artist-inp');
+  const displayName = inp.value.trim();
+  if (!displayName) return;
+  const id = displayName.toLowerCase().replace(/[^a-z0-9_-]/g, '-') + '-' + Date.now().toString(36);
+  const list = getKnownArtists();
+  list.push({ id, name: displayName });
+  saveKnownArtists(list);
+  inp.value = '';
+  goToArtist(id);
+}
+
+function removeArtistFromList(id) {
+  const list = getKnownArtists().filter(a => a.id !== id);
+  saveKnownArtists(list);
+  renderArtistList();
+}
+
+function closeFileMenu() {
+  document.getElementById('file-menu-dropdown').classList.remove('open');
+}
+// Close on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#file-menu-wrap')) closeFileMenu();
+});
+
+function toggleMoreButtons() {
+  const btns = document.querySelectorAll('.toolbar-secondary');
+  const isVisible = btns[0] && btns[0].style.display !== 'none';
+  btns.forEach(b => b.style.display = isVisible ? 'none' : '');
+  document.getElementById('btn-more').textContent = isVisible ? '[ ••• ]' : '[ ✕ ]';
+}
+
+// Show ••• button on mobile, hide secondary buttons initially
+if (window.innerWidth <= 600) {
+  document.getElementById('btn-more').style.display = '';
+  document.querySelectorAll('.toolbar-secondary').forEach(b => b.style.display = 'none');
+}
+window.addEventListener('resize', () => {
+  const mobile = window.innerWidth <= 600;
+  document.getElementById('btn-more').style.display = mobile ? '' : 'none';
+  if (!mobile) document.querySelectorAll('.toolbar-secondary').forEach(b => b.style.display = '');
+});
+
+
+function editNoteInline(el) {
+  if (el.contentEditable === 'true') return;
+  const tid = +el.dataset.id;
+  const current = (annotations[tid] && annotations[tid].note) || '';
+  el.contentEditable = 'true';
+  el.style.cssText += ';white-space:normal;outline:1px solid var(--fg);background:#fff;color:#111;min-width:80px;';
+  el.textContent = current;
+  el.focus();
+  const r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
+  window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+
+  function done() {
+    el.contentEditable = 'false';
+    el.style.whiteSpace = 'nowrap';
+    el.style.outline = '';
+    el.style.background = '';
+    el.style.color = '';
+    const val = el.textContent.trim();
+    if (!annotations[tid]) annotations[tid] = {};
+    annotations[tid].note = val;
+    el.textContent = val || '—';
+    el.classList.toggle('has-note', !!val);
+    snapshot();
+  }
+
+  el.addEventListener('blur', done, { once: true });
+  el.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+    if (e.key === 'Escape') { el.textContent = current || '—'; el.blur(); }
+  }, { once: true });
+}
+
+
+// ── SUPABASE SYNC ─────────────────────────────────────────────
+const SB_URL   = 'https://opcuiwlyfvrhipsrdftd.supabase.co';
+const SB_KEY   = 'sb_publishable_MT7K3rDdmgJVIsHGB33G2g_TwNgxGPC';
+const SB_TABLE = 'setlist_data';
+
+// Artist isolation via ?artist=name URL param
+const _artistParam = new URLSearchParams(window.location.search).get('artist');
+const ARTIST_ID = _artistParam ? _artistParam.toLowerCase().replace(/[^a-z0-9_-]/g, '-') : 'default';
+const SB_ROW_ID = ARTIST_ID;
+
+// Init Supabase JS client (for realtime)
+const _sbClient = supabase.createClient(SB_URL, SB_KEY);
+
+// Prevent echo: ignore updates we sent ourselves
+let _lastSavedHash = null;
+function _stateHash(state) {
+  const s = JSON.stringify(state);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return h;
+}
+
+// Realtime sync indicator
+function _showSyncDot(color) {
+  let dot = document.getElementById('sync-dot');
+  if (!dot) return;
+  dot.style.background = color;
+  if (color !== '#2d7a32') setTimeout(() => dot.style.background = '#2d7a32', 1500);
+}
+
+// Guard: don't write to Supabase until initial load is confirmed
+let _dataReady = false;
+
+async function saveToSupabase() {
+  if (!_dataReady) { console.log('Supabase save blocked — data not ready yet'); return; }
+  const state = getFullState();
+  // Extra safety: never save empty pool to Supabase if there was data before
+  if (pool.length === 0 && _lastSavedHash && _lastSavedHash !== _stateHash({pool:[],setlist:[],annotations:{},trackColors:{},columnOrder:[],blocks:[]})) {
+    console.warn('Supabase save blocked — pool is empty but previous data existed');
+    return;
+  }
+  _lastSavedHash = _stateHash(state);
+  await _sbClient.from(SB_TABLE).upsert({ id: SB_ROW_ID, data: JSON.stringify(state), updated_at: new Date().toISOString() });
+  _showSyncDot('#2d7a32');
+}
+
+async function loadFromSupabase() {
+  // First try localStorage (instant, no network)
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.pool)) {
+        applyFullState(parsed);
+        _lastSavedHash = _stateHash(parsed);
+        return true;
+      }
+    }
+  } catch(e) {}
+
+  // Then try Supabase
+  try {
+    const { data, error } = await _sbClient.from(SB_TABLE).select('data').eq('id', SB_ROW_ID).single();
+    if (data && data.data) {
+      const parsed = JSON.parse(data.data);
+      if (parsed && Array.isArray(parsed.pool)) {
+        applyFullState(parsed);
+        _lastSavedHash = _stateHash(parsed);
+        return true;
+      }
+    }
+  } catch(e) { console.warn('Supabase load failed', e); }
+
+  // No saved state — use EN seed only for artist "en"
+  if (ARTIST_ID === 'en') {
+    pool = [..._EN_POOL.map(t => ({...t}))];
+    setlist = [..._EN_SETLIST];
+    nextId = Math.max(1, ...pool.map(t => t.id + 1));
+    return true;
+  }
+
+  // New artist — stay empty
+  return false;
+}
+
+// Subscribe to realtime changes
+function initRealtimeSync() {
+  _sbClient
+    .channel('setlist-sync-' + ARTIST_ID)
+    .on('postgres_changes', { event: '*', schema: 'public', table: SB_TABLE }, payload => {
+      try {
+        const incoming = JSON.parse(payload.new.data);
+        if (!incoming || !incoming.setlist) return;
+        const hash = _stateHash(incoming);
+        if (hash === _lastSavedHash) return; // our own save, ignore
+        _lastSavedHash = hash;
+        applyFullState(incoming);
+        render();
+        _showSyncDot('#e07b20'); // orange flash = received from other device
+      } catch(e) { console.warn('Realtime parse error', e); }
+    })
+    .subscribe();
+}
+
+// Auto-save to Supabase after each snapshot (debounced)
+
+
+
+// Dissolve the group a track belongs to (call before any move)
+function dissolveGroupOf(id) {
+  const grp = blocks.find(b => b.trackIds.includes(id));
+  if (grp) blocks = blocks.filter(b => b.id !== grp.id);
+}
+
+function moveUp(id) {
+  const idx = setlist.indexOf(id);
+  if (idx <= 0) return;
+  dissolveGroupOf(id);
+  setlist.splice(idx, 1);
+  setlist.splice(idx - 1, 0, id);
+  snapshot(); render();
+}
+function moveDown(id) {
+  const idx = setlist.indexOf(id);
+  if (idx === -1 || idx >= setlist.length - 1) return;
+  dissolveGroupOf(id);
+  setlist.splice(idx, 1);
+  setlist.splice(idx + 1, 0, id);
+  snapshot(); render();
+}
+
+
+function editPosition(el, trackId) {
+  const current = setlist.indexOf(trackId) + 1;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.className = 'track-num-input';
+  input.value = current;
+  input.min = 1;
+  input.max = setlist.length;
+  el.replaceWith(input);
+  input.select();
+
+  function commit() {
+    const newPos = Math.min(setlist.length, Math.max(1, parseInt(input.value) || current)) - 1;
+    const fromIdx = setlist.indexOf(trackId);
+    if (fromIdx !== newPos) {
+      dissolveGroupOf(trackId);
+      setlist.splice(fromIdx, 1);
+      setlist.splice(newPos > fromIdx ? newPos - 1 : newPos, 0, trackId);
+      snapshot();
+    }
+    render();
+  }
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { render(); }
+  });
+  input.addEventListener('blur', commit);
+}
+
+
+// ── TIMECODE ──────────────────────────────────────────────────
+let tcEnabled = false;
+function ltcEnabled() { const el = document.getElementById('vis-ltc'); return el ? el.checked : false; }
+let tcStart = '01:00:00:00'; // HH:MM:SS:FF
+let tcBlock = 5; // minutes per block (5, 10, 15)
+const TC_FPS = 25;
+
+function tcToFrames(tc) {
+  const p = tc.split(':').map(Number);
+  if (p.length !== 4) return 0;
+  return ((p[0]*3600 + p[1]*60 + p[2]) * TC_FPS) + p[3];
+}
+
+function framesToTc(frames) {
+  const ff = frames % TC_FPS;
+  let s = Math.floor(frames / TC_FPS);
+  const ss = s % 60; s = Math.floor(s/60);
+  const mm = s % 60; s = Math.floor(s/60);
+  const hh = s % 24;
+  return [hh,mm,ss,ff].map(v => String(v).padStart(2,'0')).join(':');
+}
+
+function lengthToFrames(len) {
+  if (!len) return 0;
+  const p = len.split(':').map(Number);
+  if (p.length === 2) return (p[0]*60 + p[1]) * TC_FPS;
+  if (p.length === 3) return (p[0]*3600 + p[1]*60 + p[2]) * TC_FPS;
+  return 0;
+}
+
+function calcTimecodes() {
+  // Returns {trackId: startTC} map, detects conflicts
+  const result = {};
+  const conflicts = [];
+  const blockFrames = tcBlock * 60 * TC_FPS;
+  let cursor = tcToFrames(tcStart);
+
+  for (const id of setlist) {
+    const t = getTrack(id);
+    if (!t) continue;
+    const startTc = framesToTc(cursor);
+    // Check conflict with pool tracks not in setlist
+    for (const [oid, otc] of Object.entries(result)) {
+      if (otc === startTc) conflicts.push(id);
+    }
+    result[id] = startTc;
+    const durFrames = lengthToFrames(t.length);
+    // Round up to next block
+    const endFrames = cursor + durFrames;
+    const blocksNeeded = Math.ceil(endFrames / blockFrames);
+    cursor = blocksNeeded * blockFrames;
+  }
+  return { tcs: result, conflicts };
+}
+
+
+function toggleTC() {
+  render();
+}
+
+function updateTrackFontSize(val) {
+  val = +val;
+  document.documentElement.style.setProperty('--track-name-fs', val + 'px');
+}
+
+// ── TONART / KEY COLUMN ───────────────────────────────────────
+const KEY_NAMES = ['C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B'];
+const KEY_MODES = ['Dur','Moll'];
+
+function keyLabel(k) { return k; }
+
+function renderKeyCell(t) {
+  const key  = t.key  || '';
+  const mode = t.keyMode || '';
+  const label = key ? key + ' ' + mode : '—';
+  return '<span class="track-key' + (key ? ' has-key' : '') + '" data-id="' + t.id + '" onclick="openKeyPicker(' + t.id + ', this)" title="Tonart wählen">' + label + '</span>';
+}
+
+// ── SHARED KEY PICKER ────────────────────────────────────────
+
+function _buildKeyPicker(pendingKey, pendingMode, onConfirm, onClear, anchorEl) {
+  closeKeyPicker();
+  const state = { key: pendingKey || '', mode: pendingMode || 'Dur' };
+
+  const picker = document.createElement('div');
+  picker.id = 'key-picker';
+  picker.style.cssText = 'position:fixed;z-index:9999;background:#111;border:1px solid #444;padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;box-shadow:0 4px 20px rgba(0,0,0,.5);';
+  picker.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+  picker.addEventListener('touchstart', function(e){ e.stopPropagation(); }, { passive:true });
+
+  // Dur / Moll row
+  const modeRow = document.createElement('div');
+  modeRow.style.cssText = 'display:flex;gap:4px;margin-bottom:6px;grid-column:1/-1;';
+  KEY_MODES.forEach(function(m) {
+    const mb = document.createElement('button');
+    mb.textContent = m;
+    mb.className = 'mode-btn';
+    const isActive = state.mode === m;
+    mb.style.cssText = 'flex:1;background:' + (isActive?'#fff':'#333') + ';color:' + (isActive?'#111':'#aaa') + ';border:none;font-family:monospace;font-size:11px;padding:7px 8px;cursor:pointer;font-weight:' + (isActive?'700':'400') + ';';
+    mb.onclick = function() {
+      state.mode = m;
+      picker.querySelectorAll('.mode-btn').forEach(function(b, i) {
+        const a = KEY_MODES[i] === state.mode;
+        b.style.background = a ? '#fff' : '#333';
+        b.style.color = a ? '#111' : '#aaa';
+        b.style.fontWeight = a ? '700' : '400';
+      });
+      updatePreview();
+    };
+    modeRow.appendChild(mb);
+  });
+  picker.appendChild(modeRow);
+
+  // Preview label
+  const previewRow = document.createElement('div');
+  previewRow.style.cssText = 'grid-column:1/-1;text-align:center;font-family:monospace;font-size:13px;font-weight:700;color:#fff;min-height:20px;margin-bottom:4px;letter-spacing:.06em;';
+  picker.appendChild(previewRow);
+
+  function updatePreview() {
+    previewRow.textContent = state.key ? keyLabel(state.key) + ' ' + state.mode : '—';
+    picker.querySelectorAll('.key-btn').forEach(function(b) {
+      const active = b.dataset.k === state.key;
+      b.style.background = active ? '#e8e8e8' : '#222';
+      b.style.color = active ? '#111' : '#ccc';
+      b.style.borderColor = active ? '#bbb' : '#444';
+      b.style.fontWeight = active ? '700' : '400';
+    });
+  }
+
+  // 12 key buttons with enharmonic labels
+  KEY_NAMES.forEach(function(k) {
+    const kb = document.createElement('button');
+    kb.textContent = keyLabel(k);
+    kb.dataset.k = k;
+    kb.className = 'key-btn';
+    const isCur = state.key === k;
+    kb.style.cssText = 'background:' + (isCur?'#e8e8e8':'#222') + ';color:' + (isCur?'#111':'#ccc') + ';border:1px solid ' + (isCur?'#bbb':'#444') + ';font-family:monospace;font-size:10px;padding:7px 4px;cursor:pointer;font-weight:' + (isCur?'700':'400') + ';white-space:nowrap;';
+    kb.onclick = function() { state.key = k; updatePreview(); };
+    picker.appendChild(kb);
+  });
+
+  updatePreview();
+
+  // Bottom row: löschen + OK
+  const bottomRow = document.createElement('div');
+  bottomRow.style.cssText = 'grid-column:1/-1;display:flex;gap:4px;margin-top:6px;';
+
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = '✕ löschen';
+  clearBtn.style.cssText = 'flex:1;background:none;border:1px solid #444;color:#888;font-family:monospace;font-size:9px;padding:7px;cursor:pointer;';
+  clearBtn.onclick = function() { onClear(); closeKeyPicker(); };
+
+  const okBtn = document.createElement('button');
+  okBtn.textContent = 'OK';
+  okBtn.style.cssText = 'flex:1;background:#c87020;border:none;color:#fff;font-family:monospace;font-size:11px;font-weight:700;padding:7px;cursor:pointer;letter-spacing:.06em;';
+  okBtn.onclick = function() { if (state.key) { onConfirm(state.key, state.mode); } closeKeyPicker(); };
+
+  bottomRow.appendChild(clearBtn);
+  bottomRow.appendChild(okBtn);
+  picker.appendChild(bottomRow);
+
+  document.body.appendChild(picker);
+
+  // Position below anchor
+  const rect = anchorEl.getBoundingClientRect();
+  const pw = 220;
+  let left = rect.left;
+  if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+  if (left < 5) left = 5;
+  picker.style.left = left + 'px';
+  picker.style.top  = (rect.bottom + 4) + 'px';
+  picker.style.width = pw + 'px';
+
+  // Close on outside mousedown (more reliable than click)
+  function outsideClose(e) {
+    if (!picker.contains(e.target)) { closeKeyPicker(); }
+  }
+  setTimeout(function() {
+    document.addEventListener('mousedown', outsideClose);
+    document.addEventListener('touchstart', outsideClose, { passive:true });
+    picker._outsideClose = outsideClose;
+  }, 150);
+}
+
+function openKeyPicker(trackId, anchor) {
+  const t = getTrack(trackId);
+  if (!t) return;
+  _buildKeyPicker(
+    t.key, t.keyMode,
+    function(k, m) { t.key = k; t.keyMode = m; snapshot(); render(); },
+    function()      { t.key = ''; t.keyMode = ''; snapshot(); render(); },
+    anchor
+  );
+}
+
+function openAddKeyPicker(anchor) {
+  _buildKeyPicker(
+    anchor.dataset.key, anchor.dataset.keyMode,
+    function(k, m) {
+      anchor.dataset.key = k;
+      anchor.dataset.keyMode = m;
+      anchor.textContent = k + ' ' + m;
+      anchor.style.color = 'var(--fg)';
+    },
+    function() {
+      anchor.dataset.key = ''; anchor.dataset.keyMode = '';
+      anchor.textContent = '—'; anchor.style.color = '';
+    },
+    anchor
+  );
+}
+
+// ── TODO SYSTEM ──────────────────────────────────────────────
+
+function renderTodoCell(t) {
+  const items = (todos[t.id] || []).filter(function(x){ return !x.done; });
+  const count = items.length;
+  return '<span class="track-todo-cell" data-id="' + t.id + '" onclick="openTodoFromCell(' + t.id + ')" title="To Dos anzeigen">' +
+    (count > 0 ? '<span class="todo-badge">' + count + '</span>' : '—') +
+    '</span>';
+}
+
+function openTodoFromCell(trackId) {
+  openEditModal(trackId);
+  // Open the todo section after modal opens
+  setTimeout(function() {
+    const body = document.getElementById('sec-todo');
+    const ind  = document.getElementById('sec-todo-indicator');
+    if (body && !body.classList.contains('open')) {
+      body.classList.add('open');
+      if (ind) ind.textContent = '— entfernen';
+    }
+    const inp = document.getElementById('em-todo-inp');
+    if (inp) inp.focus();
+  }, 80);
+}
+
+function renderTodoList(trackId) {
+  const list = todos[trackId] || [];
+  const open = list.filter(function(x){ return !x.done; });
+  const done = list.filter(function(x){ return x.done; });
+
+  const listEl = document.getElementById('em-todo-list');
+  const histEl = document.getElementById('em-todo-history');
+  const histWrap = document.getElementById('em-todo-history-wrap');
+  if (!listEl) return;
+
+  listEl.innerHTML = '';
+  open.forEach(function(item) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.style.cssText = 'cursor:pointer;flex-shrink:0;width:14px;height:14px;accent-color:var(--accent)';
+    cb.onchange = function() {
+      item.done = true;
+      item.doneAt = new Date().toISOString();
+      renderTodoList(trackId);
+      updateTodoBadge(trackId);
+    };
+    const txt = document.createElement('span');
+    txt.textContent = item.text;
+    txt.style.cssText = 'flex:1;font-family:monospace;font-size:10px;color:var(--fg)';
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.style.cssText = 'background:none;border:none;color:var(--muted);font-size:9px;cursor:pointer;padding:0 2px;flex-shrink:0';
+    del.onclick = function() {
+      todos[trackId] = (todos[trackId]||[]).filter(function(x){ return x.id !== item.id; });
+      renderTodoList(trackId);
+      updateTodoBadge(trackId);
+    };
+    row.appendChild(cb); row.appendChild(txt); row.appendChild(del);
+    listEl.appendChild(row);
+  });
+
+  if (open.length === 0) {
+    listEl.innerHTML = '<div style="font-size:9px;color:var(--muted);padding:4px 0">Keine offenen Aufgaben</div>';
+  }
+
+  // History
+  histEl.innerHTML = '';
+  if (done.length > 0) {
+    histWrap.style.display = 'block';
+    done.forEach(function(item) {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;opacity:.5';
+      const d = new Date(item.doneAt);
+      const when = d.toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      row.innerHTML = '<span style="font-size:9px;color:var(--muted);flex-shrink:0">✓ ' + when + '</span>' +
+        '<span style="flex:1;font-family:monospace;font-size:10px;text-decoration:line-through">' + item.text + '</span>';
+      histEl.appendChild(row);
+    });
+  } else {
+    histWrap.style.display = 'none';
+  }
+}
+
+function addTodoItem() {
+  const inp = document.getElementById('em-todo-inp');
+  if (!inp || !editingTrackId) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!todos[editingTrackId]) todos[editingTrackId] = [];
+  todos[editingTrackId].push({ id: Date.now(), text, done: false, doneAt: null });
+  inp.value = '';
+  renderTodoList(editingTrackId);
+  updateTodoBadge(editingTrackId);
+}
+
+function updateTodoBadge(trackId) {
+  // Rerender the todo cell in the table without full render
+  const open = (todos[trackId]||[]).filter(function(x){ return !x.done; }).length;
+  document.querySelectorAll('.track-todo-cell[data-id="' + trackId + '"]').forEach(function(el) {
+    el.innerHTML = open > 0 ? '<span class="todo-badge">' + open + '</span>' : '—';
+  });
+  snapshot();
+}
+
+function scrollToFirstConflict() {
+  const ids = window._tcConflicts || [];
+  if (!ids.length) return;
+  const firstId = ids[0];
+  const el = document.querySelector('.track-row[data-id="' + firstId + '"]') || document.querySelector('.track-row[data-id="' + firstId + '"]');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.style.outline = '2px solid #cc2211';
+    setTimeout(function(){ el.style.outline = ''; }, 2000);
+  }
+}
+
+function renderTodoCellInline(t) {
+  const wrap = document.createElement('div');
+  wrap.className = 'todo-col-cell';
+
+  const items = todos[t.id] || [];
+  items.forEach(function(item) {
+    const row = document.createElement('div');
+    row.className = 'todo-col-item';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = item.done;
+    cb.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+    cb.addEventListener('change', function() {
+      item.done = cb.checked;
+      item.doneAt = cb.checked ? new Date().toISOString() : null;
+      snapshot(); render();
+    });
+
+    const txt = document.createElement('span');
+    txt.className = 'todo-col-text' + (item.done ? ' done' : '');
+    txt.textContent = item.text;
+    txt.contentEditable = 'true';
+    txt.title = item.text;
+    txt.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+    txt.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
+    txt.addEventListener('keydown', function(e){
+      if (e.key === 'Enter') { e.preventDefault(); txt.blur(); }
+      if (e.key === 'Escape') { txt.textContent = item.text; txt.blur(); }
+    });
+    txt.addEventListener('blur', function() {
+      const val = txt.textContent.trim();
+      if (val && val !== item.text) { item.text = val; snapshot(); }
+      else if (!val) { todos[t.id] = (todos[t.id]||[]).filter(function(x){ return x.id !== item.id; }); snapshot(); render(); }
+    });
+
+    row.appendChild(cb);
+    row.appendChild(txt);
+    wrap.appendChild(row);
+  });
+
+  // Remove done button (only if there are done items)
+  if (items.filter(function(x){ return x.done; }).length > 0) {
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = '× ' + doneItems.length + ' erledigte löschen';
+    clearBtn.style.cssText = 'background:none;border:none;color:var(--muted);font-family:monospace;font-size:8px;cursor:pointer;padding:2px 0;text-align:left;letter-spacing:.04em;';
+    clearBtn.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+    clearBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      todos[t.id] = (todos[t.id]||[]).filter(function(x){ return !x.done; });
+      snapshot(); render();
+    });
+    wrap.appendChild(clearBtn);
+  }
+
+  // Remove done button (only if there are done items)
+  if (items.filter(function(x){ return x.done; }).length > 0) {
+    const clearBtn = document.createElement('span');
+    clearBtn.style.cssText = 'font-size:8px;color:var(--muted);cursor:pointer;padding:1px 0;opacity:.7;';
+    clearBtn.textContent = '✕ erledigte entfernen';
+    clearBtn.title = 'Alle erledigten Aufgaben löschen';
+    clearBtn.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+    clearBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      todos[t.id] = (todos[t.id]||[]).filter(function(x){ return !x.done; });
+      snapshot(); render();
+    });
+    clearBtn.addEventListener('mouseover', function(){ clearBtn.style.opacity='1'; clearBtn.style.color='var(--fg)'; });
+    clearBtn.addEventListener('mouseout',  function(){ clearBtn.style.opacity='.7'; clearBtn.style.color='var(--muted)'; });
+    wrap.appendChild(clearBtn);
+  }
+
+  // Add input
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.className = 'todo-col-add';
+  inp.placeholder = items.length === 0 ? '+ To Do…' : '+';
+  inp.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+  inp.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
+  inp.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = inp.value.trim();
+      if (val) {
+        if (!todos[t.id]) todos[t.id] = [];
+        todos[t.id].push({ id: Date.now(), text: val, done: false, doneAt: null });
+        snapshot(); render();
+      }
+    }
+  });
+  wrap.appendChild(inp);
+  return wrap;
+}
+
+function openMobileMenu() {
+  document.getElementById('mobile-menu').classList.add('open');
+  // sync stats
+  document.getElementById('mob-stat-tracks').textContent = document.getElementById('stat-tracks').textContent;
+  document.getElementById('mob-stat-time').textContent = document.getElementById('stat-time').textContent;
+  document.getElementById('mob-stat-bpm').textContent = document.getElementById('stat-bpm').textContent;
+}
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+}
+
+function toggleTrackDetail(trackId) {
+  _eyeOpen[trackId] = !_eyeOpen[trackId];
+  const panel = document.getElementById('detail-' + trackId);
+  const btn   = document.getElementById('eye-' + trackId);
+  if (panel) panel.classList.toggle('open', _eyeOpen[trackId]);
+  if (btn)   btn.classList.toggle('open', _eyeOpen[trackId]);
+}
+
+function toggleTodoCollapse(trackId) {
+  _todoCollapsed[trackId] = !_todoCollapsed[trackId];
+  render();
+}
+
+function closeKeyPicker() {
+  const p = document.getElementById('key-picker');
+  if (p) {
+    if (p._outsideClose) {
+      document.removeEventListener('mousedown', p._outsideClose);
+      document.removeEventListener('touchstart', p._outsideClose);
+    }
+    p.remove();
+  }
+}
+
+// ── LTC AUTO-GENERATE & CONFLICT CHECK ────────────────────────
+
+function secsToTcString(totalSecs, startHH) {
+  // Returns HH:MM:SS:00 string
+  const h = Math.floor(totalSecs / 3600) + startHH;
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = Math.floor(totalSecs % 60);
+  return [h, m, s, 0].map(v => String(v).padStart(2, '0')).join(':');
+}
+
+function tcStringToSecs(tc) {
+  if (!tc) return -1;
+  const p = tc.split(':').map(Number);
+  if (p.length < 3) return -1;
+  return p[0] * 3600 + p[1] * 60 + p[2];
+}
+
+function checkLTCConflicts() {
+  // Check all tracks in pool that have LTC
+  const withLTC = pool.filter(t => t.ltc && t.ltc.trim());
+  const conflicts = [];
+
+  for (let i = 0; i < withLTC.length; i++) {
+    const a = withLTC[i];
+    const aStart = tcStringToSecs(a.ltc);
+    const aDur = toSeconds(a.length || '0:00');
+    const aEnd = aStart + aDur;
+
+    for (let j = i + 1; j < withLTC.length; j++) {
+      const b = withLTC[j];
+      const bStart = tcStringToSecs(b.ltc);
+      const bDur = toSeconds(b.length || '0:00');
+      const bEnd = bStart + bDur;
+
+      // Overlap check
+      if (aStart < bEnd && bStart < aEnd) {
+        conflicts.push({ a: a.name, b: b.name, aLtc: a.ltc, bLtc: b.ltc });
+      }
+    }
+  }
+  return conflicts;
+}
+
+function autoGenerateLTC() {
+  const tracksWithoutLTC = setlist
+    .map(id => getTrack(id))
+    .filter(t => t && !t.ltc);
+
+  if (tracksWithoutLTC.length === 0) {
+    // All have LTC — just run conflict check
+    const conflicts = checkLTCConflicts();
+    if (conflicts.length === 0) {
+      showLTCDialog('✓ Keine Konflikte — alle LTCs sind in Ordnung!', 'ok');
+    } else {
+      const msg = conflicts.map(c =>
+        `⚠ ${c.a} (${c.aLtc}) überschneidet sich mit ${c.b} (${c.bLtc})`
+      ).join('<br>');
+      showLTCDialog('TIMECODE-KONFLIKTE:<br><br>' + msg, 'error');
+    }
+    return;
+  }
+
+  // Find highest existing LTC to start after
+  const existingTCs = pool
+    .filter(t => t.ltc)
+    .map(t => tcStringToSecs(t.ltc))
+    .filter(s => s >= 0);
+
+  // Determine start hour from existing LTCs or default 01:00:00
+  let cursorSecs = existingTCs.length > 0
+    ? Math.max(...existingTCs) + 600  // 10 min after last existing
+    : 3600; // 01:00:00
+
+  // Round to next 10-min boundary
+  cursorSecs = Math.ceil(cursorSecs / 600) * 600;
+
+  const assigned = [];
+  for (const t of tracksWithoutLTC) {
+    const h = Math.floor(cursorSecs / 3600);
+    const m = Math.floor((cursorSecs % 3600) / 60);
+    const s = cursorSecs % 60;
+    t.ltc = [h, m, s, 0].map(v => String(v).padStart(2, '0')).join(':');
+    assigned.push(t.name + ' → ' + t.ltc);
+    cursorSecs += 600; // +10 min
+  }
+
+  // Run conflict check after assigning
+  const conflicts = checkLTCConflicts();
+  if (conflicts.length > 0) {
+    const msg = conflicts.map(c =>
+      `⚠ ${c.a} (${c.aLtc}) ↔ ${c.b} (${c.bLtc})`
+    ).join('<br>');
+    showLTCDialog('LTCs vergeben, aber Konflikte gefunden:<br><br>' + msg, 'error');
+  } else {
+    showLTCDialog(`${assigned.length} LTC${assigned.length !== 1 ? 's' : ''} vergeben:<br><br>` + assigned.join('<br>'), 'ok');
+  }
+
+  snapshot(); render();
+}
+
+function showLTCDialog(msg, type) {
+  let box = document.getElementById('ltc-dialog');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'ltc-dialog';
+    box.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#111;border:2px solid #444;color:#fff;font-family:monospace;font-size:10px;padding:24px 28px;max-width:460px;width:90%;letter-spacing:.04em;line-height:1.8;box-shadow:0 8px 40px rgba(0,0,0,.5)';
+    document.body.appendChild(box);
+  }
+  box.style.borderColor = type === 'error' ? '#cc2211' : '#2d7a32';
+  box.innerHTML = '<div style="font-weight:700;margin-bottom:12px;font-size:11px;color:' + (type==='error'?'#cc2211':'#2d7a32') + ';letter-spacing:.1em">' + (type==='error'?'⚠ KONFLIKT':'✓ LTC') + '</div><div>' + msg + '</div><button onclick="document.getElementById(\'ltc-dialog\').remove()" style="margin-top:16px;background:none;border:1px solid #555;color:#fff;font-family:monospace;font-size:9px;padding:6px 14px;cursor:pointer;letter-spacing:.08em">OK</button>';
+}
+
+function updateTC() {
+  const inp = document.getElementById('tc-start-inp').value.trim();
+  if (/^\d{2}:\d{2}:\d{2}:\d{2}$/.test(inp)) tcStart = inp;
+  tcBlock = +document.getElementById('tc-block-sel').value;
+  render();
+}
+
+// ── ZUGABE DETECTION ─────────────────────────────────────────
+function checkZugabe(track) {
+  if (!/zugabe/i.test(track.name)) return;
+  // Remove existing toast if any
+  const old = document.getElementById('zugabe-toast');
+  if (old) old.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'zugabe-toast';
+  toast.id = 'zugabe-toast';
+  toast.innerHTML = `
+    <span>„${track.name}" als <b>ZUGABE</b> markieren?</span>
+    <button class="confirm" onclick="confirmZugabe(${track.id})">JA</button>
+    <button onclick="dismissZugabe()">NEIN</button>`;
+  document.body.appendChild(toast);
+}
+
+function confirmZugabe(trackId) {
+  // Store zugabe flag
+  const t = getTrack(trackId);
+  if (t) t.zugabe = true;
+  dismissZugabe();
+  snapshot(); render();
+}
+
+function dismissZugabe() {
+  const toast = document.getElementById('zugabe-toast');
+  if (toast) toast.remove();
+}
+
+// ── IMPORT ────────────────────────────────────────────────────
+function openImportModal() {
+  document.getElementById('import-textarea').value = '';
+  document.getElementById('import-preview').style.display = 'none';
+  document.getElementById('import-preview').innerHTML = '';
+  document.getElementById('import-modal').style.cssText='display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;padding:20px;';
+}
+function closeImportModal() {
+  document.getElementById('import-modal').style.cssText='display:none';
+}
+
+function parseImportLine(line) {
+  line = line.trim();
+  if (!line) return null;
+
+  // Pipe-separated format: Name | Length | BPM | LTC
+  if (line.includes('|')) {
+    const parts = line.split('|').map(s => s.trim());
+    const name = parts[0];
+    if (!name) return null;
+    let length = '', bpm = '', ltc = '';
+    for (let i = 1; i < parts.length; i++) {
+      const p = parts[i];
+      if (/^\d{2}:\d{2}:\d{2}(:\d{2})?$/.test(p) && p.split(':').length >= 3 && +p.split(':')[0] >= 0) {
+        ltc = p; // LTC timecode HH:MM:SS or HH:MM:SS:FF
+      } else if (/^\d{1,2}:\d{2}$/.test(p)) {
+        length = p; // song length M:SS
+      } else if (/^\d{2,3}$/.test(p) && +p >= 40 && +p <= 300) {
+        bpm = p;
+      }
+    }
+    return { name, length, bpm, ltc };
+  }
+
+  // Free format (legacy): auto-detect length and BPM
+  const timeMatch = line.match(/\b(\d{1,2}:\d{2}(?::\d{2})?)\b/);
+  const length = timeMatch ? normalizeLength(timeMatch[1]) : '';
+  let rest = line.replace(timeMatch ? timeMatch[0] : '', '');
+  const bpmMatch = rest.match(/\b([4-9]\d|[1-2]\d{2}|300)\b/);
+  const bpm = bpmMatch ? bpmMatch[1] : '';
+  rest = rest.replace(bpmMatch ? bpmMatch[0] : '', '');
+  const name = rest.replace(/\s+/g, ' ').trim();
+  if (!name) return null;
+  return { name, length, bpm, ltc: '' };
+}
+
+let parsedImportData = [];
+
+function getImportDefaults() {
+  const bpmChk    = document.getElementById('imp-def-bpm-chk');
+  const lengthChk = document.getElementById('imp-def-length-chk');
+  const ltcChk    = document.getElementById('imp-def-ltc-chk');
+  return {
+    bpm:    bpmChk    && bpmChk.checked    ? (document.getElementById('imp-def-bpm').value.trim())    : null,
+    length: lengthChk && lengthChk.checked ? (document.getElementById('imp-def-length').value.trim()) : null,
+    ltc:    ltcChk    && ltcChk.checked    ? (document.getElementById('imp-def-ltc').value.trim())    : null,
+  };
+}
+
+function updateImportPreview() {
+  const lines = document.getElementById('import-textarea').value.split('\n');
+  const preview = document.getElementById('import-preview');
+  const defs = getImportDefaults();
+  parsedImportData = [];
+
+  const validLines = lines.map(l => {
+    const p = parseImportLine(l);
+    if (!p) return null;
+    // Apply defaults only to fields that are missing
+    if (defs.bpm    && !p.bpm)    p.bpm    = defs.bpm;
+    if (defs.length && !p.length) p.length = defs.length;
+    if (defs.ltc    && !p.ltc)    p.ltc    = defs.ltc;
+    return p;
+  }).filter(Boolean);
+  if (!validLines.length) { preview.style.display = 'none'; return; }
+
+  preview.style.display = 'block';
+  preview.innerHTML = '';
+
+  validLines.forEach(parsed => {
+    const existing = pool.find(t => t.name.toLowerCase() === parsed.name.toLowerCase());
+    const isUpdate = !!existing;
+    parsedImportData.push({ ...parsed, isUpdate, existingId: existing?.id });
+
+    const row = document.createElement('div');
+    row.className = 'import-preview-row';
+    row.innerHTML = `
+      <span class="import-preview-name">${parsed.name}</span>
+      <span class="import-preview-meta">${parsed.length||'—'} &nbsp; ${parsed.bpm ? parsed.bpm+' BPM' : '—'} ${parsed.ltc ? '&nbsp; '+parsed.ltc : ''}</span>
+      <span class="${isUpdate ? 'import-badge-update' : 'import-badge-new'}">${isUpdate ? 'UPDATE' : 'NEU'}</span>`;
+    preview.appendChild(row);
+  });
+}
+
+function confirmImport(mode) {
+  if (!parsedImportData.length) return;
+  // Re-apply defaults at confirm time in case checkboxes changed after preview
+  const defs = getImportDefaults();
+  parsedImportData.forEach(p => {
+    if (defs.bpm    && !p.bpm)    p.bpm    = defs.bpm;
+    if (defs.length && !p.length) p.length = defs.length;
+    if (defs.ltc    && !p.ltc)    p.ltc    = defs.ltc;
+  });
+  const newIds = [];
+  parsedImportData.forEach(p => {
+    if (p.isUpdate) {
+      const t = pool.find(x => x.id === p.existingId);
+      if (t) {
+        if (p.length) t.length = p.length;
+        if (p.bpm)    t.bpm    = p.bpm;
+        if (p.ltc)    t.ltc    = p.ltc;
+        newIds.push(t.id);
+      }
+    } else {
+      const newT = { id: nextId++, name: p.name, length: p.length||'', bpm: p.bpm||'', ltc: p.ltc||'', uncertain: false };
+      pool.push(newT); checkZugabe(newT);
+      newIds.push(newT.id);
+    }
+  });
+  if (mode === 'both') {
+    newIds.forEach(id => { if (!setlist.includes(id)) setlist.push(id); });
+  }
+  closeImportModal();
+  snapshot(); render();
+  if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
+  if (mode === 'pool') openPool();
+}
+
+
+const STORAGE_KEY = 'setlist_planner_v1_' + ARTIST_ID;
+
+function getFullState() {
+  return {
+    todos, pool, setlist, annotations, trackColors, columnOrder, blocks, archiveStore, version: 1 };
+}
+
+function applyFullState(s) {
+  if (s.pool)         pool         = s.pool.map(t => ({...t, id:+t.id}));
+  todos = s.todos || {};
+  if (s.setlist)      setlist      = s.setlist.map(Number);
+  if (s.annotations)  annotations  = s.annotations;
+  if (s.trackColors)  trackColors  = s.trackColors;
+  if (s.columnOrder)  columnOrder  = s.columnOrder;
+  if (s.blocks)       blocks       = s.blocks;
+  if (s.archiveStore) archiveStore = s.archiveStore;
+  nextId = pool.length ? Math.max(1, ...pool.map(t => t.id + 1)) : 1;
+}
+
+function autoSaveToStorage() {
+  if (!_dataReady) return;
+  const status = document.getElementById('save-status');
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(getFullState()));
+    if (status) { status.textContent = 'GESPEICHERT'; status.style.color='#2d7a32'; }
+  } catch(e) {
+    if (status) { status.textContent = 'NICHT GESPEICHERT'; status.style.color='#cc2211'; }
+  }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { applyFullState(JSON.parse(raw)); return true; }
+  } catch(e) {}
+  return false;
+}
+
+function exportData(mode) {
+  const d = new Date();
+  const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const timeStr = String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0');
+  const displayName = getArtistDisplayName(ARTIST_ID).replace(/[^a-zA-Z0-9_-]/g, '-');
+
+  if (mode === 'admin') {
+    // Backup ALL artists from localStorage
+    const artists = getKnownArtists();
+    const allData = { _type: 'admin_backup', exportedAt: d.toISOString(), artists: [] };
+    artists.forEach(function(a) {
+      const key = 'setlist_planner_v1_' + a.id;
+      const raw = localStorage.getItem(key);
+      allData.artists.push({ id: a.id, name: a.name, data: raw ? JSON.parse(raw) : null });
+    });
+    allData.artistList = artists;
+    const blob = new Blob([JSON.stringify(allData, null, 2)], {type:'application/json'});
+    const el = document.createElement('a');
+    el.href = URL.createObjectURL(blob);
+    el.download = 'backup_ADMIN_' + dateStr + '_' + timeStr + '.json';
+    el.click();
+    showDebug('Admin-Backup: ' + artists.length + ' Artists gesichert');
+  } else {
+    // Backup current artist only
+    const state = getFullState();
+    state.archiveStore = archiveStore;
+    state.exportedAt = d.toISOString();
+    state.artist = ARTIST_ID;
+    const artistStr = ARTIST_ID !== 'default' ? displayName + '_' : '';
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+    const el = document.createElement('a');
+    el.href = URL.createObjectURL(blob);
+    el.download = 'backup_' + artistStr + dateStr + '_' + timeStr + '.json';
+    el.click();
+    showDebug('Backup: ' + pool.length + ' Songs, ' + (archiveStore||[]).length + ' Setlisten');
+  }
+}
+
+function importData() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const s = JSON.parse(ev.target.result);
+        if (!s.pool) { showDebug('Ungültige Datei — kein Pool gefunden'); return; }
+        const poolCount = (s.pool||[]).length;
+        const archiveCount = (s.archiveStore||[]).length;
+        if (!confirm(`Backup wiederherstellen?\n\n${poolCount} Songs im Pool\n${archiveCount} gespeicherte Setlisten\n\nAlle aktuellen Daten werden ersetzt!`)) return;
+        if (!confirm('Alle aktuellen Daten werden ersetzt. Fortfahren?')) return;
+        applyFullState(s);
+        autoSaveToStorage(); render();
+        showDebug('Daten importiert');
+      } catch(err) { showDebug('Fehler: ' + err.message); }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+function syncUrlHash() {
+  try {
+    const mini = { pool, setlist, annotations, trackColors, columnOrder, blocks };
+    const str = JSON.stringify(mini);
+    if (str.length > 50000) { showDebug('URL zu lang - nutze Backup stattdessen'); return; }
+    const encoded = btoa(unescape(encodeURIComponent(str)));
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', '#' + encoded);
+    }
+  } catch(e) {}
+}
+
+function loadFromHash() {
+  try {
+    const hash = (window.location.hash || '').slice(1);
+    if (!hash || hash.length < 10) return false;
+    const s = JSON.parse(decodeURIComponent(escape(atob(hash))));
+    if (s.pool && s.setlist) {
+      if (confirm('Setlist aus URL laden?')) {
+        pool = s.pool; setlist = s.setlist;
+        annotations = s.annotations || {};
+        trackColors = s.trackColors || {};
+        columnOrder = s.columnOrder || ['length','bpm'];
+        blocks = s.blocks || [];
+        nextId = pool.length ? Math.max(1, ...pool.map(t => t.id + 1)) : 1;
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+function copyShareUrl() {
+  syncUrlHash();
+  try {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      showDebug('URL kopiert - auf anderem Geraet oeffnen');
+    });
+  } catch(e) {
+    showDebug('URL: ' + window.location.href);
+  }
+}
+
+// ARCHIVE
+// In-memory archive (localStorage blocked in some environments)
+let archiveStore = [];
+function loadArchive() {
+  return archiveStore;
+}
+function saveArchive(arr) {
+  archiveStore = arr;
+}
+
+function switchView(view) {
+  document.getElementById('main-view').style.display = view === 'main' ? 'block' : 'none';
+  document.getElementById('archive-view').style.display = view === 'archive' ? 'block' : 'none';
+  document.getElementById('tab-main').classList.toggle('active', view === 'main');
+  document.getElementById('tab-archive').classList.toggle('active', view === 'archive');
+  if (view === 'archive') renderArchive();
+}
+
+function quickSave() {
+  // If we have a current save, overwrite it; otherwise fall back to Save As
+  if (_currentSaveId) {
+    const archive = loadArchive();
+    const idx = archive.findIndex(e => e.id === _currentSaveId);
+    if (idx !== -1) {
+      const now = new Date();
+      const total = setlist.reduce((s,tid)=>s+toSeconds(getTrack(tid)?.length||''),0);
+      archive[idx] = {
+        ...archive[idx],
+        date: now.toISOString(),
+        trackCount: setlist.length,
+        totalSecs: total,
+        trackNames: setlist.slice(0,5).map(tid => getTrack(tid)?.name||'').filter(Boolean),
+        state: JSON.stringify({ setlist, annotations, trackColors, columnOrder, blocks, pool: pool.map(t=>({...t})) })
+      };
+      saveArchive(archive);
+      // Brief visual feedback on the tab
+      // Brief flash on pool save button
+      const sb = document.getElementById('vis-save-btn');
+      if(sb){sb.textContent='✓ SAVED';setTimeout(function(){sb.textContent='SAVE';},1400);}
+      return;
+    }
+  }
+  // No existing save — open Save As
+  openSaveModal();
+}
+
+function openSaveModal() {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2,'0');
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const yy = now.getFullYear();
+  document.getElementById('save-name-inp').value = `Setlist ${dd}.${mm}.${yy}`;
+  const total = setlist.reduce((s,tid)=>s+toSeconds(getTrack(tid)?.length||''),0);
+  document.getElementById('save-preview-info').textContent =
+    `${setlist.length} Tracks · ${formatTime(total)} Gesamtlaufzeit`;
+  document.getElementById('save-modal').style.cssText='display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;padding:20px;';
+  setTimeout(() => {
+    const inp = document.getElementById('save-name-inp');
+    inp.focus(); inp.select();
+  }, 80);
+}
+function closeSaveModal() { document.getElementById('save-modal').style.cssText='display:none'; }
+
+function confirmSave() {
+  const name = document.getElementById('save-name-inp').value.trim();
+  if (!name) return;
+  const now = new Date();
+  const total = setlist.reduce((s,tid)=>s+toSeconds(getTrack(tid)?.length||''),0);
+  const entry = {
+    id: Date.now(),
+    name,
+    date: now.toISOString(),
+    trackCount: setlist.length,
+    totalSecs: total,
+    trackNames: setlist.slice(0,5).map(tid => getTrack(tid)?.name||'').filter(Boolean),
+    state: JSON.stringify({ setlist, annotations, trackColors, columnOrder, blocks, pool: pool.map(t=>({...t})) })
+  };
+  const archive = loadArchive();
+  archive.unshift(entry);
+  saveArchive(archive);
+  _currentSaveId = entry.id;
+  _currentSaveName = name;
+  closeSaveModal();
+  switchView('archive');
+}
+
+function renderArchive() {
+  const q = (document.getElementById('archive-search')?.value||'').toLowerCase();
+  const archive = loadArchive().filter(e => !q || e.name.toLowerCase().includes(q));
+  const list = document.getElementById('archive-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  if (!archive.length) {
+    list.innerHTML = '<div class="archive-empty">NOCH KEINE SETLISTS GESPEICHERT</div>';
+    return;
+  }
+
+  archive.forEach(entry => {
+    const d = new Date(entry.date);
+    const dateStr = d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+    const timeStr = d.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
+    const preview = entry.trackNames?.join(' · ') || '';
+
+    const row = document.createElement('div');
+    row.className = 'archive-item';
+    row.innerHTML = `
+      <div class="archive-item-left">
+        <div class="archive-item-name" onclick="loadSetlist(${entry.id})">${entry.name}</div>
+        <div class="archive-item-meta">${dateStr} · ${timeStr}</div>
+        ${preview ? `<div class="archive-track-preview">${preview}${entry.trackCount > 5 ? ' …' : ''}</div>` : ''}
+      </div>
+      <div class="archive-item-tracks">${entry.trackCount} Tracks</div>
+      <div class="archive-item-time">${formatTime(entry.totalSecs)}</div>
+      <div class="archive-item-actions">
+        <button class="archive-btn" onclick="loadSetlist(${entry.id})">LADEN</button>
+        <button class="archive-btn" onclick="duplicateSetlist(${entry.id})">KOPIE</button>
+        <button class="archive-btn danger" onclick="deleteSetlist(${entry.id})">✕</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+function loadSetlist(id) {
+  const archive = loadArchive();
+  const entry = archive.find(e => e.id === id);
+  if (!entry) return;
+  const msg = `„${entry.name}" laden? Die aktuelle Setlist wird ersetzt.\n(Tipp: Erst speichern wenn du sie behalten willst)`;
+  if (!confirm(msg)) return;
+  try {
+    const s = JSON.parse(entry.state);
+    setlist = s.setlist||[];
+    annotations = s.annotations||{};
+    trackColors = s.trackColors||{};
+    columnOrder = s.columnOrder||['length','bpm'];
+    blocks = s.blocks||[];
+    if (s.pool) pool = s.pool;
+    nextId = Math.max(nextId, ...pool.map(t=>t.id+1), 1);
+    _currentSaveId = entry.id;
+    _currentSaveName = entry.name;
+    snapshot();
+    switchView('main');
+    render();
+  } catch(e) { alert('Fehler beim Laden'); }
+}
+
+function duplicateSetlist(id) {
+  const archive = loadArchive();
+  const entry = archive.find(e => e.id === id);
+  if (!entry) return;
+  const copy = { ...entry, id: Date.now(), name: entry.name + ' (Kopie)', date: new Date().toISOString() };
+  archive.unshift(copy);
+  saveArchive(archive);
+  renderArchive();
+}
+
+function deleteSetlist(id) {
+  const archive = loadArchive();
+  const entry = archive.find(e => e.id === id);
+  if (!entry) return;
+  if (!confirm(`„${entry.name}" löschen?`)) return;
+  saveArchive(archive.filter(e => e.id !== id));
+  renderArchive();
+}
+
+// ── BLOCKS ────────────────────────────────────────────────────
+const BLOCK_COLORS = ['#e63323','#e07b20','#5a9a5e','#2e86c1','#8e44ad','#e91e8c','#607d8b'];
+let pendingBlockColor = BLOCK_COLORS[0];
+
+function toggleSelectMode() {
+  selectMode = !selectMode;
+  selectedTracks.clear();
+  document.getElementById('select-mode-bar').classList.toggle('active', selectMode);
+  document.getElementById('btn-group').classList.toggle('active', selectMode);
+  if (selectMode) {
+    const row = document.getElementById('block-color-row');
+    row.innerHTML = '';
+    BLOCK_COLORS.forEach((col, i) => {
+      const d = document.createElement('div');
+      d.className = 'block-color-opt' + (i === 0 ? ' active' : '');
+      d.style.background = col;
+      d.onclick = () => {
+        pendingBlockColor = col;
+        document.querySelectorAll('.block-color-opt').forEach(x => x.classList.remove('active'));
+        d.classList.add('active');
+      };
+      row.appendChild(d);
+    });
+    pendingBlockColor = BLOCK_COLORS[0];
+  }
+  render();
+}
+
+function selectAllTracks() {
+  setlist.forEach(tid => selectedTracks.add(tid));
+  document.getElementById('sel-count').textContent = selectedTracks.size + ' ausgewählt';
+  render();
+}
+
+function deselectAllTracks() {
+  selectedTracks.clear();
+  document.getElementById('sel-count').textContent = '0 ausgewählt';
+  render();
+}
+
+function cancelSelectMode() {
+  selectMode = false; selectedTracks.clear();
+  document.getElementById('select-mode-bar').classList.remove('active');
+  document.getElementById('btn-group').classList.remove('active');
+  render();
+}
+
+function confirmBlock() {
+  if (selectedTracks.size === 0) return;
+  const name = document.getElementById('block-name-inp').value.trim();
+  const opEl = document.getElementById('block-opacity-inp');
+  const opacity = opEl ? (parseInt(opEl.value) / 100) : 1;
+  blocks.push({ id: nextBlockId++, label: name, color: pendingBlockColor, opacity, trackIds: [...selectedTracks] });
+  document.getElementById('block-name-inp').value = '';
+  selectedTracks.clear();
+  document.getElementById('sel-count').textContent = '0 ausgewählt';
+
+  snapshot(); render();
+}
+
+function removeBlock(id) {
+  blocks = blocks.filter(b => b.id !== id);
+  snapshot(); render();
+}
+
+function getBlockForTrack(tid) {
+  return blocks.find(b => b.trackIds.includes(tid));
+}
+
+// ── VISIBILITY ────────────────────────────────────────────────
+function setAllVis(state) {
+  ['vis-length','vis-bpm','vis-annotations','vis-blocks'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = state;
+  });
+  const all = document.getElementById('vis-all');
+  if (all) all.checked = state;
+  render();
+}
+
+function syncAllCheckbox() {
+  const all = document.getElementById('vis-all');
+  if (!all) return;
+  const ids = ['vis-length','vis-bpm','vis-annotations','vis-blocks'];
+  const allChecked = ids.every(id => { const el = document.getElementById(id); return el && el.checked; });
+  const noneChecked = ids.every(id => { const el = document.getElementById(id); return el && !el.checked; });
+  all.checked = allChecked;
+  all.indeterminate = !allChecked && !noneChecked;
+}
+
+function visChecked(id) {
+  const el = document.getElementById(id);
+  return el ? el.checked : true;
+}
+
+// Load persisted state
+(async () => {
+  try {
+    const loaded = await loadFromSupabase();
+    if (!loaded) {
+      console.log('Supabase: kein Stand geladen, lade Beispiel-Track');
+      const defaultTrack = { id: 1, name: 'Default', length: '3:30', bpm: '120', uncertain: false };
+      pool = [defaultTrack];
+      setlist = [1];
+      nextId = 2;
+    }
+  } catch(e) {
+    console.warn('Supabase init fehlgeschlagen:', e);
+  }
+  _dataReady = true;
+  render(); snapshot();
+  initRealtimeSync();
+  // Show artist name in header and tab
+  initArtistSwitcher(); // sets tab label using display name
+  const lbl = document.getElementById('artist-label');
+  if (lbl && ARTIST_ID !== 'default') lbl.textContent = ' · ' + getArtistDisplayName(ARTIST_ID).toUpperCase();
+})();
+const _loadedFromStorage = false;
+if (_loadedFromStorage) {
+  const s = document.getElementById('save-status');
+  if (s) { s.textContent = 'GELADEN'; s.style.color='#2d7a32'; }
+}
+
+
+
+
+
+
+// ── DRAG & DROP (delegated) ───────────────────────────────────
+function initDrag() {
+  // Make child spans non-draggable so row drag works
+  document.addEventListener('dragstart', e => {
+    // If dragging started on a button, cancel
+    if (e.target.closest('button')) { e.preventDefault(); return; }
+    
+    const row = e.target.closest('.track-row');
+    if (!row) return;
+    
+    dragSrc = +row.dataset.id;
+    poolDragId = null;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(dragSrc));
+    setTimeout(() => row.classList.add('dragging'), 0);
+  });
+
+  document.addEventListener('dragend', () => {
+    document.querySelectorAll('.track-row').forEach(r => r.classList.remove('dragging','drag-over-top','drag-over-bottom'));
+    dragSrc = null;
+  });
+
+  document.addEventListener('dragover', e => {
+    e.preventDefault();
+    const row = e.target.closest('.track-row');
+    if (!row) return;
+    document.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over-top','drag-over-bottom'));
+    const rect = row.getBoundingClientRect();
+    row.classList.add(e.clientY < rect.top + rect.height / 2 ? 'drag-over-top' : 'drag-over-bottom');
+  });
+
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    const row = e.target.closest('.track-row');
+    if (!row) return;
+    const above = row.classList.contains('drag-over-top');
+    document.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over-top','drag-over-bottom'));
+    const toId = +row.dataset.id;
+    const toIdx = setlist.indexOf(toId);
+
+    if (poolDragId) {
+      const pid = poolDragId; poolDragId = null;
+      const existIdx = setlist.indexOf(pid);
+      if (existIdx !== -1) setlist.splice(existIdx, 1);
+      const insertAt = above ? toIdx : toIdx + 1;
+      setlist.splice((existIdx !== -1 && existIdx < insertAt) ? insertAt - 1 : insertAt, 0, pid);
+      snapshot(); render(); renderPool(); return;
+    }
+
+    if (!dragSrc || dragSrc === toId) return;
+    const fromIdx = setlist.indexOf(dragSrc);
+    if (fromIdx === -1) return;
+    dissolveGroupOf(dragSrc);
+    setlist.splice(fromIdx, 1);
+    const insertAt = above ? toIdx : toIdx + 1;
+    setlist.splice(fromIdx < insertAt ? insertAt - 1 : insertAt, 0, dragSrc);
+    dragSrc = null;
+    snapshot(); render();
+  });
+}
+
+
+// ── LONG PRESS MOVE MENU ─────────────────────────────────────
+let longPressTimer = null;
+let activeMoveMenu = null;
+
+function closeMoveMenu() {
+  if (activeMoveMenu) { activeMoveMenu.remove(); activeMoveMenu = null; }
+}
+
+function openMoveMenu(trackId, x, y) {
+  closeMoveMenu();
+  const idx = setlist.indexOf(trackId);
+  const t = getTrack(trackId);
+  if (!t) return;
+
+  const menu = document.createElement('div');
+  menu.className = 'move-menu';
+  menu.innerHTML = `
+    <div class="move-menu-title">⠿ ${t.name}</div>
+    ${idx > 0 ? `<button class="move-menu-btn" onclick="moveTrack(${trackId},'top')">⬆ Ganz nach oben</button>` : ''}
+    ${idx > 0 ? `<button class="move-menu-btn" onclick="moveTrack(${trackId},'up')">↑ Eine Position hoch</button>` : ''}
+    ${idx < setlist.length-1 ? `<button class="move-menu-btn" onclick="moveTrack(${trackId},'down')">↓ Eine Position runter</button>` : ''}
+    ${idx < setlist.length-1 ? `<button class="move-menu-btn" onclick="moveTrack(${trackId},'bottom')">⬇ Ganz nach unten</button>` : ''}
+    <button class="move-menu-btn" onclick="openMoveToPosition(${trackId})">↔ An Position verschieben…</button>
+    <button class="move-menu-btn danger" onclick="closeMoveMenu()">✕ Abbrechen</button>
+  `;
+
+  // Position menu near touch point, keep on screen
+  document.body.appendChild(menu);
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  menu.style.left = Math.min(x, vw - mw - 8) + 'px';
+  menu.style.top = Math.min(y, vh - mh - 8) + 'px';
+  activeMoveMenu = menu;
+
+  // Close on outside tap
+  setTimeout(() => {
+    document.addEventListener('touchstart', closeMoveMenu, { once: true, passive: true });
+    document.addEventListener('mousedown', closeMoveMenu, { once: true });
+  }, 50);
+}
+
+function moveTrack(trackId, dir) {
+  const idx = setlist.indexOf(trackId);
+  if (idx === -1) return;
+  let newIdx = idx;
+  if (dir === 'up')     newIdx = Math.max(0, idx - 1);
+  if (dir === 'down')   newIdx = Math.min(setlist.length - 1, idx + 1);
+  if (dir === 'top')    newIdx = 0;
+  if (dir === 'bottom') newIdx = setlist.length - 1;
+  if (newIdx === idx) return;
+  setlist.splice(idx, 1);
+  setlist.splice(newIdx, 0, trackId);
+  snapshot(); render();
+  closeMoveMenu();
+}
+
+function openMoveToPosition(trackId) {
+  closeMoveMenu();
+  const t = getTrack(trackId);
+  const cur = setlist.indexOf(trackId) + 1;
+  const pos = prompt(`„${t.name}" verschieben zu Position (1–${setlist.length}):`, cur);
+  if (!pos) return;
+  const newIdx = Math.min(setlist.length, Math.max(1, parseInt(pos))) - 1;
+  const fromIdx = setlist.indexOf(trackId);
+  setlist.splice(fromIdx, 1);
+  setlist.splice(newIdx, 0, trackId);
+  snapshot(); render();
+}
+
+// Attach long-press to drag-handle
+function initLongPress() {
+  document.addEventListener('touchstart', function(e) {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    e.preventDefault();
+    const trackId = +handle.dataset.id;
+    const touch = e.touches[0];
+    longPressTimer = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(40);
+      openMoveMenu(trackId, touch.clientX, touch.clientY);
+    }, 400);
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => {
+    clearTimeout(longPressTimer);
+  }, { passive: true });
+
+  document.addEventListener('touchmove', () => {
+    clearTimeout(longPressTimer);
+  }, { passive: true });
+}
+initLongPress();
+initDrag();
+
+function initDropEndZone() {
+  const dropEnd = document.getElementById('setlist-drop-end');
+  if (!dropEnd) return;
+  dropEnd.addEventListener('dragover', e => { e.preventDefault(); dropEnd.classList.add('drag-over'); });
+  dropEnd.addEventListener('dragleave', () => dropEnd.classList.remove('drag-over'));
+  dropEnd.addEventListener('drop', e => {
+    e.preventDefault(); dropEnd.classList.remove('drag-over');
+    if (poolDragId !== null && !setlist.includes(poolDragId)) {
+      setlist.push(poolDragId); poolDragId = null; snapshot(); render(); renderPool();
+    }
+  });
+}
+initDropEndZone();
+
+// ── COLUMN REORDER via header drag ───────────────────────────
+let colDragSrc = null;
+
+// Drop-line indicator inside col-headers container (position:absolute)
+let _colDropLine = null;
+function getColDropLine() {
+  if (!_colDropLine) {
+    _colDropLine = document.createElement('div');
+    _colDropLine.style.cssText = 'position:absolute;top:4px;bottom:4px;width:2px;background:var(--accent);border-radius:2px;pointer-events:none;display:none;';
+    document.getElementById('col-headers-row').appendChild(_colDropLine);
+  }
+  return _colDropLine;
+}
+function showColDropLine(targetEl) {
+  const container = document.getElementById('col-headers-row');
+  const line = getColDropLine();
+  // offsetLeft relative to container
+  line.style.left = (targetEl.offsetLeft - 2) + 'px';
+  line.style.display = 'block';
+}
+function hideColDropLine() {
+  if (_colDropLine) _colDropLine.style.display = 'none';
+}
+
+function initColHeaders() {
+  document.querySelectorAll('.col-drag-header').forEach(h => {
+    const fresh = h.cloneNode(true);
+    h.parentNode.replaceChild(fresh, h);
+
+    fresh.addEventListener('dragstart', e => {
+      colDragSrc = fresh.dataset.col;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', colDragSrc);
+      setTimeout(() => fresh.style.opacity = '0.4', 0);
+    });
+
+    fresh.addEventListener('dragend', () => {
+      fresh.style.opacity = '';
+      hideColDropLine();
+    });
+
+    fresh.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!colDragSrc || colDragSrc === fresh.dataset.col) return;
+      showColDropLine(fresh);
+    });
+
+    fresh.addEventListener('dragleave', e => {
+      // only hide if leaving to outside col-headers area
+      if (!e.relatedTarget || !e.relatedTarget.closest('.col-drag-header')) {
+        hideColDropLine();
+      }
+    });
+
+    fresh.addEventListener('drop', e => {
+      e.preventDefault();
+      hideColDropLine();
+      const src = colDragSrc;
+      const dst = fresh.dataset.col;
+      colDragSrc = null;
+      if (!src || src === dst) return;
+      const si = colOrder.indexOf(src);
+      const di = colOrder.indexOf(dst);
+      if (si === -1 || di === -1) return;
+      colOrder.splice(si, 1);
+      colOrder.splice(di, 0, src);
+      render();
+    });
+  });
+}
+initColHeaders();
+</script>
+
+<div id="dup-modal">
+  <div class="dup-box">
+    <div class="dup-box-header">Track bereits vorhanden</div>
+    <div class="dup-box-body">
+      <span id="dup-msg"></span>
+    </div>
+    <div class="dup-box-footer">
+      <button onclick="resolveDup('replace')" class="primary">ERSETZEN</button>
+      <button onclick="resolveDup('v2')">ALS V2</button>
+      <button onclick="resolveDup('cancel')">ABBRECHEN</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
