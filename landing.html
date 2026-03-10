@@ -371,7 +371,6 @@
 
       // Reset form
       document.getElementById('inp-name').value = '';
-      document.getElementById('inp-slug').value = '';
       document.getElementById('inp-pw').value = '';
       document.getElementById('pw-check').checked = false;
       document.getElementById('pw-field').classList.remove('visible');
@@ -400,7 +399,7 @@
 
   // Enter key on form
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && ['inp-name','inp-slug','inp-pw'].includes(document.activeElement.id)) {
+    if (e.key === 'Enter' && ['inp-name','inp-pw'].includes(document.activeElement.id)) {
       createArtist();
     }
   });
