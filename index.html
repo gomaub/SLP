@@ -150,13 +150,45 @@
         link.href = 'artist.html?artist=' + a.id;
         link.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-top:1px solid var(--line);text-decoration:none;color:var(--fg);transition:background .1s;';
         link.innerHTML = '<span style="font-size:12px;font-weight:700;letter-spacing:.04em">' + a.name + '</span>' +
-          '<span style="font-size:9px;color:var(--muted)">' + a.id + ' →</span>';
+          '<span style="display:flex;align-items:center;gap:12px">' +
+            '<span style="font-size:9px;color:var(--muted)">' + a.id + ' →</span>' +
+            '<span data-delete="' + a.id + '" data-name="' + a.name + '" style="font-size:10px;color:#666;cursor:pointer;padding:2px 6px;border:1px solid #444" title="Löschen">✕</span>' +
+          '</span>';
         link.addEventListener('mouseover', function(){ link.style.background='var(--hover)'; });
         link.addEventListener('mouseout',  function(){ link.style.background=''; });
+        link.addEventListener('click', function(e){
+          const del = e.target.closest('[data-delete]');
+          if (del) {
+            e.preventDefault();
+            deleteArtist(del.dataset.delete, del.dataset.name);
+          }
+        });
         listEl.appendChild(link);
       });
     } catch(e) {
       listEl.innerHTML = '<div style="padding:12px 24px;font-size:9px;color:#cc3300">FEHLER: ' + e.message + '</div>';
+    }
+  }
+  async function deleteArtist(id, name) {
+    if (!confirm('Wirklich "' + name + '" löschen?')) return;
+    if (!confirm('Sicher? Alle Daten gehen verloren!')) return;
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/artists?id=eq.' + id, {
+        method: 'DELETE',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Prefer': 'return=minimal'
+        }
+      });
+      if (res.ok) {
+        artistsLoaded = false;
+        await loadArtists();
+      } else {
+        alert('Fehler beim Löschen');
+      }
+    } catch(e) {
+      alert('Fehler: ' + e.message);
     }
   }
 </script>
