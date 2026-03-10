@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setlist Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0c;
+    --fg: #f0ede6;
+    --accent: #e05a00;
+    --muted: #666;
+    --line: #2a2a27;
+    --card: #161614;
+    --hover: #1e1e1b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--line);
+    padding: 28px 40px;
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+  }
+  .logo {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    color: var(--fg);
+  }
+  .logo span { color: var(--accent); }
+  .tagline {
+    font-size: 9px;
+    letter-spacing: .1em;
+    color: var(--muted);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 60px 40px 80px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    margin-bottom: 64px;
+  }
+  .hero-eyebrow {
+    font-size: 9px;
+    letter-spacing: .2em;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .hero-title {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 700;
+    letter-spacing: -.01em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .hero-title em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero-sub {
+    font-size: 10px;
+    letter-spacing: .06em;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 480px;
+  }
+
+  /* ── CREATE FORM ── */
+  .create-section {
+    border: 1px solid var(--line);
+    padding: 32px;
+    margin-bottom: 48px;
+    position: relative;
+  }
+  .create-section::before {
+    content: 'NEUER ARTIST';
+    position: absolute;
+    top: -1px;
+    left: 24px;
+    background: var(--bg);
+    padding: 0 8px;
+    font-size: 8px;
+    letter-spacing: .18em;
+    color: var(--accent);
+    transform: translateY(-50%);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 560px) {
+    .form-grid { grid-template-columns: 1fr; }
+    header { padding: 20px; }
+    main { padding: 40px 20px 60px; }
+    .create-section { padding: 24px 20px; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field-full { grid-column: 1 / -1; }
+  .field label {
+    font-size: 8px;
+    letter-spacing: .15em;
+    color: var(--muted);
+  }
+  .field input {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--fg);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .15s;
+    width: 100%;
+  }
+  .field input:focus { border-color: #555; }
+  .field input::placeholder { color: var(--muted); opacity: .5; }
+
+  .slug-preview {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 4px;
+    min-height: 14px;
+    letter-spacing: .04em;
+  }
+  .slug-preview span { color: var(--fg); }
+
+  .pw-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .pw-toggle input[type=checkbox] {
+    accent-color: var(--accent);
+    width: 13px;
+    height: 13px;
+    cursor: pointer;
+  }
+  .pw-toggle span {
+    font-size: 9px;
+    letter-spacing: .1em;
+    color: var(--muted);
+  }
+  .pw-field { display: none; margin-bottom: 16px; }
+  .pw-field.visible { display: block; }
+
+  .create-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    padding: 12px 28px;
+    cursor: pointer;
+    transition: opacity .15s;
+    width: 100%;
+  }
+  .create-btn:hover { opacity: .85; }
+  .create-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── SUCCESS BOX ── */
+  .success-box {
+    display: none;
+    border: 1px solid var(--accent);
+    padding: 20px 24px;
+    margin-top: 20px;
+  }
+  .success-box.visible { display: block; }
+  .success-label {
+    font-size: 8px;
+    letter-spacing: .18em;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .success-link {
+    font-size: 11px;
+    color: var(--fg);
+    word-break: break-all;
+    margin-bottom: 12px;
+  }
+  .copy-btn {
+    background: var(--fg);
+    color: var(--bg);
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    padding: 7px 16px;
+    cursor: pointer;
+  }
+  .copy-btn:hover { opacity: .8; }
+
+  /* ── ARTISTS LIST ── */
+
+
+  .error-msg {
+    font-size: 9px;
+    color: #cc3300;
+    letter-spacing: .08em;
+    margin-top: 8px;
+    min-height: 14px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 20px 40px;
+    font-size: 8px;
+    letter-spacing: .1em;
+    color: var(--muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SLP</div>
+  <div class="tagline">setlist planner</div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="hero-eyebrow">WILLKOMMEN</div>
+    <h1 class="hero-title" style="font-size:clamp(18px,3vw,28px)">SLP</h1>
+    <p class="hero-sub" style="font-size:9px">Erstelle eine Setlist-Seite für deinen Artist. Teile den Link mit deinem Team.</p>
+  </div>
+
+  <!-- CREATE FORM -->
+  <div class="create-section">
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="field">
+        <label>ARTIST NAME</label>
+        <input type="text" id="inp-name" placeholder="z.B. Kitsch Krieg" oninput="onNameInput(this.value)" />
+        <div class="slug-preview" id="slug-preview"></div>
+      </div>
+    </div>
+
+    <label class="pw-toggle">
+      <input type="checkbox" id="pw-check" onchange="togglePwField(this.checked)" />
+      <span>PASSWORTSCHUTZ AKTIVIEREN</span>
+    </label>
+
+    <div class="pw-field" id="pw-field">
+      <div class="field">
+        <label>PASSWORT</label>
+        <input type="password" id="inp-pw" placeholder="Passwort eingeben…" />
+      </div>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+    <button class="create-btn" id="create-btn" onclick="createArtist()">ARTIST ANLEGEN →</button>
+
+    <div class="success-box" id="success-box">
+      <div class="success-label">✓ ARTIST ERSTELLT — DEIN LINK:</div>
+      <div class="success-link" id="success-link"></div>
+      <button class="copy-btn" onclick="copyLink()">LINK KOPIEREN</button>
+    </div>
+  </div>
+
+
+</main>
+
+<footer>SETLIST PLANNER · MADE FOR MUSICIANS</footer>
+
+<script>
+  const SUPABASE_URL = 'https://opcuiwlyfvrhipsrdftd.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_MT7K3rDdmgJVIsHGB33G2g_TwNgxGPC';
+  const APP_URL = window.location.href.replace('landing.html','index.html');
+
+  let _createdLink = '';
+
+  // ── SLUG HELPERS ──
+  function toSlug(str) {
+    return str.toLowerCase()
+      .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  }
+
+  function onNameInput(val) {
+    updateSlugPreview(toSlug(val));
+  }
+
+  function updateSlugPreview(slug) {
+    const el = document.getElementById('slug-preview');
+    if (slug) {
+      el.innerHTML = APP_URL + '?artist=<span>' + slug + '</span>';
+    } else {
+      el.innerHTML = '';
+    }
+  }
+
+  function togglePwField(on) {
+    document.getElementById('pw-field').classList.toggle('visible', on);
+  }
+
+  // ── SUPABASE ──
+  async function supabase(method, path, body) {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      method,
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': method === 'POST' ? 'return=representation' : ''
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || err.hint || 'Fehler ' + res.status);
+    }
+    return res.status === 204 ? null : res.json();
+  }
+
+  // ── CREATE ARTIST ──
+  async function createArtist() {
+    const name = document.getElementById('inp-name').value.trim();
+    const slug = toSlug(name);
+    const pw   = document.getElementById('inp-pw').value.trim();
+    const usePw = document.getElementById('pw-check').checked;
+    const errEl = document.getElementById('error-msg');
+    errEl.textContent = '';
+
+    if (!name) { errEl.textContent = 'Bitte Artist-Namen eingeben.'; return; }
+    if (!slug)  { errEl.textContent = 'Bitte Kürzel eingeben.'; return; }
+    if (usePw && !pw) { errEl.textContent = 'Bitte Passwort eingeben.'; return; }
+
+    const btn = document.getElementById('create-btn');
+    btn.disabled = true;
+    btn.textContent = 'ERSTELLE…';
+
+    try {
+      await supabase('POST', 'artists', {
+        id: slug,
+        name: name,
+        password: usePw ? pw : null,
+        created_at: new Date().toISOString()
+      });
+
+      const link = APP_URL + '?artist=' + slug;
+      _createdLink = link;
+      document.getElementById('success-link').textContent = link;
+      document.getElementById('success-box').classList.add('visible');
+
+      // Reset form
+      document.getElementById('inp-name').value = '';
+      document.getElementById('inp-slug').value = '';
+      document.getElementById('inp-pw').value = '';
+      document.getElementById('pw-check').checked = false;
+      document.getElementById('pw-field').classList.remove('visible');
+      document.getElementById('slug-preview').innerHTML = '';
+
+      loadArtists();
+    } catch(e) {
+      if (e.message.includes('duplicate') || e.message.includes('unique')) {
+        errEl.textContent = 'Dieses Kürzel ist bereits vergeben — bitte ein anderes wählen.';
+      } else {
+        errEl.textContent = 'Fehler: ' + e.message;
+      }
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'ARTIST ANLEGEN →';
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(_createdLink).then(function() {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '✓ KOPIERT';
+      setTimeout(function(){ btn.textContent = 'LINK KOPIEREN'; }, 1800);
+    });
+  }
+
+  // Enter key on form
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && ['inp-name','inp-slug','inp-pw'].includes(document.activeElement.id)) {
+      createArtist();
+    }
+  });
+
+</script>
+</body>
+</html>
