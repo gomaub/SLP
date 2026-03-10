@@ -1787,10 +1787,10 @@ function addToPool() {
 
 // ── SETLIST ACTIONS ───────────────────────────────────────────
 function removeFromSetlist(id) {
-  const grp = blocks.find(b => b.trackIds.includes(id));
+  const grp = blocks.find(b => b.trackIds.includes(+id));
   if (grp) blocks = blocks.filter(b => b.id !== grp.id);
-  setlist = setlist.filter(x => x !== id);
-  pool = pool.filter(t => t.id !== id);
+  setlist = setlist.filter(x => +x !== +id);
+  pool = pool.filter(t => +t.id !== +id);
   snapshot(); render(); renderPool();
 }
 
@@ -2621,20 +2621,8 @@ async function saveToSupabase() {
 }
 
 async function loadFromSupabase() {
-  // First try localStorage (instant, no network)
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.pool)) {
-        applyFullState(parsed);
-        _lastSavedHash = _stateHash(parsed);
-        return true;
-      }
-    }
-  } catch(e) {}
-
-  // Then try Supabase
+  // Always load from Supabase (source of truth)
+  // Try Supabase
   try {
     const { data, error } = await _sbClient.from(SB_TABLE).select('data').eq('id', SB_ROW_ID).single();
     if (data && data.data) {
