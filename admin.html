@@ -906,7 +906,7 @@
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
     </div>
-    <div class="header-right"><span id="mode-label" style="letter-spacing:.12em;font-weight:700;color:var(--accent)">ADMIN MODE</span><span>DE</span></div>
+    <div class="header-right"><span id="mode-label" style="letter-spacing:.12em;font-weight:700;color:var(--muted)">ARTIST MODE</span><span>DE</span></div>
   </header>
 
   <!-- View Tabs -->
@@ -3450,24 +3450,33 @@ function confirmImport(mode) {
   const newIds = [];
   parsedImportData.forEach(p => {
     if (p.isUpdate) {
+      // Track exists in pool — update its fields
       const t = pool.find(x => x.id === p.existingId);
       if (t) {
         if (p.length) t.length = p.length;
         if (p.bpm)    t.bpm    = p.bpm;
         if (p.ltc)    t.ltc    = p.ltc;
-        newIds.push(t.id);
+        newIds.push(+t.id);
       }
     } else {
+      // New track
       const newT = { id: nextId++, name: p.name, length: p.length||'', bpm: p.bpm||'', ltc: p.ltc||'', uncertain: false };
       pool.push(newT); checkZugabe(newT);
-      newIds.push(newT.id);
+      newIds.push(+newT.id);
     }
   });
   if (mode === 'both') {
-    newIds.forEach(id => { if (!setlist.includes(id)) setlist.push(id); });
+    // Force-add all imported track IDs to setlist (skip those already present)
+    newIds.forEach(id => {
+      if (!setlist.map(Number).includes(+id)) setlist.push(+id);
+    });
   }
   closeImportModal();
+  // Save state immediately — don't rely on debounced timer
+  clearTimeout(window._sbSaveTimer);
   snapshot(); render();
+  autoSaveToStorage();
+  saveToSupabase(); // immediate save, prevents realtime from overwriting
   if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
   if (mode === 'pool') openPool();
 }
