@@ -1787,10 +1787,13 @@ function addToPool() {
 
 // ── SETLIST ACTIONS ───────────────────────────────────────────
 function removeFromSetlist(id) {
+  id = +id; // normalize to number
   // Dissolve any group this track belongs to
-  const grp = blocks.find(b => b.trackIds.includes(id));
+  const grp = blocks.find(b => b.trackIds.map(Number).includes(id));
   if (grp) blocks = blocks.filter(b => b.id !== grp.id);
-  setlist = setlist.filter(x => x !== id);
+  setlist = setlist.filter(x => +x !== id);
+  // Also remove from pool entirely
+  pool = pool.filter(t => +t.id !== id);
   snapshot(); render(); renderPool();
 }
 
