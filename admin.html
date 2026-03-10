@@ -906,7 +906,7 @@
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
     </div>
-    <div class="header-right"><span>DE</span></div>
+    <div class="header-right"><span id="mode-label" style="letter-spacing:.12em;font-weight:700;color:var(--accent)">ADMIN MODE</span><span>DE</span></div>
   </header>
 
   <!-- View Tabs -->
@@ -926,7 +926,7 @@
         <div class="file-menu-sep"></div>
         <button onclick="openSaveModal();closeFileMenu()">✦ SPEICHERN</button>
         <div class="file-menu-sep"></div>
-        <div class="file-menu-admin-label">— ADMIN —</div>
+        <div class="file-menu-admin-label" id="admin-section-label">— ADMIN —</div>
         <div id="artist-switcher" style="padding:6px 12px 12px;box-sizing:border-box;width:100%">
           <div style="font-size:9px;color:#888;letter-spacing:.07em;margin-bottom:8px">ARTIST WECHSELN</div>
           <div id="artist-list" style="display:flex;flex-direction:column;gap:4px"></div>
@@ -948,7 +948,6 @@
     <button class="mobile-menu-btn" onclick="openMobileMenu()">☰ MENÜ</button>
 
     <button onclick="openPool()" id="pool-btn">[ ◀ POOL ]</button>
-    <button id="btn-more" onclick="toggleMoreButtons()" style="display:none">[ ••• ]</button>
     <button onclick="toggleAddForm()" id="add-btn">[ + ADD ]</button>
     <button class="accent" onclick="openExportModal()">[ EXPORT ]</button>
     <button onclick="quickSave()" id="vis-save-btn">[ SAVE ]</button>
@@ -1078,7 +1077,10 @@
   <!-- Archive View -->
   <div class="archive-view" id="archive-view" style="display:none">
     <div style="padding:24px 0 8px">
-      <div class="hero-title" style="font-size:clamp(40px,8vw,80px)">ARCHIV</div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div class="hero-title" style="font-size:clamp(40px,8vw,80px)">ARCHIV</div>
+        <div id="archiv-artist-label" style="font-size:12px;letter-spacing:.12em;color:var(--muted);padding-bottom:8px;align-self:flex-end"></div>
+      </div>
     </div>
     <div class="archive-toolbar">
       <input type="text" id="archive-search" placeholder="Setlist suchen…" oninput="renderArchive()" />
@@ -2524,17 +2526,14 @@ function toggleMoreButtons() {
   const btns = document.querySelectorAll('.toolbar-secondary');
   const isVisible = btns[0] && btns[0].style.display !== 'none';
   btns.forEach(b => b.style.display = isVisible ? 'none' : '');
-  document.getElementById('btn-more').textContent = isVisible ? '[ ••• ]' : '[ ✕ ]';
 }
 
 // Show ••• button on mobile, hide secondary buttons initially
 if (window.innerWidth <= 600) {
-  document.getElementById('btn-more').style.display = '';
   document.querySelectorAll('.toolbar-secondary').forEach(b => b.style.display = 'none');
 }
 window.addEventListener('resize', () => {
   const mobile = window.innerWidth <= 600;
-  document.getElementById('btn-more').style.display = mobile ? '' : 'none';
   if (!mobile) document.querySelectorAll('.toolbar-secondary').forEach(b => b.style.display = '');
 });
 
@@ -2576,6 +2575,9 @@ function editNoteInline(el) {
 const SB_URL   = 'https://opcuiwlyfvrhipsrdftd.supabase.co';
 const SB_KEY   = 'sb_publishable_MT7K3rDdmgJVIsHGB33G2g_TwNgxGPC';
 const SB_TABLE = 'setlist_data';
+
+// Admin flag — set to true only in admin.html
+const IS_ADMIN = true;
 
 // Artist isolation via ?artist=name URL param
 const _artistParam = new URLSearchParams(window.location.search).get('artist');
@@ -3893,8 +3895,16 @@ function visChecked(id) {
   initRealtimeSync();
   // Show artist name in header and tab
   initArtistSwitcher(); // sets tab label using display name
+  if (!IS_ADMIN) {
+    const sw = document.getElementById('artist-switcher');
+    const al = document.getElementById('admin-section-label');
+    if (sw) sw.style.display = 'none';
+    if (al) al.style.display = 'none';
+  }
   const lbl = document.getElementById('artist-label');
   if (lbl && ARTIST_ID !== 'default') lbl.textContent = ' · ' + getArtistDisplayName(ARTIST_ID).toUpperCase();
+  const archivLbl = document.getElementById('archiv-artist-label');
+  if (archivLbl && ARTIST_ID !== 'default') archivLbl.textContent = getArtistDisplayName(ARTIST_ID).toUpperCase();
 })();
 const _loadedFromStorage = false;
 if (_loadedFromStorage) {
