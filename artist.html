@@ -1787,13 +1787,10 @@ function addToPool() {
 
 // ── SETLIST ACTIONS ───────────────────────────────────────────
 function removeFromSetlist(id) {
-  id = +id; // normalize to number
-  // Dissolve any group this track belongs to
-  const grp = blocks.find(b => b.trackIds.map(Number).includes(id));
+  const grp = blocks.find(b => b.trackIds.includes(id));
   if (grp) blocks = blocks.filter(b => b.id !== grp.id);
-  setlist = setlist.filter(x => +x !== id);
-  // Also remove from pool entirely
-  pool = pool.filter(t => +t.id !== id);
+  setlist = setlist.filter(x => x !== id);
+  pool = pool.filter(t => t.id !== id);
   snapshot(); render(); renderPool();
 }
 
@@ -3443,7 +3440,6 @@ function updateImportPreview() {
 
 function confirmImport(mode) {
   if (!parsedImportData.length) return;
-  // Re-apply defaults at confirm time in case checkboxes changed after preview
   const defs = getImportDefaults();
   parsedImportData.forEach(p => {
     if (defs.bpm    && !p.bpm)    p.bpm    = defs.bpm;
@@ -3453,29 +3449,21 @@ function confirmImport(mode) {
   const newIds = [];
   parsedImportData.forEach(p => {
     if (p.isUpdate) {
-      // Track exists in pool — update its fields
-      const t = pool.find(x => +x.id === +p.existingId);
+      const t = pool.find(x => x.id === p.existingId);
       if (t) {
         if (p.length) t.length = p.length;
         if (p.bpm)    t.bpm    = p.bpm;
         if (p.ltc)    t.ltc    = p.ltc;
-        newIds.push(+t.id);
+        newIds.push(t.id);
       }
     } else {
-      // New track
       const newT = { id: nextId++, name: p.name, length: p.length||'', bpm: p.bpm||'', ltc: p.ltc||'', uncertain: false };
       pool.push(newT); checkZugabe(newT);
-      newIds.push(+newT.id);
+      newIds.push(newT.id);
     }
   });
   if (mode === 'both') {
-    const currentSetlistNums = setlist.map(Number);
-    newIds.forEach(id => {
-      if (!currentSetlistNums.includes(+id)) {
-        setlist.push(+id);
-        currentSetlistNums.push(+id); // keep in sync
-      }
-    });
+    newIds.forEach(id => { if (!setlist.includes(id)) setlist.push(id); });
   }
   closeImportModal();
   snapshot(); render();
