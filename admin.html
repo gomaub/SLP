@@ -4547,8 +4547,9 @@ function alsExtract(xml) {
   });
   if (!songTrack) { alsShowError('Keine SONG / SONGS Spur gefunden.'); return; }
 
-  // BPM
-  const bpm = parseFloat(xml.querySelector('Tempo > Manual')?.getAttribute('Value') || 120);
+  // BPM — Tempo > Manual is nested deep inside MasterTrack > DeviceChain > Mixer
+  // querySelector('Tempo Manual') finds it anywhere in the tree
+  const bpm = parseFloat(xml.querySelector('Tempo Manual')?.getAttribute('Value') || 120);
 
   const songClips = songTrack.querySelectorAll('MidiClip');
   const partClips = partTrack ? partTrack.querySelectorAll('MidiClip') : [];
@@ -4578,9 +4579,25 @@ function alsExtract(xml) {
       }
     });
 
-    // Match against pool
-    const existing = pool.find(t => t.name.toLowerCase() === name.toLowerCase());
-    _alsImportData.push({ name, length, bpm: String(bpmR), key, parts, isUpdate: !!existing, existingId: existing?.id });
+    // Match against pool — exact first, then fuzzy
+    const nameLower = name.toLowerCase();
+    const exact = pool.find(t => t.name.toLowerCase() === nameLower);
+    let fuzzy = null;
+    if (!exact) {
+      fuzzy = pool.find(t => {
+        const a = t.name.toLowerCase(), b = nameLower;
+        // contains check (either direction)
+        if (a.includes(b) || b.includes(a)) return true;
+        // similarity check (Levenshtein ratio)
+        return alsStrSim(a, b) >= 0.6;
+      });
+    }
+    _alsImportData.push({
+      name, length, bpm: String(bpmR), key, parts,
+      isUpdate: !!exact, existingId: exact?.id,
+      isFuzzy: !exact && !!fuzzy, fuzzyId: fuzzy?.id, fuzzyName: fuzzy?.name,
+      fuzzyAccepted: false // user hasn't decided yet
+    });
   });
 
   if (!_alsImportData.length) { alsShowError('Keine Clips in SONG Spur gefunden.'); return; }
@@ -4591,32 +4608,113 @@ function alsFormatTime(secs) {
   return Math.floor(secs / 60) + ':' + String(Math.floor(secs % 60)).padStart(2, '0');
 }
 
+// Simple Levenshtein similarity ratio 0..1
+function alsStrSim(a, b) {
+  const la = a.length, lb = b.length;
+  if (!la || !lb) return 0;
+  const dp = Array.from({length: la+1}, (_, i) => Array.from({length: lb+1}, (_, j) => i||j ? (i ? (j ? 0 : i) : j) : 0));
+  for (let i=1;i<=la;i++) for (let j=1;j<=lb;j++)
+    dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] : 1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return 1 - dp[la][lb] / Math.max(la, lb);
+}
+
 function alsRenderPreview() {
   const list = document.getElementById('als-preview-list');
   list.innerHTML = '';
-  const newCount = _alsImportData.filter(s => !s.isUpdate).length;
-  const updCount = _alsImportData.filter(s => s.isUpdate).length;
-  document.getElementById('als-preview-meta').textContent =
-    _alsImportData.length + ' Songs — ' + updCount + ' Update · ' + newCount + ' Neu in Pool';
 
-  _alsImportData.forEach(s => {
+  _alsImportData.forEach((s, idx) => {
     const row = document.createElement('div');
-    row.style.cssText = 'display:grid;grid-template-columns:1fr auto auto;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);align-items:center;font-size:10px;';
+    row.style.cssText = 'padding:10px 12px;border-bottom:1px solid var(--line);font-size:10px;';
+
+    let badgeHtml = '';
+    let fuzzyHtml = '';
+
+    if (s.isUpdate) {
+      badgeHtml = `<span style="font-size:8px;letter-spacing:.08em;padding:2px 6px;border:1px solid var(--muted);color:var(--muted)">UPDATE</span>`;
+    } else if (s.isFuzzy) {
+      const accepted = s.fuzzyAccepted;
+      badgeHtml = `<span style="font-size:8px;letter-spacing:.08em;padding:2px 6px;border:1px solid #f0a500;color:#f0a500">ÄHNLICH?</span>`;
+      fuzzyHtml = `
+        <div style="margin-top:6px;background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);padding:6px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="color:#f0a500;font-size:9px;letter-spacing:.06em">Pool: <b>${s.fuzzyName}</b></span>
+          <span style="font-size:9px;color:var(--muted)">Gleicher Track?</span>
+          <button onclick="alsSetFuzzy(${idx},true)" style="font-size:8px;letter-spacing:.08em;padding:2px 8px;border:1px solid ${accepted ? '#4caf50' : 'var(--muted)'};background:${accepted ? '#4caf50' : 'none'};color:${accepted ? '#fff' : 'var(--fg)'};cursor:pointer;font-family:inherit">JA → UPDATE</button>
+          <button onclick="alsSetFuzzy(${idx},false)" style="font-size:8px;letter-spacing:.08em;padding:2px 8px;border:1px solid ${accepted===false && !s.fuzzyAccepted && s._fuzzyDecided ? 'var(--accent)' : 'var(--muted)'};background:none;color:var(--fg);cursor:pointer;font-family:inherit">NEIN → NEU</button>
+        </div>`;
+    } else {
+      badgeHtml = `<span style="font-size:8px;letter-spacing:.08em;padding:2px 6px;border:1px solid var(--accent);color:var(--accent)">NEU</span>`;
+    }
+
+    // Manual pool picker — only for truly new tracks (not fuzzy, not update)
+    let manualHtml = '';
+    if (!s.isUpdate && !s.isFuzzy) {
+      const poolOptions = pool.map(t =>
+        `<option value="${t.id}"${s._manualId == t.id ? ' selected' : ''}>${t.name}</option>`
+      ).join('');
+      manualHtml = `
+        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:9px;color:var(--muted);letter-spacing:.05em">Schon im Pool?</span>
+          <select onchange="alsPickManual(${idx},this)" style="background:var(--card);color:var(--fg);border:1px solid var(--line);font-family:inherit;font-size:9px;padding:3px 6px;max-width:200px">
+            <option value="">— auswählen —</option>
+            ${poolOptions}
+          </select>
+          ${s._manualId ? '<span style="font-size:8px;color:#4caf50;letter-spacing:.06em">✓ wird gematcht</span>' : ''}
+        </div>`;
+    }
+
     row.innerHTML = `
-      <span style="font-weight:700">${s.name}${s.key ? ' <span style="color:var(--accent);font-weight:400">'+s.key+'</span>' : ''}</span>
-      <span style="color:var(--muted)">${s.length} &nbsp; ${s.bpm} BPM</span>
-      <span style="font-size:8px;letter-spacing:.08em;padding:2px 6px;border:1px solid ${s.isUpdate ? 'var(--muted)' : 'var(--accent)'};color:${s.isUpdate ? 'var(--muted)' : 'var(--accent)'}">${s.isUpdate ? 'UPDATE' : 'NEU'}</span>`;
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-weight:700">${s.name}${s.key ? ' <span style="color:var(--accent);font-weight:400">'+s.key+'</span>' : ''}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="color:var(--muted)">${s.length} &nbsp; ${s.bpm} BPM</span>
+          ${badgeHtml}
+        </div>
+      </div>
+      ${fuzzyHtml}${manualHtml}`;
     list.appendChild(row);
   });
+
+  // Update meta count
+  const upd   = _alsImportData.filter(s => s.isUpdate || s.fuzzyAccepted).length;
+  const neu   = _alsImportData.filter(s => !s.isUpdate && !s.fuzzyAccepted).length;
+  const fuzzy = _alsImportData.filter(s => s.isFuzzy && !s.fuzzyAccepted).length;
+  document.getElementById('als-preview-meta').textContent =
+    _alsImportData.length + ' Songs — ' + upd + ' Update · ' + neu + ' Neu' + (fuzzy ? ' · ' + fuzzy + ' offen' : '');
 
   document.getElementById('als-preview').style.display = 'block';
   document.getElementById('als-confirm-btn').style.display = 'inline-block';
 }
 
+function alsPickManual(idx, sel) {
+  const id = parseInt(sel.value);
+  if (!id) { _alsImportData[idx]._manualId = null; alsRenderPreview(); return; }
+  _alsImportData[idx]._manualId  = id;
+  _alsImportData[idx].isUpdate   = true;
+  _alsImportData[idx].existingId = id;
+  _alsImportData[idx].isFuzzy    = false;
+  alsRenderPreview();
+}
+
+function alsSetFuzzy(idx, accept) {
+  _alsImportData[idx].fuzzyAccepted = accept;
+  _alsImportData[idx]._fuzzyDecided = true;
+  if (accept) {
+    _alsImportData[idx].isUpdate  = true;
+    _alsImportData[idx].existingId = _alsImportData[idx].fuzzyId;
+    _alsImportData[idx].isFuzzy   = false;
+  } else {
+    _alsImportData[idx].isUpdate = false;
+    _alsImportData[idx].isFuzzy  = false;
+  }
+  alsRenderPreview();
+}
+
 function confirmAlsImport() {
+  // Collect tracks where name might need updating (manual pick or fuzzy accept)
+  const nameUpdateCandidates = [];
+
   _alsImportData.forEach(s => {
     if (s.isUpdate) {
-      // Update existing pool track
       const t = pool.find(x => x.id === s.existingId);
       if (t) {
         if (s.length) t.length = s.length;
@@ -4626,9 +4724,12 @@ function confirmAlsImport() {
           if (!annotations[t.id]) annotations[t.id] = {};
           annotations[t.id].structure = s.parts.join('\n');
         }
+        // If manually picked or fuzzy-accepted and name differs → ask about name
+        if ((s._manualId || s._fuzzyDecided) && t.name !== s.name) {
+          nameUpdateCandidates.push({ track: t, newName: s.name, oldName: t.name });
+        }
       }
     } else {
-      // New track → Pool only, not Setlist
       const newT = { id: nextId++, name: s.name, length: s.length||'', bpm: s.bpm||'', ltc: '', uncertain: false };
       if (s.key) newT.key = s.key;
       pool.push(newT); checkZugabe(newT);
@@ -4640,6 +4741,69 @@ function confirmAlsImport() {
   });
 
   closeAlsImportModal();
+
+  // Ask about name updates if any
+  if (nameUpdateCandidates.length > 0) {
+    alsAskNameUpdates(nameUpdateCandidates, () => {
+      alsFinalizeSave();
+    });
+    return;
+  }
+
+  alsFinalizeSave();
+}
+
+function alsAskNameUpdates(candidates, done) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px';
+
+  let rows = candidates.map((c, i) => `
+    <div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:10px">
+      <div style="margin-bottom:6px;color:var(--muted);font-size:9px;letter-spacing:.06em">TRACK</div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <span style="color:var(--muted)">Alt: <b style="color:var(--fg)">${c.oldName}</b></span>
+        <span style="color:var(--accent)">→</span>
+        <span style="color:var(--muted)">Neu: <b style="color:var(--fg)">${c.newName}</b></span>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:9px;letter-spacing:.06em">
+        <input type="checkbox" id="alsname-${i}" checked style="accent-color:var(--accent)">
+        Name auch umbenennen
+      </label>
+    </div>`).join('');
+
+  overlay.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--line);max-width:480px;width:100%;padding:24px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;margin-bottom:4px">NAME UPDATE?</div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.08em;margin-bottom:16px">Folgende Tracks wurden manuell gematcht. Namen übernehmen?</div>
+      ${rows}
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button onclick="alsNameUpdateDone(this.closest('[style*=fixed]'),${JSON.stringify(candidates.map((_,i)=>i))}.map(i=>document.getElementById('alsname-'+i)?.checked),${JSON.stringify(candidates.map(c=>c.track.id))},${JSON.stringify(candidates.map(c=>c.newName))})"
+          style="background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.1em;padding:8px 20px;cursor:pointer">
+          [ ✓ FERTIG ]
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  // Store done callback
+  overlay._done = done;
+  overlay._candidates = candidates;
+  overlay._doneCb = done;
+}
+
+function alsNameUpdateDone(overlay, checks, ids, names) {
+  // Apply name updates where checkbox is checked
+  ids.forEach((id, i) => {
+    if (document.getElementById('alsname-'+i)?.checked) {
+      const t = pool.find(x => x.id === id);
+      if (t) t.name = names[i];
+    }
+  });
+  document.body.removeChild(overlay);
+  overlay._doneCb?.();
+}
+
+function alsFinalizeSave() {
   snapshot(); render();
   clearTimeout(window._sbSaveTimer);
   const st = getFullState();
