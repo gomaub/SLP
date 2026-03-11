@@ -4558,9 +4558,22 @@ function alsExtract(xml) {
   });
   if (!songTrack) { alsShowError('Keine SONG / SONGS Spur gefunden.'); return; }
 
-  // BPM — Tempo > Manual is nested deep inside MasterTrack > DeviceChain > Mixer
-  // querySelector('Tempo Manual') finds it anywhere in the tree
-  const bpm = parseFloat(xml.querySelector('Tempo Manual')?.getAttribute('Value') || 120);
+  // BPM — walk all Tempo > Manual nodes, pick the one inside MasterTrack
+  let bpm = 120;
+  const tempoNodes = xml.querySelectorAll('Tempo Manual');
+  tempoNodes.forEach(node => {
+    // Check if this node is inside MasterTrack (not inside a clip or device)
+    let p = node.parentElement;
+    while (p) {
+      if (p.tagName === 'MasterTrack') { bpm = parseFloat(node.getAttribute('Value')) || 120; break; }
+      if (p.tagName === 'MidiTrack' || p.tagName === 'AudioTrack') break; // wrong track
+      p = p.parentElement;
+    }
+  });
+  // Fallback: just take first Tempo Manual if nothing found in MasterTrack
+  if (bpm === 120 && tempoNodes.length > 0) {
+    bpm = parseFloat(tempoNodes[0].getAttribute('Value')) || 120;
+  }
 
   const songClips = songTrack.querySelectorAll('MidiClip');
   const partClips = partTrack ? partTrack.querySelectorAll('MidiClip') : [];
@@ -4725,6 +4738,7 @@ function alsSetFuzzy(idx, accept) {
 
 function confirmAlsImport() {
   try {
+    console.log('confirmAlsImport fired, data:', _alsImportData.length, 'items');
     const nameUpdateCandidates = [];
 
     _alsImportData.forEach(s => {
@@ -4869,35 +4883,6 @@ function alsShowError(msg) {
       <button onclick="resolveDup('replace')" class="primary">ERSETZEN</button>
       <button onclick="resolveDup('v2')">ALS V2</button>
       <button onclick="resolveDup('cancel')">ABBRECHEN</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── ALS IMPORT MODAL ─────────────────────────────────────── -->
-<div class="modal-overlay" id="als-import-modal" style="display:none">
-  <div style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;max-height:90vh">
-    <!-- scrollable content -->
-    <div style="overflow-y:auto;flex:1;padding:24px 24px 0">
-      <h3 style="margin-bottom:4px">ALS IMPORT</h3>
-      <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
-        Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt
-      </p>
-      <div id="als-drop-zone" style="border:2px dashed var(--line);padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;position:relative">
-        <input type="file" id="als-file-input" accept=".als" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
-        <div style="font-size:20px;color:var(--muted);margin-bottom:8px">◈</div>
-        <div id="als-drop-label" style="font-size:11px;font-weight:700;letter-spacing:.06em">.als Datei hier ablegen</div>
-        <div id="als-drop-sub" style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.08em;text-transform:uppercase">Drag & Drop oder klicken</div>
-      </div>
-      <div id="als-error" style="display:none;background:rgba(212,52,28,.15);border:1px solid var(--accent);padding:10px 14px;font-size:10px;color:var(--accent);margin-bottom:12px"></div>
-      <div id="als-preview" style="display:none;margin-bottom:16px">
-        <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px" id="als-preview-meta"></div>
-        <div id="als-preview-list" style="border:1px solid var(--line)"></div>
-      </div>
-    </div>
-    <!-- sticky footer — always visible -->
-    <div style="flex-shrink:0;padding:14px 24px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;background:var(--card)">
-      <button class="btn-secondary" onclick="closeAlsImportModal()">ABBRECHEN</button>
-      <button class="btn-primary" id="als-confirm-btn" onclick="confirmAlsImport()" style="display:none">[ ✓ IMPORTIEREN ]</button>
     </div>
   </div>
 </div>
