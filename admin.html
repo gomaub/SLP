@@ -4547,33 +4547,53 @@ async function alsParseFile(file) {
   }
 }
 
+function alsBeatsToSeconds(startBeat, endBeat, tempoEvents, globalBpm) {
+  // Port of Python beats_to_seconds_with_automation
+  if (!tempoEvents.length) return ((endBeat - startBeat) / globalBpm) * 60;
+  const relevant = tempoEvents.filter(e => e.t > startBeat && e.t < endBeat);
+  const checkpoints = [startBeat, ...relevant.map(e => e.t), endBeat];
+  let duration = 0;
+  for (let i = 0; i < checkpoints.length - 1; i++) {
+    const segStart = checkpoints[i], segEnd = checkpoints[i+1];
+    // get BPM at segStart: last event with t <= segStart
+    let bpmAtSeg = globalBpm;
+    for (const e of tempoEvents) { if (e.t <= segStart) bpmAtSeg = e.v; else break; }
+    duration += ((segEnd - segStart) / bpmAtSeg) * 60;
+  }
+  return duration;
+}
+
 function alsExtract(xml) {
   const midiTracks = xml.querySelectorAll('MidiTrack');
   let songTrack = null, partTrack = null;
   midiTracks.forEach(t => {
-    const n = (t.querySelector('Name > EffectiveName')?.getAttribute('Value') ||
-               t.querySelector('Name > UserName')?.getAttribute('Value') || '').trim().toUpperCase();
+    const nameEl = t.querySelector('Name');
+    const usr = nameEl?.querySelector('UserName')?.getAttribute('Value')?.trim() || '';
+    const eff = nameEl?.querySelector('EffectiveName')?.getAttribute('Value')?.trim() || '';
+    const n = (usr || eff).toUpperCase();  // UserName has priority, like Python script
     if (/^SONGS?$/.test(n)) songTrack = t;
     if (/^PARTS?$/.test(n)) partTrack = t;
   });
   if (!songTrack) { alsShowError('Keine SONG / SONGS Spur gefunden.'); return; }
 
-  // BPM — walk all Tempo > Manual nodes, pick the one inside MasterTrack
-  let bpm = 120;
-  const tempoNodes = xml.querySelectorAll('Tempo Manual');
-  tempoNodes.forEach(node => {
-    // Check if this node is inside MasterTrack (not inside a clip or device)
-    let p = node.parentElement;
-    while (p) {
-      if (p.tagName === 'MasterTrack') { bpm = parseFloat(node.getAttribute('Value')) || 120; break; }
-      if (p.tagName === 'MidiTrack' || p.tagName === 'AudioTrack') break; // wrong track
-      p = p.parentElement;
+  // Global BPM from Tempo/Manual (anywhere in doc, Python uses .//Tempo/Manual)
+  let globalBpm = 120;
+  const manualEl = xml.querySelector('Tempo Manual');
+  if (manualEl) globalBpm = parseFloat(manualEl.getAttribute('Value')) || 120;
+
+  // Tempo automation: AutomationEnvelope where PointeeId Value="8"
+  const tempoEvents = [];
+  xml.querySelectorAll('AutomationEnvelope').forEach(env => {
+    const pid = env.querySelector('EnvelopeTarget PointeeId');
+    if (pid?.getAttribute('Value') === '8') {
+      env.querySelectorAll('FloatEvent').forEach(ev => {
+        const t = parseFloat(ev.getAttribute('Time') || 0);
+        const v = parseFloat(ev.getAttribute('Value') || globalBpm);
+        if (t >= 0) tempoEvents.push({ t, v });
+      });
     }
   });
-  // Fallback: just take first Tempo Manual if nothing found in MasterTrack
-  if (bpm === 120 && tempoNodes.length > 0) {
-    bpm = parseFloat(tempoNodes[0].getAttribute('Value')) || 120;
-  }
+  tempoEvents.sort((a, b) => a.t - b.t);
 
   const songClips = songTrack.querySelectorAll('MidiClip');
   const partClips = partTrack ? partTrack.querySelectorAll('MidiClip') : [];
@@ -4588,9 +4608,13 @@ function alsExtract(xml) {
 
     const start = parseFloat(clip.querySelector('CurrentStart')?.getAttribute('Value') || 0);
     const end   = parseFloat(clip.querySelector('CurrentEnd')?.getAttribute('Value') || 0);
-    const secs  = ((end - start) / bpm) * 60;
+    if (end <= start) return;
+    // BPM at clip start (like Python: get_bpm_at)
+    let bpmAtClip = globalBpm;
+    for (const e of tempoEvents) { if (e.t <= start) bpmAtClip = e.v; else break; }
+    const secs  = alsBeatsToSeconds(start, end, tempoEvents, globalBpm);
     const length = alsFormatTime(secs);
-    const bpmR  = Math.round(bpm);
+    const bpmR  = Math.round(bpmAtClip);
 
     // Parts
     const parts = [];
@@ -4599,7 +4623,8 @@ function alsExtract(xml) {
       const pe = parseFloat(pc.querySelector('CurrentEnd')?.getAttribute('Value') || 0);
       if (ps >= start && ps < end) {
         const pName = pc.querySelector('Name')?.getAttribute('Value') || 'Part';
-        parts.push(pName + ' · ' + alsFormatTime(((pe - ps) / bpm) * 60));
+        const pSecs = alsBeatsToSeconds(ps, pe, tempoEvents, globalBpm);
+        parts.push(pName + ' · ' + alsFormatTime(pSecs));
       }
     });
 
