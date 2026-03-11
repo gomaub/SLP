@@ -2490,27 +2490,27 @@ ${body}
 
 <!-- ── ALS IMPORT MODAL ─────────────────────────────────────── -->
 <div class="modal-overlay" id="als-import-modal" style="display:none">
-  <div class="modal-box" style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line)">
-    <h3>ALS IMPORT</h3>
-    <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
-      Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt
-    </p>
-
-    <div id="als-drop-zone" style="border:2px dashed var(--line);padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;position:relative">
-      <input type="file" id="als-file-input" accept=".als" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
-      <div style="font-size:20px;color:var(--muted);margin-bottom:8px">◈</div>
-      <div id="als-drop-label" style="font-size:11px;font-weight:700;letter-spacing:.06em">.als Datei hier ablegen</div>
-      <div id="als-drop-sub" style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.08em;text-transform:uppercase">Drag & Drop oder klicken</div>
+  <div style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;max-height:90vh">
+    <!-- scrollable content -->
+    <div style="overflow-y:auto;flex:1;padding:24px 24px 0">
+      <h3 style="margin-bottom:4px">ALS IMPORT</h3>
+      <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
+        Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt
+      </p>
+      <div id="als-drop-zone" style="border:2px dashed var(--line);padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;position:relative">
+        <input type="file" id="als-file-input" accept=".als" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+        <div style="font-size:20px;color:var(--muted);margin-bottom:8px">◈</div>
+        <div id="als-drop-label" style="font-size:11px;font-weight:700;letter-spacing:.06em">.als Datei hier ablegen</div>
+        <div id="als-drop-sub" style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.08em;text-transform:uppercase">Drag & Drop oder klicken</div>
+      </div>
+      <div id="als-error" style="display:none;background:rgba(212,52,28,.15);border:1px solid var(--accent);padding:10px 14px;font-size:10px;color:var(--accent);margin-bottom:12px"></div>
+      <div id="als-preview" style="display:none;margin-bottom:16px">
+        <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px" id="als-preview-meta"></div>
+        <div id="als-preview-list" style="border:1px solid var(--line)"></div>
+      </div>
     </div>
-
-    <div id="als-error" style="display:none;background:rgba(212,52,28,.15);border:1px solid var(--accent);padding:10px 14px;font-size:10px;color:var(--accent);margin-bottom:12px"></div>
-
-    <div id="als-preview" style="display:none;margin-bottom:16px">
-      <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px" id="als-preview-meta"></div>
-      <div id="als-preview-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--line)"></div>
-    </div>
-
-    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+    <!-- sticky footer — always visible -->
+    <div style="flex-shrink:0;padding:14px 24px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;background:var(--card)">
       <button class="btn-secondary" onclick="closeAlsImportModal()">ABBRECHEN</button>
       <button class="btn-primary" id="als-confirm-btn" onclick="confirmAlsImport()" style="display:none">[ ✓ IMPORTIEREN ]</button>
     </div>
@@ -4675,7 +4675,10 @@ function alsRenderPreview() {
 
     row.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <span style="font-weight:700">${s.name}${s.key ? ' <span style="color:var(--accent);font-weight:400">'+s.key+'</span>' : ''}</span>
+        <span id="als-name-${idx}" style="font-weight:700;cursor:text;border-bottom:1px dashed var(--muted);padding-bottom:1px" 
+          title="Klicken zum Umbenennen"
+          onclick="alsEditName(${idx}, this)"
+        >${s.name}${s.key ? ' <span style="color:var(--accent);font-weight:400">'+s.key+'</span>' : ''}</span>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           <span style="color:var(--muted)">${s.length} &nbsp; ${s.bpm} BPM</span>
           ${badgeHtml}
@@ -4721,56 +4724,55 @@ function alsSetFuzzy(idx, accept) {
 }
 
 function confirmAlsImport() {
-  // Collect tracks where name might need updating (manual pick or fuzzy accept)
-  const nameUpdateCandidates = [];
+  try {
+    const nameUpdateCandidates = [];
 
-  _alsImportData.forEach(s => {
-    if (s.isUpdate) {
-      const t = pool.find(x => x.id === s.existingId);
-      if (t) {
-        if (s.length) t.length = s.length;
-        if (s.bpm)    t.bpm    = s.bpm;
-        if (s.key)    t.key    = s.key;
-        if (s.parts.length) {
-          if (!annotations[t.id]) annotations[t.id] = {};
-          annotations[t.id].structure = s.parts.join('\n');
+    _alsImportData.forEach(s => {
+      if (s.isUpdate) {
+        const t = pool.find(x => x.id === s.existingId);
+        if (t) {
+          if (s.length) t.length = s.length;
+          if (s.bpm)    t.bpm    = s.bpm;
+          if (s.key)    t.key    = s.key;
+          if (s.parts && s.parts.length) {
+            if (!annotations[t.id]) annotations[t.id] = {};
+            annotations[t.id].structure = s.parts.join('\n');
+          }
+          if ((s._manualId || s._fuzzyDecided) && t.name !== s.name) {
+            nameUpdateCandidates.push({ track: t, newName: s.name, oldName: t.name });
+          }
         }
-        // If manually picked or fuzzy-accepted and name differs → ask about name
-        if ((s._manualId || s._fuzzyDecided) && t.name !== s.name) {
-          nameUpdateCandidates.push({ track: t, newName: s.name, oldName: t.name });
+      } else {
+        const newT = { id: nextId++, name: s.name, length: s.length||'', bpm: s.bpm||'', ltc: '', uncertain: false };
+        if (s.key) newT.key = s.key;
+        pool.push(newT);
+        if (typeof checkZugabe === 'function') checkZugabe(newT);
+        if (s.parts && s.parts.length) {
+          if (!annotations[newT.id]) annotations[newT.id] = {};
+          annotations[newT.id].structure = s.parts.join('\n');
         }
       }
-    } else {
-      const newT = { id: nextId++, name: s.name, length: s.length||'', bpm: s.bpm||'', ltc: '', uncertain: false };
-      if (s.key) newT.key = s.key;
-      pool.push(newT); checkZugabe(newT);
-      if (s.parts.length) {
-        if (!annotations[newT.id]) annotations[newT.id] = {};
-        annotations[newT.id].structure = s.parts.join('\n');
-      }
-    }
-  });
-
-  closeAlsImportModal();
-
-  // Ask about name updates if any
-  if (nameUpdateCandidates.length > 0) {
-    alsAskNameUpdates(nameUpdateCandidates, () => {
-      alsFinalizeSave();
     });
-    return;
-  }
 
-  alsFinalizeSave();
+    closeAlsImportModal();
+
+    if (nameUpdateCandidates.length > 0) {
+      alsAskNameUpdates(nameUpdateCandidates, alsFinalizeSave);
+      return;
+    }
+    alsFinalizeSave();
+  } catch(e) {
+    console.error('ALS Import Fehler:', e);
+    alert('Import Fehler: ' + e.message);
+  }
 }
 
-function alsAskNameUpdates(candidates, done) {
+function alsAskNameUpdates(candidates, doneCb) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px';
 
-  let rows = candidates.map((c, i) => `
+  const rows = candidates.map((c, i) => `
     <div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:10px">
-      <div style="margin-bottom:6px;color:var(--muted);font-size:9px;letter-spacing:.06em">TRACK</div>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
         <span style="color:var(--muted)">Alt: <b style="color:var(--fg)">${c.oldName}</b></span>
         <span style="color:var(--accent)">→</span>
@@ -4785,33 +4787,25 @@ function alsAskNameUpdates(candidates, done) {
   overlay.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--line);max-width:480px;width:100%;padding:24px">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;margin-bottom:4px">NAME UPDATE?</div>
-      <div style="font-size:9px;color:var(--muted);letter-spacing:.08em;margin-bottom:16px">Folgende Tracks wurden manuell gematcht. Namen übernehmen?</div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.08em;margin-bottom:16px">Tracks wurden manuell gematcht — Namen übernehmen?</div>
       ${rows}
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-        <button onclick="alsNameUpdateDone(this.closest('[style*=fixed]'),${JSON.stringify(candidates.map((_,i)=>i))}.map(i=>document.getElementById('alsname-'+i)?.checked),${JSON.stringify(candidates.map(c=>c.track.id))},${JSON.stringify(candidates.map(c=>c.newName))})"
-          style="background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.1em;padding:8px 20px;cursor:pointer">
-          [ ✓ FERTIG ]
-        </button>
+        <button id="als-nameupdate-btn" style="background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.1em;padding:8px 20px;cursor:pointer">[ ✓ FERTIG ]</button>
       </div>
     </div>`;
 
   document.body.appendChild(overlay);
-  // Store done callback
-  overlay._done = done;
-  overlay._candidates = candidates;
-  overlay._doneCb = done;
-}
 
-function alsNameUpdateDone(overlay, checks, ids, names) {
-  // Apply name updates where checkbox is checked
-  ids.forEach((id, i) => {
-    if (document.getElementById('alsname-'+i)?.checked) {
-      const t = pool.find(x => x.id === id);
-      if (t) t.name = names[i];
-    }
+  // Use addEventListener — no inline onclick
+  document.getElementById('als-nameupdate-btn').addEventListener('click', () => {
+    candidates.forEach((c, i) => {
+      if (document.getElementById('alsname-' + i)?.checked) {
+        c.track.name = c.newName;
+      }
+    });
+    document.body.removeChild(overlay);
+    doneCb();
   });
-  document.body.removeChild(overlay);
-  overlay._doneCb?.();
 }
 
 function alsFinalizeSave() {
@@ -4823,6 +4817,36 @@ function alsFinalizeSave() {
   autoSaveToStorage();
   if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
   openPool(); // Show pool so user sees what changed
+}
+
+function alsEditName(idx, el) {
+  const s = _alsImportData[idx];
+  const currentName = s.name;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentName;
+  input.style.cssText = 'background:var(--bg);color:var(--fg);border:none;border-bottom:1px solid var(--accent);font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.04em;width:200px;outline:none;padding:0 2px';
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+  const commit = () => {
+    const newName = input.value.trim() || currentName;
+    _alsImportData[idx].name = newName;
+    // Re-check pool match with new name
+    const exact = pool.find(t => t.name.toLowerCase() === newName.toLowerCase());
+    if (exact) {
+      _alsImportData[idx].isUpdate = true;
+      _alsImportData[idx].existingId = exact.id;
+      _alsImportData[idx].isFuzzy = false;
+      _alsImportData[idx]._manualId = null;
+    }
+    alsRenderPreview();
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { _alsImportData[idx].name = currentName; input.blur(); }
+  });
 }
 
 function alsShowError(msg) {
@@ -4851,27 +4875,27 @@ function alsShowError(msg) {
 
 <!-- ── ALS IMPORT MODAL ─────────────────────────────────────── -->
 <div class="modal-overlay" id="als-import-modal" style="display:none">
-  <div class="modal-box" style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line)">
-    <h3>ALS IMPORT</h3>
-    <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
-      Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt
-    </p>
-
-    <div id="als-drop-zone" style="border:2px dashed var(--line);padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;position:relative">
-      <input type="file" id="als-file-input" accept=".als" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
-      <div style="font-size:20px;color:var(--muted);margin-bottom:8px">◈</div>
-      <div id="als-drop-label" style="font-size:11px;font-weight:700;letter-spacing:.06em">.als Datei hier ablegen</div>
-      <div id="als-drop-sub" style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.08em;text-transform:uppercase">Drag & Drop oder klicken</div>
+  <div style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;max-height:90vh">
+    <!-- scrollable content -->
+    <div style="overflow-y:auto;flex:1;padding:24px 24px 0">
+      <h3 style="margin-bottom:4px">ALS IMPORT</h3>
+      <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
+        Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt
+      </p>
+      <div id="als-drop-zone" style="border:2px dashed var(--line);padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;position:relative">
+        <input type="file" id="als-file-input" accept=".als" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+        <div style="font-size:20px;color:var(--muted);margin-bottom:8px">◈</div>
+        <div id="als-drop-label" style="font-size:11px;font-weight:700;letter-spacing:.06em">.als Datei hier ablegen</div>
+        <div id="als-drop-sub" style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.08em;text-transform:uppercase">Drag & Drop oder klicken</div>
+      </div>
+      <div id="als-error" style="display:none;background:rgba(212,52,28,.15);border:1px solid var(--accent);padding:10px 14px;font-size:10px;color:var(--accent);margin-bottom:12px"></div>
+      <div id="als-preview" style="display:none;margin-bottom:16px">
+        <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px" id="als-preview-meta"></div>
+        <div id="als-preview-list" style="border:1px solid var(--line)"></div>
+      </div>
     </div>
-
-    <div id="als-error" style="display:none;background:rgba(212,52,28,.15);border:1px solid var(--accent);padding:10px 14px;font-size:10px;color:var(--accent);margin-bottom:12px"></div>
-
-    <div id="als-preview" style="display:none;margin-bottom:16px">
-      <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px" id="als-preview-meta"></div>
-      <div id="als-preview-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--line)"></div>
-    </div>
-
-    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+    <!-- sticky footer — always visible -->
+    <div style="flex-shrink:0;padding:14px 24px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;background:var(--card)">
       <button class="btn-secondary" onclick="closeAlsImportModal()">ABBRECHEN</button>
       <button class="btn-primary" id="als-confirm-btn" onclick="confirmAlsImport()" style="display:none">[ ✓ IMPORTIEREN ]</button>
     </div>
