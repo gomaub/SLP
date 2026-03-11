@@ -2488,10 +2488,10 @@ ${body}
   </div>
 </div>
 
+
 <!-- ── ALS IMPORT MODAL ─────────────────────────────────────── -->
 <div class="modal-overlay" id="als-import-modal" style="display:none">
   <div style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;max-height:90vh">
-    <!-- scrollable content -->
     <div style="overflow-y:auto;flex:1;padding:24px 24px 0">
       <h3 style="margin-bottom:4px">ALS IMPORT</h3>
       <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
@@ -2509,14 +2509,13 @@ ${body}
         <div id="als-preview-list" style="border:1px solid var(--line)"></div>
       </div>
     </div>
-    <!-- sticky footer — always visible -->
     <div style="flex-shrink:0;padding:14px 24px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;background:var(--card)">
       <button class="btn-secondary" onclick="closeAlsImportModal()">ABBRECHEN</button>
       <button class="btn-primary" id="als-confirm-btn" onclick="confirmAlsImport()" style="display:none">[ ✓ IMPORTIEREN ]</button>
     </div>
   </div>
 </div>
-</body></html>`;
+</body></html>\`;
 
   const blob = new Blob([html], {type:'text/html;charset=utf-8'});
   const url = URL.createObjectURL(blob);
@@ -4920,4 +4919,3 @@ function alsShowError(msg) {
 </div>
 </body>
 </html>
-
