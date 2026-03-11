@@ -71,7 +71,7 @@
 
   /* SETLIST */
   .setlist-wrap { border-top:2px solid var(--fg); }
-  .col-headers { position:relative; display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:9px; letter-spacing:.12em; color:#333; text-transform:uppercase; gap:8px; font-weight:700; }
+  .col-headers { position:relative; display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:9px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; gap:8px; font-weight:700; }
 
   .track-row { display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:var(--track-row-py,2px) 8px; border-bottom:1px solid var(--line); align-items:center; gap:8px; cursor:grab; transition:background .1s; min-height:var(--track-row-h,44px); margin-bottom:4px; }
   .track-row.in-block { margin-bottom:0; min-height:38px; position:relative; overflow:visible; }
@@ -150,8 +150,8 @@
   .setlist-drop-end.drag-over { border-color:var(--accent); color:var(--accent); background:rgba(230,51,35,.04); }
 
   .totals-row { display:grid; grid-template-columns:36px 1fr 80px 60px 36px; padding:10px 8px; border-top:2px solid var(--fg); gap:8px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
-  .totals-row .label { color:#333; font-weight:700; }
-  .totals-row .val { font-weight:700; font-size:12px; }
+  .totals-row .label { color:var(--muted); font-weight:700; }
+  .totals-row .val { font-weight:700; font-size:12px; color:var(--fg); }
 
   /* ── EDIT MODAL ── */
   .edit-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; align-items:center; justify-content:center; padding:20px; }
@@ -420,7 +420,7 @@
     .stats-bar { width:100%; margin-left:0; justify-content:space-between; border-top:1px solid var(--line); padding-top:8px; font-size:10px; }
     .add-form { flex-direction:column; align-items:stretch; padding:14px 16px; }
     .add-form input, .add-form input.short { width:100%; font-size:14px; padding:10px; }
-    .col-headers { display:none; }
+    /* col-headers visible on mobile */
     .track-row { display:flex; flex-direction:row; align-items:center; padding:12px 0; min-height:unset; gap:0; cursor:default; }
     .track-num { font-size:10px; min-width:28px; flex-shrink:0; }
     .track-name { font-size:13px; font-weight:700; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px; }
@@ -453,7 +453,14 @@
     .toolbar-secondary { display:none; }
 
     /* Track rows: hide BPM column, simplify */
-    .col-headers { gap:4px; }
+    .col-headers { display:grid !important; grid-template-columns:24px 1fr 44px 44px 36px 36px !important; align-items:center; gap:4px !important; }
+    .col-drag-header[data-col="ltc"],
+    .col-drag-header[data-col="key"],
+    .col-drag-header[data-col="notes"],
+    .col-drag-header[data-col="todo"] { display:none !important; }
+    .col-headers > span:not(.col-drag-header):first-child { display:none !important; }
+    .col-drag-header { text-align:right; }
+    .col-drag-header[data-col="structure"] { text-align:center; }
     .track-row   { gap:4px; }
 
     /* BPM hidden on mobile by default, notes controlled by vis-checkbox */
@@ -496,57 +503,76 @@
 
   /* ── MOBILE COMPACT MODE ─────────────────────────────────── */
   @media (max-width: 600px) {
-    /* Hide all data columns, only show num + name + eye + edit/delete */
+    /* Track row: grid matching headers */
+    .track-row {
+      display:grid !important;
+      grid-template-columns:1fr 52px 44px 36px 72px !important;
+      padding:8px 4px !important;
+      gap:0 !important;
+      min-height:44px !important;
+      align-items:center;
+    }
+    /* Hide columns not needed on mobile */
     .track-row .track-tc,
     .track-row .track-key,
     .track-row .track-note-inline,
-    .track-row .track-length,
-    .track-row .track-bpm,
     .track-row .todo-col-cell,
-    .col-headers { display:none !important; }
+    .track-num { display:none !important; }
+    /* Show name, length, bpm */
+    .track-name { font-size:13px !important; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .track-length { display:block !important; font-size:10px; color:var(--muted); text-align:right; padding-right:4px; }
+    .track-bpm { display:block !important; font-size:10px; color:var(--muted); text-align:right; padding-right:4px; }
+    /* Actions column */
+    .track-row > span:last-child { display:flex; justify-content:flex-end; align-items:center; gap:2px; }
+    .track-edit-btn { padding:4px 6px !important; font-size:10px !important; }
+    .track-delete-btn { font-size:14px !important; padding:2px 4px !important; opacity:1 !important; }
 
-    /* Eye button */
-    .track-eye-btn {
-      display:flex !important;
-      background:none; border:none; color:var(--muted);
-      font-size:15px; padding:4px 6px; cursor:pointer;
-      flex-shrink:0; touch-action:manipulation;
+    /* Col-headers: same grid */
+    .col-headers {
+      display:grid !important;
+      grid-template-columns:1fr 52px 44px 36px 72px !important;
+      gap:0 !important;
+      padding:6px 4px !important;
+      box-sizing:border-box;
+      width:100%;
     }
-    .track-eye-btn.open { color:var(--fg); }
+    /* Hide non-relevant headers */
+    .col-drag-header[data-col="ltc"],
+    .col-drag-header[data-col="key"],
+    .col-drag-header[data-col="notes"],
+    .col-drag-header[data-col="todo"] { display:none !important; }
+    /* Hide # header, keep TRACK */
+    .col-headers > span:first-child:not(.col-drag-header) { display:none !important; }
+    .col-headers > span:nth-child(2) { text-align:left; } /* TRACK */
+    .col-drag-header { text-align:right; font-size:8px; padding-right:8px; }
+    .col-drag-header[data-col="structure"] { text-align:center; padding-right:0; }
 
-    /* Expanded detail panel */
-    .track-detail-panel {
-      display:none;
-      background:var(--hover);
-      border-top:1px solid var(--line);
-      padding:10px 16px 10px 32px;
-      font-size:10px;
-      flex-direction:column;
-      gap:6px;
-    }
+    /* Detail panel */
+    .track-eye-btn { display:none !important; }
+    .track-detail-panel { display:none; background:var(--hover); border-top:1px solid var(--line); padding:10px 16px 10px 16px; font-size:10px; flex-direction:column; gap:6px; }
     .track-detail-panel.open { display:flex; }
-    .track-detail-row {
-      display:flex; gap:8px; align-items:baseline;
-    }
-    .track-detail-label {
-      font-size:8px; letter-spacing:.12em; color:var(--muted);
-      min-width:54px; flex-shrink:0;
-    }
+    .track-detail-row { display:flex; gap:8px; align-items:baseline; }
+    .track-detail-label { font-size:8px; letter-spacing:.12em; color:var(--muted); min-width:54px; flex-shrink:0; }
     .track-detail-val { color:var(--fg); font-size:10px; }
 
-    /* Track row on mobile: flex, compact */
-    .track-row {
-      flex-wrap:wrap !important;
-      grid-template-columns:unset !important;
-      display:flex !important;
-      align-items:center;
-      padding:8px 4px !important;
-      gap:4px !important;
-      min-height:44px !important;
-    }
-    .track-name { font-size:13px !important; flex:1 !important; }
-    .track-num { min-width:24px !important; font-size:9px !important; }
+    .annotation-row { padding-left:8px; }
+    .totals-row { display:flex; justify-content:space-between; padding:12px 0; font-size:10px; }
+    .totals-row .val { font-size:13px; }
   }
+
+
+  /* ── SONG STRUCTURE ─────────────────────────────────────────── */
+  .struct-btn { background:none; border:none; color:#666; font-size:12px; cursor:pointer; padding:0 6px; touch-action:manipulation; transition:color .15s; font-family:inherit; line-height:1; }
+  .struct-btn.has-content { color:var(--fg); }
+  .struct-btn:hover { color:var(--accent); }
+  .struct-popup-overlay { position:fixed; inset:0; z-index:600; }
+  .struct-popup { position:fixed; background:#111; border:1.5px solid var(--fg); z-index:601; min-width:220px; max-width:320px; box-shadow:0 4px 20px rgba(0,0,0,.5); }
+  .struct-popup-header { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--line); font-size:9px; letter-spacing:.1em; font-weight:700; }
+  .struct-popup-body { padding:10px; }
+  .struct-popup textarea { width:100%; background:var(--bg); border:1px solid var(--line); color:var(--fg); font-family:'Space Mono',monospace; font-size:10px; padding:6px 8px; resize:vertical; min-height:100px; outline:none; letter-spacing:.02em; line-height:1.6; box-sizing:border-box; }
+  .struct-popup-actions { display:flex; justify-content:flex-end; gap:6px; padding:6px 10px 10px; }
+  .struct-popup-actions button { background:none; border:1.5px solid var(--fg); color:var(--fg); font-family:'Space Mono',monospace; font-size:9px; padding:4px 10px; cursor:pointer; letter-spacing:.06em; }
+  .struct-popup-actions button.primary { background:var(--fg); color:var(--bg); }
 
   /* Eye btn hidden on desktop */
   .track-eye-btn { display:none; }
@@ -770,6 +796,18 @@
       </div>
 
     </div>
+      <!-- SONG ABLAUF -->
+      <div class="em-section">
+        <div class="em-section-header" onclick="toggleSection('sec-structure')">
+          <span class="em-section-label" style="color:var(--muted)">≡ SONG ABLAUF</span>
+          <span class="em-toggle" id="sec-structure-indicator">+ hinzufügen</span>
+        </div>
+        <div class="em-section-body" id="sec-structure">
+          <p class="em-section-hint">Ablauf des Songs z.B. Intro 8t / Verse 16t / Chorus 8t…</p>
+          <textarea class="em-textarea" id="em-structure" placeholder="Intro 8t&#10;Verse 16t&#10;Chorus 8t&#10;…" style="min-height:100px"></textarea>
+        </div>
+      </div>
+
       <!-- COLOR -->
       <div class="em-section">
         <div class="em-section-header" onclick="toggleSection('sec-color')">
@@ -950,6 +988,7 @@
     <button onclick="openPool()" id="pool-btn">[ ◀ POOL ]</button>
     <button onclick="toggleAddForm()" id="add-btn">[ + ADD ]</button>
     <button class="accent" onclick="openExportModal()">[ EXPORT ]</button>
+    <button onclick="openShareModal()" id="share-btn">[ LINK TEILEN ]</button>
     <button onclick="quickSave()" id="vis-save-btn">[ SAVE ]</button>
     <button onclick="openSaveModal()">[ SAVE AS ]</button>
     <button class="toolbar-secondary" onclick="autoGenerateLTC()" title="LTC automatisch vergeben (10-Min-Abstand)">[ ⏱ LTC ]</button>
@@ -1011,6 +1050,9 @@
     <label style="flex-direction:row;align-items:center;gap:8px;padding-top:14px">
       <input type="checkbox" id="inp-uncertain" /> Unsicher?
     </label>
+    <label style="width:100%">Ablauf (optional)
+      <textarea id="inp-structure" placeholder="Intro 8t&#10;Verse 16t&#10;Chorus 8t&#10;…" onkeydown="if(event.key==='Enter'){event.stopPropagation()}" style="width:100%;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:10px;padding:6px 8px;resize:vertical;min-height:60px;outline:none;letter-spacing:.02em;line-height:1.6;margin-top:4px;box-sizing:border-box"></textarea>
+    </label>
     <button onclick="addTrack()" class="add-submit-btn">HINZUFÜGEN</button>
   </div>
 
@@ -1029,6 +1071,7 @@
     <label><input type="checkbox" id="vis-key" checked onchange="render()"> TONART</label>
     <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
+    <label class="vis-keep"><input type="checkbox" id="vis-structure" checked onchange="syncAllCheckbox();render()"> Ablauf</label>
     <span style="color:var(--line);margin:0 2px">|</span>
     <label style="display:flex;align-items:center;gap:6px">
       SCHRIFT
@@ -1074,7 +1117,52 @@
 
   </div><!-- /main-view -->
 
-  <!-- Archive View -->
+  
+
+<!-- Structure Popup -->
+<div id="struct-popup-overlay" class="struct-popup-overlay" style="display:none" onclick="closeStructPopup()"></div>
+<div id="struct-popup" class="struct-popup" style="display:none">
+  <div class="struct-popup-header">
+    <span id="struct-popup-title">SONG ABLAUF</span>
+    <button onclick="closeStructPopup()" style="background:none;border:none;color:var(--fg);font-size:14px;cursor:pointer;padding:0 2px">✕</button>
+  </div>
+  <div class="struct-popup-body">
+    <textarea id="struct-popup-textarea" placeholder="Intro 8t&#10;Verse 16t&#10;Chorus 8t&#10;…" oninput="updateStructBtn()" onkeydown="if(event.key==='Enter'){event.stopPropagation()}"></textarea>
+  </div>
+  <div class="struct-popup-actions">
+    <button onclick="closeStructPopup()">ABBRECHEN</button>
+    <button class="primary" onclick="saveStructPopup()">SPEICHERN</button>
+  </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal-overlay" id="share-modal" style="display:none" onclick="if(event.target===this)closeShareModal()">
+  <div class="modal" style="max-width:420px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span style="font-weight:700;letter-spacing:.08em;font-size:11px">LINK TEILEN</span>
+      <button class="em-close" onclick="closeShareModal()">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;margin-bottom:6px">👁 BEOBACHTER — nur lesen</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input id="share-view-url" readonly style="flex:1;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;padding:6px 8px;outline:none;letter-spacing:.02em" />
+          <button onclick="copyShareUrl('view')" style="flex-shrink:0;font-size:9px;padding:5px 10px;background:none;border:1.5px solid var(--fg);color:var(--fg);font-family:'Space Mono',monospace;cursor:pointer;letter-spacing:.06em">KOPIEREN</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;margin-bottom:6px">✎ BEARBEITER — voller Zugriff</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input id="share-edit-url" readonly style="flex:1;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;padding:6px 8px;outline:none;letter-spacing:.02em" />
+          <button onclick="copyShareUrl('edit')" style="flex-shrink:0;font-size:9px;padding:5px 10px;background:none;border:1.5px solid var(--fg);color:var(--fg);font-family:'Space Mono',monospace;cursor:pointer;letter-spacing:.06em">KOPIEREN</button>
+        </div>
+      </div>
+      <div id="share-copy-confirm" style="font-size:9px;color:var(--accent);letter-spacing:.08em;min-height:14px;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Archive View -->
   <div class="archive-view" id="archive-view" style="display:none">
     <div style="padding:24px 0 8px">
       <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -1100,6 +1188,62 @@ function showDebug(msg) {
   const s = document.getElementById('save-status');
   if (s) { s.textContent = msg; s.style.color = msg.includes('✓') || msg.includes('GELADEN') || msg.includes('GESPEICHERT') ? '#2d7a32' : '#444'; }
 }
+
+// ── SONG ABLAUF POPUP ──────────────────────────────────────────
+let _structTrackId = null;
+
+function openStructPopup(e, trackId) {
+  e.stopPropagation();
+  _structTrackId = trackId;
+  const t = getTrack(trackId);
+  const ann = annotations[trackId] || {};
+  const popup = document.getElementById('struct-popup');
+  const overlay = document.getElementById('struct-popup-overlay');
+  document.getElementById('struct-popup-title').textContent = (t ? t.name : 'TRACK') + ' — ABLAUF';
+  document.getElementById('struct-popup-textarea').value = ann.structure || '';
+
+  // Position popup near button
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const popW = 300;
+  const popH = 230;
+  let left = rect.left - popW + rect.width;
+  let top  = rect.bottom + 6;
+  if (left < 8) left = 8;
+  if (left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
+  if (top + popH > window.innerHeight - 8) top = rect.top - popH - 6;
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
+  popup.style.width = popW + 'px';
+
+  overlay.style.display = 'block';
+  popup.style.display = 'block';
+  setTimeout(() => document.getElementById('struct-popup-textarea').focus(), 50);
+}
+
+function closeStructPopup() {
+  document.getElementById('struct-popup').style.display = 'none';
+  document.getElementById('struct-popup-overlay').style.display = 'none';
+  _structTrackId = null;
+}
+
+function saveStructPopup() {
+  if (_structTrackId === null) return;
+  const val = document.getElementById('struct-popup-textarea').value.trim();
+  if (!annotations[_structTrackId]) annotations[_structTrackId] = {};
+  annotations[_structTrackId].structure = val;
+  snapshot(); render();
+  closeStructPopup();
+}
+
+function updateStructBtn() {
+  // live update the icon color while typing
+  if (_structTrackId === null) return;
+  const val = document.getElementById('struct-popup-textarea').value.trim();
+  const btn = document.querySelector(`.struct-btn[onclick*="${_structTrackId}"]`);
+  if (btn) btn.classList.toggle('has-content', !!val);
+}
+
 </script>
 
 <script>
@@ -1140,7 +1284,7 @@ let pool = [];
 // annotations[trackId] = { intro, outro, transIn, transOut, note }
 let annotations = {};
 let trackColors = {};
-let colOrder = ['ltc','key','notes','todo','length','bpm']; // full column order
+let colOrder = ['ltc','key','notes','todo','length','bpm','structure']; // full column order
 let _currentSaveId = null;
 let todos = {}; // trackId -> [{id, text, done, doneAt}]
 let _todoCollapsed = {};
@@ -1237,12 +1381,16 @@ function renderColorSwatches(trackId) {
 
 function normalizeLength(str) {
   if (!str) return '';
+  str = str.trim();
   const p = str.split(':');
+  // Plain number e.g. "2" or "3" -> treat as minutes -> "2:00"
+  if (p.length === 1 && /^\d+$/.test(str)) return str + ':00';
   // h:mm:ss where h is 0 -> strip to m:ss
-  if (p.length === 3 && parseInt(p[0]) === 0) return `${parseInt(p[1])}:${p[2]}`;
-  // h:mm:ss where h > 0 -> keep as-is (long track)
+  if (p.length === 3 && parseInt(p[0]) === 0) return `${parseInt(p[1])}:${p[2].padStart(2,'0')}`;
+  // h:mm:ss where h > 0 -> keep as-is
   if (p.length === 3) return str;
-  // m:ss -> keep
+  // m:ss -> normalize seconds padding
+  if (p.length === 2) return `${parseInt(p[0])}:${p[1].padStart(2,'0')}`;
   return str;
 }
 
@@ -1276,9 +1424,10 @@ function render() {
   // ── Dynamic column system ──────────────────────────────────
   const showKey = visChecked('vis-key');
   const showTodo = visChecked('vis-todo');
-  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, length:showLength, bpm:showBpm };
-  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'140px', length:'80px', bpm:'60px' };
-  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
+  const showStructure = visChecked('vis-structure');
+  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, length:showLength, bpm:showBpm, structure:showStructure };
+  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'140px', length:'80px', bpm:'60px', structure:'36px' };
+  const COL_LABELS  = { ltc:'LTC', key:'TONART', notes:'NOTIZ', todo:'TO DO', length:'DAUER', bpm:'BPM', structure:'ABLAUF' };
   const visCols = colOrder.filter(c => COL_VISIBLE[c]);
   const gridTpl = '36px 1fr ' + visCols.map(c => COL_WIDTHS[c]).join(' ') + ' 36px';
 
@@ -1385,6 +1534,7 @@ function render() {
       if (c === 'notes')  return `<span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)">${ann.note||'—'}</span>`;
       if (c === 'length') return `<span class="track-length track-inline-edit" contenteditable="true" data-field="length" data-id="${t.id}">${t.length||'—'}</span>`;
       if (c === 'bpm')    return `<span class="track-bpm track-inline-edit ${t.bpm?'filled':''}" contenteditable="true" data-field="bpm" data-id="${t.id}">${t.bpm||'—'}</span>`;
+      if (c === 'structure') return `<span class="struct-col-cell" data-id="${t.id}"></span>`;
       return '';
     }).join('');
 
@@ -1393,8 +1543,9 @@ function render() {
       <span class="track-name">${t.name}${t.uncertain?'<span class="uncertain-badge"></span>':''}${col?`<span class="color-dot" style="background:${col}"></span>`:''}</span>
       ${colCells}
       <span style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
-        <button class="track-edit-btn" onclick="openEditModal(${t.id})">✎</button>
-        <button class="track-delete-btn" onclick="removeFromSetlist(${t.id})">✕</button>
+
+        ${VIEW_MODE ? '' : `<button class="track-edit-btn" onclick="openEditModal(${t.id})">✎</button>`}
+        ${VIEW_MODE ? '' : `<button class="track-delete-btn" onclick="removeFromSetlist(${t.id})">✕</button>`}
       </span>`;
 
 
@@ -1403,6 +1554,16 @@ function render() {
     if (todoPlaceholder) {
       const todoEl = renderTodoCellInline(t);
       todoPlaceholder.replaceWith(todoEl);
+    }
+    // Insert structure button
+    const structPlaceholder = row.querySelector('.struct-col-cell');
+    if (structPlaceholder) {
+      const sb = document.createElement('button');
+      sb.className = 'struct-btn' + ((annotations[t.id]||{}).structure ? ' has-content' : '');
+      sb.title = 'Song-Ablauf';
+      sb.textContent = '◉';
+      sb.onclick = (e) => openStructPopup(e, t.id);
+      structPlaceholder.replaceWith(sb);
     }
 
     // Click to edit note inline
@@ -1502,6 +1663,19 @@ function render() {
       row.addEventListener('click', toggleRow);
       row.addEventListener('touchend', e => { e.preventDefault(); toggleRow(e); }, { passive: false });
     }
+
+    // Detail panel (mobile eye button)
+    const detailPanel = document.createElement('div');
+    detailPanel.className = 'track-detail-panel' + (_eyeOpen[t.id] ? ' open' : '');
+    detailPanel.dataset.id = t.id;
+    const annObj = getAnn(t.id);
+    const openTodos = (todos[t.id]||[]).filter(x=>!x.done);
+    detailPanel.innerHTML =
+      (t.bpm    ? `<div class="track-detail-row"><span class="track-detail-label">BPM</span><span class="track-detail-val">${t.bpm}</span></div>` : '') +
+      (t.length ? `<div class="track-detail-row"><span class="track-detail-label">LÄNGE</span><span class="track-detail-val">${t.length}</span></div>` : '') +
+      (t.ltc    ? `<div class="track-detail-row"><span class="track-detail-label">LTC</span><span class="track-detail-val">${t.ltc}</span></div>` : '') +
+      (annObj.note ? `<div class="track-detail-row"><span class="track-detail-label">NOTIZ</span><span class="track-detail-val">${annObj.note}</span></div>` : '') +
+      (openTodos.length ? `<div class="track-detail-row"><span class="track-detail-label">TO DO</span><span class="track-detail-val">${openTodos.map(x=>x.text).join(', ')}</span></div>` : '');
 
     body.appendChild(row);
     body.appendChild(detailPanel);
@@ -1604,9 +1778,10 @@ function openEditModal(trackId) {
   document.getElementById('em-trans-in').value = ann.transIn || '';
   document.getElementById('em-trans-out').value = ann.transOut || '';
   document.getElementById('em-note').value = ann.note || '';
+  document.getElementById('em-structure').value = ann.structure || '';
 
   // Auto-open sections that already have content
-  const fieldMap = {'intro':'em-intro','outro':'em-outro','trans-in':'em-trans-in','trans-out':'em-trans-out','note':'em-note'};
+  const fieldMap = {'intro':'em-intro','outro':'em-outro','trans-in':'em-trans-in','trans-out':'em-trans-out','note':'em-note','structure':'em-structure'};
   const annFieldMap = {'intro':'intro','outro':'outro','trans-in':'transIn','trans-out':'transOut','note':'note'};
   ['intro','outro','trans-in','trans-out','note'].forEach(key => {
     const val = ann[annFieldMap[key]] || '';
@@ -1663,6 +1838,7 @@ function saveEditModal() {
     transIn:  getVal('em-trans-in'),
     transOut: getVal('em-trans-out'),
     note:     getVal('em-note'),
+    structure: getVal('em-structure'),
   };
   if (Object.values(ann).some(v=>v)) {
     annotations[editingTrackId] = ann;
@@ -1845,8 +2021,9 @@ let _pendingNewTrack = null;
 
 function addTrack() {
   const name = document.getElementById('inp-name').value.trim(); if (!name) return;
-  const length = document.getElementById('inp-length').value.trim();
+  const length = normalizeLength(document.getElementById('inp-length').value.trim());
   const bpm = document.getElementById('inp-bpm').value.trim();
+  const addStructure = document.getElementById('inp-structure').value.trim();
   const uncertain = document.getElementById('inp-uncertain').checked;
   const keyBtn = document.getElementById('inp-key-btn');
   const addKey = keyBtn.dataset.key || '';
@@ -1865,7 +2042,7 @@ function addTrack() {
   }
 
   const position = document.getElementById('inp-position')?.value || 'end';
-  _doAddTrack(name, length, bpm, uncertain, _addType, addKey, addKeyMode, position);
+  _doAddTrack(name, length, bpm, uncertain, _addType, addKey, addKeyMode, position, addStructure);
 }
 
 function resolveDup(action) {
@@ -1896,7 +2073,7 @@ function resolveDup(action) {
   }
 }
 
-function _doAddTrack(name, length, bpm, uncertain, special, key, keyMode, position) {
+function _doAddTrack(name, length, bpm, uncertain, special, key, keyMode, position, structure) {
   const t = { id:nextId++, name, length, bpm, uncertain };
   if (special && special !== 'song') t.special = special;
   if (key) { t.key = key; t.keyMode = keyMode || 'Dur'; }
@@ -1915,6 +2092,7 @@ function _doAddTrack(name, length, bpm, uncertain, special, key, keyMode, positi
     setlist.push(t.id);
   }
   checkZugabe(t);
+  if (structure) { if (!annotations[t.id]) annotations[t.id] = {}; annotations[t.id].structure = structure; }
   clearAddForm();
   snapshot(); render();
   if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
@@ -1926,6 +2104,13 @@ function clearAddForm() {
   document.getElementById('inp-length').value='';
   document.getElementById('inp-bpm').value='';
   document.getElementById('inp-uncertain').checked=false;
+  const strEl = document.getElementById('inp-structure'); if (strEl) strEl.value='';
+  // Close form after adding
+  const form = document.getElementById('add-form');
+  if (form && form.classList.contains('open')) {
+    form.classList.remove('open');
+    document.getElementById('add-btn').classList.remove('active');
+  }
   const kb = document.getElementById('inp-key-btn'); if(kb){kb.textContent='—';kb.dataset.key='';kb.dataset.keyMode='';}
   populatePositionSelect();
 }
@@ -2072,7 +2257,14 @@ function exportPdf(opts) {
     .toolbar-secondary { display:none; }
 
     /* Track rows: hide BPM column, simplify */
-    .col-headers { gap:4px; }
+    .col-headers { display:grid !important; grid-template-columns:24px 1fr 44px 44px 36px 36px !important; align-items:center; gap:4px !important; }
+    .col-drag-header[data-col="ltc"],
+    .col-drag-header[data-col="key"],
+    .col-drag-header[data-col="notes"],
+    .col-drag-header[data-col="todo"] { display:none !important; }
+    .col-headers > span:not(.col-drag-header):first-child { display:none !important; }
+    .col-drag-header { text-align:right; }
+    .col-drag-header[data-col="structure"] { text-align:center; }
     .track-row   { gap:4px; }
 
     /* BPM hidden on mobile by default, notes controlled by vis-checkbox */
@@ -2115,57 +2307,76 @@ function exportPdf(opts) {
 
   /* ── MOBILE COMPACT MODE ─────────────────────────────────── */
   @media (max-width: 600px) {
-    /* Hide all data columns, only show num + name + eye + edit/delete */
+    /* Track row: grid matching headers */
+    .track-row {
+      display:grid !important;
+      grid-template-columns:1fr 52px 44px 36px 72px !important;
+      padding:8px 4px !important;
+      gap:0 !important;
+      min-height:44px !important;
+      align-items:center;
+    }
+    /* Hide columns not needed on mobile */
     .track-row .track-tc,
     .track-row .track-key,
     .track-row .track-note-inline,
-    .track-row .track-length,
-    .track-row .track-bpm,
     .track-row .todo-col-cell,
-    .col-headers { display:none !important; }
+    .track-num { display:none !important; }
+    /* Show name, length, bpm */
+    .track-name { font-size:13px !important; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .track-length { display:block !important; font-size:10px; color:var(--muted); text-align:right; padding-right:4px; }
+    .track-bpm { display:block !important; font-size:10px; color:var(--muted); text-align:right; padding-right:4px; }
+    /* Actions column */
+    .track-row > span:last-child { display:flex; justify-content:flex-end; align-items:center; gap:2px; }
+    .track-edit-btn { padding:4px 6px !important; font-size:10px !important; }
+    .track-delete-btn { font-size:14px !important; padding:2px 4px !important; opacity:1 !important; }
 
-    /* Eye button */
-    .track-eye-btn {
-      display:flex !important;
-      background:none; border:none; color:var(--muted);
-      font-size:15px; padding:4px 6px; cursor:pointer;
-      flex-shrink:0; touch-action:manipulation;
+    /* Col-headers: same grid */
+    .col-headers {
+      display:grid !important;
+      grid-template-columns:1fr 52px 44px 36px 72px !important;
+      gap:0 !important;
+      padding:6px 4px !important;
+      box-sizing:border-box;
+      width:100%;
     }
-    .track-eye-btn.open { color:var(--fg); }
+    /* Hide non-relevant headers */
+    .col-drag-header[data-col="ltc"],
+    .col-drag-header[data-col="key"],
+    .col-drag-header[data-col="notes"],
+    .col-drag-header[data-col="todo"] { display:none !important; }
+    /* Hide # header, keep TRACK */
+    .col-headers > span:first-child:not(.col-drag-header) { display:none !important; }
+    .col-headers > span:nth-child(2) { text-align:left; } /* TRACK */
+    .col-drag-header { text-align:right; font-size:8px; padding-right:8px; }
+    .col-drag-header[data-col="structure"] { text-align:center; padding-right:0; }
 
-    /* Expanded detail panel */
-    .track-detail-panel {
-      display:none;
-      background:var(--hover);
-      border-top:1px solid var(--line);
-      padding:10px 16px 10px 32px;
-      font-size:10px;
-      flex-direction:column;
-      gap:6px;
-    }
+    /* Detail panel */
+    .track-eye-btn { display:none !important; }
+    .track-detail-panel { display:none; background:var(--hover); border-top:1px solid var(--line); padding:10px 16px 10px 16px; font-size:10px; flex-direction:column; gap:6px; }
     .track-detail-panel.open { display:flex; }
-    .track-detail-row {
-      display:flex; gap:8px; align-items:baseline;
-    }
-    .track-detail-label {
-      font-size:8px; letter-spacing:.12em; color:var(--muted);
-      min-width:54px; flex-shrink:0;
-    }
+    .track-detail-row { display:flex; gap:8px; align-items:baseline; }
+    .track-detail-label { font-size:8px; letter-spacing:.12em; color:var(--muted); min-width:54px; flex-shrink:0; }
     .track-detail-val { color:var(--fg); font-size:10px; }
 
-    /* Track row on mobile: flex, compact */
-    .track-row {
-      flex-wrap:wrap !important;
-      grid-template-columns:unset !important;
-      display:flex !important;
-      align-items:center;
-      padding:8px 4px !important;
-      gap:4px !important;
-      min-height:44px !important;
-    }
-    .track-name { font-size:13px !important; flex:1 !important; }
-    .track-num { min-width:24px !important; font-size:9px !important; }
+    .annotation-row { padding-left:8px; }
+    .totals-row { display:flex; justify-content:space-between; padding:12px 0; font-size:10px; }
+    .totals-row .val { font-size:13px; }
   }
+
+
+  /* ── SONG STRUCTURE ─────────────────────────────────────────── */
+  .struct-btn { background:none; border:none; color:#666; font-size:12px; cursor:pointer; padding:0 6px; touch-action:manipulation; transition:color .15s; font-family:inherit; line-height:1; }
+  .struct-btn.has-content { color:var(--fg); }
+  .struct-btn:hover { color:var(--accent); }
+  .struct-popup-overlay { position:fixed; inset:0; z-index:600; }
+  .struct-popup { position:fixed; background:#111; border:1.5px solid var(--fg); z-index:601; min-width:220px; max-width:320px; box-shadow:0 4px 20px rgba(0,0,0,.5); }
+  .struct-popup-header { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--line); font-size:9px; letter-spacing:.1em; font-weight:700; }
+  .struct-popup-body { padding:10px; }
+  .struct-popup textarea { width:100%; background:var(--bg); border:1px solid var(--line); color:var(--fg); font-family:'Space Mono',monospace; font-size:10px; padding:6px 8px; resize:vertical; min-height:100px; outline:none; letter-spacing:.02em; line-height:1.6; box-sizing:border-box; }
+  .struct-popup-actions { display:flex; justify-content:flex-end; gap:6px; padding:6px 10px 10px; }
+  .struct-popup-actions button { background:none; border:1.5px solid var(--fg); color:var(--fg); font-family:'Space Mono',monospace; font-size:9px; padding:4px 10px; cursor:pointer; letter-spacing:.06em; }
+  .struct-popup-actions button.primary { background:var(--fg); color:var(--bg); }
 
   /* Eye btn hidden on desktop */
   .track-eye-btn { display:none; }
@@ -2585,6 +2796,7 @@ const IS_ADMIN = true;
 // Artist isolation via ?artist=name URL param
 const _artistParam = new URLSearchParams(window.location.search).get('artist');
 const ARTIST_ID = _artistParam ? _artistParam.toLowerCase().replace(/[^a-z0-9_-]/g, '-') : 'default';
+const VIEW_MODE = new URLSearchParams(window.location.search).get('mode') === 'view';
 const SB_ROW_ID = ARTIST_ID;
 
 // Init Supabase JS client (for realtime)
@@ -3444,11 +3656,11 @@ function confirmImport(mode) {
       if (t) {
         if (p.length) t.length = p.length;
         if (p.bpm)    t.bpm    = p.bpm;
-        if (p.ltc)    t.ltc    = p.ltc;
+        // ltc not updated on import — use [ ⏱ LTC ] button to assign
         newIds.push(t.id);
       }
     } else {
-      const newT = { id: nextId++, name: p.name, length: p.length||'', bpm: p.bpm||'', ltc: p.ltc||'', uncertain: false };
+      const newT = { id: nextId++, name: p.name, length: p.length||'', bpm: p.bpm||'', ltc: '', uncertain: false };
       pool.push(newT); checkZugabe(newT);
       newIds.push(newT.id);
     }
@@ -3849,7 +4061,7 @@ function getBlockForTrack(tid) {
 
 // ── VISIBILITY ────────────────────────────────────────────────
 function setAllVis(state) {
-  ['vis-length','vis-bpm','vis-annotations','vis-blocks'].forEach(id => {
+  ['vis-length','vis-bpm','vis-annotations','vis-blocks','vis-structure'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.checked = state;
   });
@@ -3861,7 +4073,7 @@ function setAllVis(state) {
 function syncAllCheckbox() {
   const all = document.getElementById('vis-all');
   if (!all) return;
-  const ids = ['vis-length','vis-bpm','vis-annotations','vis-blocks'];
+  const ids = ['vis-length','vis-bpm','vis-annotations','vis-blocks','vis-structure'];
   const allChecked = ids.every(id => { const el = document.getElementById(id); return el && el.checked; });
   const noneChecked = ids.every(id => { const el = document.getElementById(id); return el && !el.checked; });
   all.checked = allChecked;
@@ -4154,6 +4366,60 @@ function initColHeaders() {
   });
 }
 initColHeaders();
+
+</script>
+<script>// ── VIEW MODE ──────────────────────────────────────────────────
+if (VIEW_MODE) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const hideIds = ['add-btn','pool-btn','vis-save-btn','share-btn','btn-group','btn-undo','btn-redo'];
+    hideIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    document.querySelectorAll('.toolbar button').forEach(b => {
+      const t = b.textContent;
+      if (t.includes('SAVE') || t.includes('LTC') || t.includes('EXPORT')) b.style.display = 'none';
+    });
+    ['add-form'].forEach(cls => {
+      document.querySelectorAll('.'+cls).forEach(el => el.style.display = 'none');
+    });
+    // In view mode: hide edit-only vis options, keep structure + length + bpm
+    ['vis-all','vis-annotations','vis-notes-col','vis-ltc','vis-key','vis-todo','vis-blocks'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.closest('label').style.display = 'none';
+    });
+    const visSpans = document.querySelectorAll('.vis-bar span');
+    visSpans.forEach(s => s.style.display = 'none');
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:var(--accent);color:#fff;text-align:center;padding:6px;font-size:9px;letter-spacing:.12em;font-weight:700';
+    banner.textContent = '👁 BEOBACHTER-MODUS — NUR LESEN';
+    document.body.insertBefore(banner, document.body.firstChild);
+  });
+}
+
+
+// ── SHARE MODAL ────────────────────────────────────────────────
+function openShareModal() {
+  const base = window.location.origin + window.location.pathname;
+  const artistParam = ARTIST_ID !== 'default' ? '?artist=' + ARTIST_ID : '';
+  const viewUrl  = base + (artistParam ? artistParam + '&mode=view' : '?mode=view');
+  const editUrl  = base + artistParam;
+  document.getElementById('share-view-url').value = viewUrl;
+  document.getElementById('share-edit-url').value = editUrl;
+  document.getElementById('share-copy-confirm').textContent = '';
+  document.getElementById('share-modal').style.display = 'flex';
+}
+function closeShareModal() {
+  document.getElementById('share-modal').style.display = 'none';
+}
+function copyShareUrl(type) {
+  const id = type === 'view' ? 'share-view-url' : 'share-edit-url';
+  const val = document.getElementById(id).value;
+  navigator.clipboard.writeText(val).then(() => {
+    const label = type === 'view' ? 'Beobachter-Link' : 'Bearbeiter-Link';
+    const confirm = document.getElementById('share-copy-confirm');
+    confirm.textContent = '✓ ' + label + ' kopiert!';
+    setTimeout(() => { confirm.textContent = ''; }, 2500);
+  });
+}
+
 </script>
 
 <div id="dup-modal">
@@ -4171,3 +4437,4 @@ initColHeaders();
 </div>
 </body>
 </html>
+
