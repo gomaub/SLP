@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light">
-<title>SETLIST PLANNER</title>
+<title>Setlist Planner v1.2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap');
@@ -942,7 +942,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.0</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span>
+      <span>SETLIST PLANNER v1.2</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -1250,8 +1250,10 @@ function updateStructBtn() {
 }
 
 </script>
-
 <script>
+const VIEW_MODE = new URLSearchParams(window.location.search).get('mode') === 'view';
+
+
 // ── DATA ──────────────────────────────────────────────────────
 // EN artist seed data — only loaded if artist=en and no saved state exists
 const _EN_POOL = [
@@ -2832,7 +2834,6 @@ const IS_ADMIN = true;
 // Artist isolation via ?artist=name URL param
 const _artistParam = new URLSearchParams(window.location.search).get('artist');
 const ARTIST_ID = _artistParam ? _artistParam.toLowerCase().replace(/[^a-z0-9_-]/g, '-') : 'default';
-const VIEW_MODE = new URLSearchParams(window.location.search).get('mode') === 'view';
 const SB_ROW_ID = ARTIST_ID;
 
 // Init Supabase JS client (for realtime)
@@ -4403,8 +4404,9 @@ function initColHeaders() {
 }
 initColHeaders();
 
-</script>
-<script>// ── VIEW MODE ──────────────────────────────────────────────────
+
+
+// ── VIEW MODE ──────────────────────────────────────────────────
 if (VIEW_MODE) {
   document.addEventListener('DOMContentLoaded', () => {
     const hideIds = ['add-btn','pool-btn','vis-save-btn','share-btn','btn-group','btn-undo','btn-redo'];
@@ -4428,8 +4430,9 @@ if (VIEW_MODE) {
     banner.textContent = '👁 BEOBACHTER-MODUS — NUR LESEN';
     document.body.insertBefore(banner, document.body.firstChild);
   });
-}</script>
-<script>
+}
+
+
 
 
 // ── SHARE MODAL ────────────────────────────────────────────────
@@ -4903,7 +4906,9 @@ function alsShowError(msg) {
   document.getElementById('als-confirm-btn').style.display = 'none';
 }
 
+
 </script>
+
 
 <div id="dup-modal">
   <div class="dup-box">
