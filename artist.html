@@ -962,6 +962,7 @@
         <button onclick="exportData('artist');closeFileMenu()">↓ BACKUP ARTIST</button>
         <button onclick="exportData('admin');closeFileMenu()">↓ BACKUP ADMIN</button>
         <div class="file-menu-sep"></div>
+        <button onclick="openAlsImportModal();closeFileMenu()">↑ ALS IMPORT</button>
         <button onclick="openImportModal();closeFileMenu()">↑ IMPORT TXT</button>
         <button onclick="importData();closeFileMenu()">↑ IMPORT FILE</button>
         <div class="file-menu-sep"></div>
@@ -1013,6 +1014,7 @@
       <span class="mobile-menu-title">MENÜ</span>
       <button class="mobile-menu-close" onclick="closeMobileMenu()">✕</button>
     </div>
+    <button class="mobile-menu-item" onclick="openAlsImportModal();closeMobileMenu()"><span class="item-icon">◈</span>ALS Import</button>
     <button class="mobile-menu-item" onclick="openPool();closeMobileMenu()"><span class="item-icon">◀</span>Pool</button>
     <button class="mobile-menu-item" onclick="toggleAddForm();closeMobileMenu()"><span class="item-icon">+</span>Track hinzufügen</button>
     <button class="mobile-menu-item accent" onclick="openExportModal();closeMobileMenu()"><span class="item-icon">↗</span>Export</button>
@@ -2482,6 +2484,35 @@ ${body}
       <button onclick="resolveDup('replace')" class="primary">ERSETZEN</button>
       <button onclick="resolveDup('v2')">ALS V2</button>
       <button onclick="resolveDup('cancel')">ABBRECHEN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ALS IMPORT MODAL ─────────────────────────────────────── -->
+<div class="modal-overlay" id="als-import-modal" style="display:none">
+  <div class="modal-box" style="max-width:540px;width:100%">
+    <h3>ALS IMPORT</h3>
+    <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
+      Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt
+    </p>
+
+    <div id="als-drop-zone" style="border:2px dashed var(--line);padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;position:relative">
+      <input type="file" id="als-file-input" accept=".als" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+      <div style="font-size:20px;color:var(--muted);margin-bottom:8px">◈</div>
+      <div id="als-drop-label" style="font-size:11px;font-weight:700;letter-spacing:.06em">.als Datei hier ablegen</div>
+      <div id="als-drop-sub" style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.08em;text-transform:uppercase">Drag & Drop oder klicken</div>
+    </div>
+
+    <div id="als-error" style="display:none;background:rgba(212,52,28,.15);border:1px solid var(--accent);padding:10px 14px;font-size:10px;color:var(--accent);margin-bottom:12px"></div>
+
+    <div id="als-preview" style="display:none;margin-bottom:16px">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px" id="als-preview-meta"></div>
+      <div id="als-preview-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--line)"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="closeAlsImportModal()">ABBRECHEN</button>
+      <button class="btn-primary" id="als-confirm-btn" onclick="confirmAlsImport()" style="display:none">[ ✓ IMPORTIEREN ]</button>
     </div>
   </div>
 </div>
@@ -4426,6 +4457,207 @@ function copyShareUrl(type) {
   });
 }
 
+
+// ── ALS IMPORT ────────────────────────────────────────────────
+let _alsImportData = []; // parsed songs ready to import
+
+const ALS_VALID_KEYS = new Set([
+  'C','D','E','F','G','A','B','H',
+  'C#','D#','F#','G#','A#','Cb','Db','Eb','Gb','Ab','Bb',
+  'Cis','Dis','Es','Fis','Gis','As',
+  'Cmaj','Dmaj','Emaj','Fmaj','Gmaj','Amaj','Bmaj',
+  'C#maj','D#maj','F#maj','G#maj','A#maj',
+  'am','bm','cm','dm','em','fm','gm','hm',
+  'a#m','c#m','d#m','f#m','g#m',
+  'ais','dis','eis','fis','gis',
+  'f#','c#','d#','g#','a#','e#','b#',
+  'fb','cb','db','eb','gb','ab','bb',
+  'Amin','Bmin','Cmin','Dmin','Emin','Fmin','Gmin',
+  'ion','dor','phry','lyd','mix','aeo','lok',
+  'ionisch','dorisch','phrygisch','lydisch','mixolydisch','aeolisch','lokrisch',
+  'maj','min','moll','dur',
+]);
+
+function openAlsImportModal() {
+  _alsImportData = [];
+  document.getElementById('als-drop-label').textContent = '.als Datei hier ablegen';
+  document.getElementById('als-drop-sub').textContent = 'Drag & Drop oder klicken';
+  document.getElementById('als-drop-zone').style.borderColor = '';
+  document.getElementById('als-error').style.display = 'none';
+  document.getElementById('als-preview').style.display = 'none';
+  document.getElementById('als-confirm-btn').style.display = 'none';
+  document.getElementById('als-file-input').value = '';
+  document.getElementById('als-import-modal').style.cssText =
+    'display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;padding:20px;';
+}
+
+function closeAlsImportModal() {
+  document.getElementById('als-import-modal').style.cssText = 'display:none';
+}
+
+// Drop zone setup
+document.addEventListener('DOMContentLoaded', () => {
+  const dz = document.getElementById('als-drop-zone');
+  const fi = document.getElementById('als-file-input');
+  if (!dz) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--fg)'; });
+  dz.addEventListener('dragleave', () => { dz.style.borderColor = ''; });
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.style.borderColor = '';
+    const f = e.dataTransfer.files[0];
+    if (f) alsLoadFile(f);
+  });
+  fi.addEventListener('change', () => { if (fi.files[0]) alsLoadFile(fi.files[0]); });
+});
+
+function alsLoadFile(f) {
+  if (!f.name.endsWith('.als')) {
+    alsShowError('Nur .als Dateien werden unterstützt.'); return;
+  }
+  document.getElementById('als-drop-label').textContent = f.name;
+  document.getElementById('als-drop-sub').textContent = (f.size / 1024).toFixed(0) + ' KB';
+  document.getElementById('als-error').style.display = 'none';
+  alsParseFile(f);
+}
+
+async function alsParseFile(file) {
+  try {
+    const ab = await file.arrayBuffer();
+    const ds = new DecompressionStream('gzip');
+    const w = ds.writable.getWriter();
+    w.write(new Uint8Array(ab)); w.close();
+    const dec = await new Response(ds.readable).arrayBuffer();
+    const xmlText = new TextDecoder('utf-8').decode(dec);
+    const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+    if (xml.querySelector('parsererror')) { alsShowError('XML Fehler beim Lesen der Datei.'); return; }
+    alsExtract(xml);
+  } catch(e) {
+    alsShowError('Fehler: ' + e.message);
+  }
+}
+
+function alsExtract(xml) {
+  const midiTracks = xml.querySelectorAll('MidiTrack');
+  let songTrack = null, partTrack = null;
+  midiTracks.forEach(t => {
+    const n = (t.querySelector('Name > EffectiveName')?.getAttribute('Value') ||
+               t.querySelector('Name > UserName')?.getAttribute('Value') || '').trim().toUpperCase();
+    if (/^SONGS?$/.test(n)) songTrack = t;
+    if (/^PARTS?$/.test(n)) partTrack = t;
+  });
+  if (!songTrack) { alsShowError('Keine SONG / SONGS Spur gefunden.'); return; }
+
+  // BPM
+  const bpm = parseFloat(xml.querySelector('Tempo > Manual')?.getAttribute('Value') || 120);
+
+  const songClips = songTrack.querySelectorAll('MidiClip');
+  const partClips = partTrack ? partTrack.querySelectorAll('MidiClip') : [];
+
+  _alsImportData = [];
+  songClips.forEach(clip => {
+    const rawName = clip.querySelector('Name')?.getAttribute('Value') || 'Unbenannt';
+    const keyMatch = rawName.match(/ -([a-zA-Z#]{1,12})$/);
+    const keyCandidate = keyMatch ? keyMatch[1] : '';
+    const key  = keyCandidate && ALS_VALID_KEYS.has(keyCandidate) ? keyCandidate : '';
+    const name = key ? rawName.slice(0, rawName.length - keyCandidate.length - 2).trim() : rawName.trim();
+
+    const start = parseFloat(clip.querySelector('CurrentStart')?.getAttribute('Value') || 0);
+    const end   = parseFloat(clip.querySelector('CurrentEnd')?.getAttribute('Value') || 0);
+    const secs  = ((end - start) / bpm) * 60;
+    const length = alsFormatTime(secs);
+    const bpmR  = Math.round(bpm);
+
+    // Parts
+    const parts = [];
+    partClips.forEach(pc => {
+      const ps = parseFloat(pc.querySelector('CurrentStart')?.getAttribute('Value') || 0);
+      const pe = parseFloat(pc.querySelector('CurrentEnd')?.getAttribute('Value') || 0);
+      if (ps >= start && ps < end) {
+        const pName = pc.querySelector('Name')?.getAttribute('Value') || 'Part';
+        parts.push(pName + ' · ' + alsFormatTime(((pe - ps) / bpm) * 60));
+      }
+    });
+
+    // Match against pool
+    const existing = pool.find(t => t.name.toLowerCase() === name.toLowerCase());
+    _alsImportData.push({ name, length, bpm: String(bpmR), key, parts, isUpdate: !!existing, existingId: existing?.id });
+  });
+
+  if (!_alsImportData.length) { alsShowError('Keine Clips in SONG Spur gefunden.'); return; }
+  alsRenderPreview();
+}
+
+function alsFormatTime(secs) {
+  return Math.floor(secs / 60) + ':' + String(Math.floor(secs % 60)).padStart(2, '0');
+}
+
+function alsRenderPreview() {
+  const list = document.getElementById('als-preview-list');
+  list.innerHTML = '';
+  const newCount = _alsImportData.filter(s => !s.isUpdate).length;
+  const updCount = _alsImportData.filter(s => s.isUpdate).length;
+  document.getElementById('als-preview-meta').textContent =
+    _alsImportData.length + ' Songs — ' + updCount + ' Update · ' + newCount + ' Neu in Pool';
+
+  _alsImportData.forEach(s => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr auto auto;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);align-items:center;font-size:10px;';
+    row.innerHTML = `
+      <span style="font-weight:700">${s.name}${s.key ? ' <span style="color:var(--accent);font-weight:400">'+s.key+'</span>' : ''}</span>
+      <span style="color:var(--muted)">${s.length} &nbsp; ${s.bpm} BPM</span>
+      <span style="font-size:8px;letter-spacing:.08em;padding:2px 6px;border:1px solid ${s.isUpdate ? 'var(--muted)' : 'var(--accent)'};color:${s.isUpdate ? 'var(--muted)' : 'var(--accent)'}">${s.isUpdate ? 'UPDATE' : 'NEU'}</span>`;
+    list.appendChild(row);
+  });
+
+  document.getElementById('als-preview').style.display = 'block';
+  document.getElementById('als-confirm-btn').style.display = 'inline-block';
+}
+
+function confirmAlsImport() {
+  _alsImportData.forEach(s => {
+    if (s.isUpdate) {
+      // Update existing pool track
+      const t = pool.find(x => x.id === s.existingId);
+      if (t) {
+        if (s.length) t.length = s.length;
+        if (s.bpm)    t.bpm    = s.bpm;
+        if (s.key)    t.key    = s.key;
+        if (s.parts.length) {
+          if (!annotations[t.id]) annotations[t.id] = {};
+          annotations[t.id].structure = s.parts.join('\n');
+        }
+      }
+    } else {
+      // New track → Pool only, not Setlist
+      const newT = { id: nextId++, name: s.name, length: s.length||'', bpm: s.bpm||'', ltc: '', uncertain: false };
+      if (s.key) newT.key = s.key;
+      pool.push(newT); checkZugabe(newT);
+      if (s.parts.length) {
+        if (!annotations[newT.id]) annotations[newT.id] = {};
+        annotations[newT.id].structure = s.parts.join('\n');
+      }
+    }
+  });
+
+  closeAlsImportModal();
+  snapshot(); render();
+  clearTimeout(window._sbSaveTimer);
+  const st = getFullState();
+  _lastSavedHash = _stateHash(st);
+  _sbClient.from(SB_TABLE).upsert({ id: SB_ROW_ID, data: JSON.stringify(st), updated_at: new Date().toISOString() });
+  autoSaveToStorage();
+  if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
+  openPool(); // Show pool so user sees what changed
+}
+
+function alsShowError(msg) {
+  const e = document.getElementById('als-error');
+  e.textContent = '⚠ ' + msg;
+  e.style.display = 'block';
+  document.getElementById('als-preview').style.display = 'none';
+  document.getElementById('als-confirm-btn').style.display = 'none';
+}
+
 </script>
 
 <div id="dup-modal">
@@ -4438,6 +4670,35 @@ function copyShareUrl(type) {
       <button onclick="resolveDup('replace')" class="primary">ERSETZEN</button>
       <button onclick="resolveDup('v2')">ALS V2</button>
       <button onclick="resolveDup('cancel')">ABBRECHEN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ALS IMPORT MODAL ─────────────────────────────────────── -->
+<div class="modal-overlay" id="als-import-modal" style="display:none">
+  <div class="modal-box" style="max-width:540px;width:100%">
+    <h3>ALS IMPORT</h3>
+    <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
+      Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt
+    </p>
+
+    <div id="als-drop-zone" style="border:2px dashed var(--line);padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;position:relative">
+      <input type="file" id="als-file-input" accept=".als" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+      <div style="font-size:20px;color:var(--muted);margin-bottom:8px">◈</div>
+      <div id="als-drop-label" style="font-size:11px;font-weight:700;letter-spacing:.06em">.als Datei hier ablegen</div>
+      <div id="als-drop-sub" style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.08em;text-transform:uppercase">Drag & Drop oder klicken</div>
+    </div>
+
+    <div id="als-error" style="display:none;background:rgba(212,52,28,.15);border:1px solid var(--accent);padding:10px 14px;font-size:10px;color:var(--accent);margin-bottom:12px"></div>
+
+    <div id="als-preview" style="display:none;margin-bottom:16px">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px" id="als-preview-meta"></div>
+      <div id="als-preview-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--line)"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="closeAlsImportModal()">ABBRECHEN</button>
+      <button class="btn-primary" id="als-confirm-btn" onclick="confirmAlsImport()" style="display:none">[ ✓ IMPORTIEREN ]</button>
     </div>
   </div>
 </div>
