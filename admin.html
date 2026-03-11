@@ -2490,7 +2490,7 @@ ${body}
 
 <!-- ── ALS IMPORT MODAL ─────────────────────────────────────── -->
 <div class="modal-overlay" id="als-import-modal" style="display:none">
-  <div class="modal-box" style="max-width:540px;width:100%">
+  <div class="modal-box" style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line)">
     <h3>ALS IMPORT</h3>
     <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
       Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt
@@ -4479,6 +4479,15 @@ const ALS_VALID_KEYS = new Set([
 ]);
 
 function openAlsImportModal() {
+  // Enter key = confirm if button visible
+  document.getElementById('als-import-modal')._keyHandler = function(e) {
+    if (e.key === 'Escape') { closeAlsImportModal(); }
+    if (e.key === 'Enter') {
+      const btn = document.getElementById('als-confirm-btn');
+      if (btn && btn.style.display !== 'none') confirmAlsImport();
+    }
+  };
+  document.addEventListener('keydown', document.getElementById('als-import-modal')._keyHandler);
   _alsImportData = [];
   document.getElementById('als-drop-label').textContent = '.als Datei hier ablegen';
   document.getElementById('als-drop-sub').textContent = 'Drag & Drop oder klicken';
@@ -4488,11 +4497,13 @@ function openAlsImportModal() {
   document.getElementById('als-confirm-btn').style.display = 'none';
   document.getElementById('als-file-input').value = '';
   document.getElementById('als-import-modal').style.cssText =
-    'display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;padding:20px;';
+    'display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9000;align-items:center;justify-content:center;padding:20px;';
 }
 
 function closeAlsImportModal() {
-  document.getElementById('als-import-modal').style.cssText = 'display:none';
+  const modal = document.getElementById('als-import-modal');
+  if (modal._keyHandler) document.removeEventListener('keydown', modal._keyHandler);
+  modal.style.cssText = 'display:none';
 }
 
 // Drop zone setup
@@ -4840,7 +4851,7 @@ function alsShowError(msg) {
 
 <!-- ── ALS IMPORT MODAL ─────────────────────────────────────── -->
 <div class="modal-overlay" id="als-import-modal" style="display:none">
-  <div class="modal-box" style="max-width:540px;width:100%">
+  <div class="modal-box" style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line)">
     <h3>ALS IMPORT</h3>
     <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">
       Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt
