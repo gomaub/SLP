@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALS EXTRACTOR</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #141412;
+    --fg: #e8e6df;
+    --accent: #d4341c;
+    --muted: #666;
+    --line: #2a2a27;
+    --card: #1c1c19;
+    --hover: #222220;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    border-bottom: 2px solid var(--fg);
+    padding: 16px 32px 12px;
+  }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: .02em;
+  }
+  .hero-title span { color: var(--accent); }
+  .header-sub {
+    font-size: 9px;
+    letter-spacing: .14em;
+    color: var(--muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* ── SHELL ── */
+  .shell { max-width: 900px; margin: 0 auto; padding: 32px 32px 80px; }
+
+  /* ── DROP ZONE ── */
+  .drop-zone {
+    border: 2px dashed var(--line);
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--fg);
+    background: var(--hover);
+  }
+  .drop-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon { font-size: 32px; margin-bottom: 12px; color: var(--muted); }
+  .drop-label { font-size: 13px; font-weight: 700; letter-spacing: .06em; margin-bottom: 6px; }
+  .drop-sub { font-size: 9px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+  .drop-zone.has-file { border-color: var(--accent); border-style: solid; }
+  .drop-zone.has-file .drop-icon { color: var(--accent); }
+
+  /* ── PARSE BTN ── */
+  .parse-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    cursor: pointer;
+    margin-bottom: 32px;
+    display: none;
+    transition: background .15s;
+  }
+  .parse-btn:hover { background: #b82d17; }
+  .parse-btn.visible { display: inline-block; }
+
+  /* ── ERROR ── */
+  .error-box {
+    background: rgba(212,52,28,.15);
+    border: 1px solid var(--accent);
+    padding: 12px 16px;
+    font-size: 10px;
+    color: var(--accent);
+    margin-bottom: 24px;
+    display: none;
+  }
+
+  /* ── RESULTS ── */
+  .results { display: none; }
+  .results.visible { display: block; }
+
+  .results-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 2px solid var(--fg);
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .results-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: .04em;
+  }
+  .results-meta { font-size: 9px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+
+  /* ── SONG CARD ── */
+  .song-card {
+    border: 1px solid var(--line);
+    margin-bottom: 16px;
+    background: var(--card);
+  }
+  .song-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    gap: 12px;
+    transition: background .1s;
+  }
+  .song-header:hover { background: var(--hover); }
+  .song-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .song-meta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .song-meta span { font-size: 9px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  .song-meta b { color: var(--fg); font-size: 11px; }
+  .song-toggle {
+    color: var(--muted);
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: transform .2s;
+  }
+  .song-card.open .song-toggle { transform: rotate(180deg); }
+
+  /* ── PARTS LIST ── */
+  .parts-list {
+    display: none;
+    border-top: 1px solid var(--line);
+  }
+  .song-card.open .parts-list { display: block; }
+
+  .parts-header {
+    display: grid;
+    grid-template-columns: 1fr 80px;
+    padding: 6px 16px;
+    font-size: 8px;
+    letter-spacing: .12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .part-row {
+    display: grid;
+    grid-template-columns: 1fr 80px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+    transition: background .1s;
+  }
+  .part-row:last-child { border-bottom: none; }
+  .part-row:hover { background: var(--hover); }
+  .part-name { font-size: 10px; font-weight: 700; letter-spacing: .03em; }
+  .part-length { font-size: 10px; color: var(--muted); text-align: right; }
+
+  .no-parts {
+    padding: 16px;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-style: italic;
+  }
+
+  /* ── COPY AREA ── */
+  .copy-section {
+    margin-top: 32px;
+    border-top: 2px solid var(--line);
+    padding-top: 24px;
+  }
+  .copy-label {
+    font-size: 9px;
+    letter-spacing: .12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .copy-box {
+    background: var(--card);
+    border: 1px solid var(--line);
+    padding: 14px 16px;
+    font-size: 10px;
+    color: var(--fg);
+    white-space: pre;
+    font-family: 'Space Mono', monospace;
+    line-height: 1.7;
+    letter-spacing: .02em;
+    overflow-x: auto;
+    margin-bottom: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .copy-btn {
+    background: none;
+    border: 1.5px solid var(--fg);
+    color: var(--fg);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .1em;
+    padding: 6px 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all .15s;
+  }
+  .copy-btn:hover { background: var(--fg); color: var(--bg); }
+  .copy-confirm {
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: .08em;
+    margin-left: 12px;
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .copy-confirm.show { opacity: 1; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: .08em;
+    padding: 24px 0;
+    border-top: 1px solid var(--line);
+    margin-top: 48px;
+  }
+
+  @media (max-width: 600px) {
+    .header { padding: 12px 16px 10px; }
+    .hero-title { font-size: 36px; }
+    .shell { padding: 20px 16px 60px; }
+    .drop-zone { padding: 32px 16px; }
+    .song-meta { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="hero-title">ALS <span>EXTRACTOR</span></div>
+  <div class="header-sub">Ableton Live Project Parser — Songs &amp; Parts</div>
+</div>
+
+<div class="shell">
+
+  <!-- Drop Zone -->
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept=".als" />
+    <div class="drop-icon">◈</div>
+    <div class="drop-label" id="drop-label">Ableton Datei hier ablegen</div>
+    <div class="drop-sub" id="drop-sub">.als Datei · Drag &amp; Drop oder klicken</div>
+  </div>
+
+  <button class="parse-btn" id="parse-btn" onclick="parseFile()">[ ▶ EXTRAHIEREN ]</button>
+
+  <div class="error-box" id="error-box"></div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="results-header">
+      <div class="results-title" id="results-title">SONGS</div>
+      <div class="results-meta" id="results-meta"></div>
+    </div>
+    <div id="songs-list"></div>
+
+    <div class="copy-section">
+      <div class="copy-label">Text-Export</div>
+      <div class="copy-box" id="copy-box"></div>
+      <button class="copy-btn" onclick="copyText()">[ KOPIEREN ]</button>
+      <span class="copy-confirm" id="copy-confirm">✓ Kopiert!</span>
+    </div>
+  </div>
+
+</div>
+
+<footer>ALS EXTRACTOR · für den Setlist Planner</footer>
+
+<script>
+let _file = null;
+let _parsedSongs = [];
+
+// ── DROP ZONE ──────────────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) setFile(fileInput.files[0]);
+});
+
+function setFile(f) {
+  if (!f.name.endsWith('.als')) {
+    showError('Nur .als Dateien werden unterstützt.');
+    return;
+  }
+  _file = f;
+  dropZone.classList.add('has-file');
+  document.getElementById('drop-label').textContent = f.name;
+  document.getElementById('drop-sub').textContent = (f.size / 1024).toFixed(0) + ' KB';
+  document.getElementById('parse-btn').classList.add('visible');
+  hideError();
+  document.getElementById('results').classList.remove('visible');
+}
+
+// ── PARSE ──────────────────────────────────────────────────────
+async function parseFile() {
+  if (!_file) return;
+  hideError();
+
+  try {
+    // Decompress gzip
+    const arrayBuffer = await _file.arrayBuffer();
+    const ds = new DecompressionStream('gzip');
+    const writer = ds.writable.getWriter();
+    writer.write(new Uint8Array(arrayBuffer));
+    writer.close();
+    const decompressed = await new Response(ds.readable).arrayBuffer();
+    const xmlText = new TextDecoder('utf-8').decode(decompressed);
+
+    // Parse XML
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(xmlText, 'application/xml');
+
+    if (xml.querySelector('parsererror')) {
+      showError('Fehler beim Parsen der XML-Struktur.');
+      return;
+    }
+
+    extractData(xml);
+  } catch(e) {
+    showError('Fehler beim Lesen der Datei: ' + e.message);
+  }
+}
+
+// ── EXTRACT ────────────────────────────────────────────────────
+function extractData(xml) {
+  const midiTracks = xml.querySelectorAll('MidiTrack');
+  
+  let songTrack = null;
+  let partTrack = null;
+
+  midiTracks.forEach(track => {
+    const name = (
+      track.querySelector('Name > EffectiveName')?.getAttribute('Value') ||
+      track.querySelector('Name > UserName')?.getAttribute('Value') || ''
+    ).trim().toUpperCase();
+    
+    if (/^SONGS?$/.test(name)) songTrack = track;
+    if (/^PARTS?$/.test(name)) partTrack = track;
+  });
+
+  if (!songTrack) {
+    showError('Keine SONG / SONGS Spur gefunden. Bitte prüfe ob die Spur so benannt ist.');
+    return;
+  }
+
+  // Get BPM from tempo automation or fallback to static tempo
+  const bpm = getBPM(xml);
+
+  // Extract songs from SONG track clips
+  const songClips = songTrack.querySelectorAll('MidiClip');
+  
+  // Extract parts from PART track clips
+  const partClips = partTrack ? partTrack.querySelectorAll('MidiClip') : [];
+
+  // Build songs array
+  _parsedSongs = [];
+  songClips.forEach(clip => {
+    const rawName = clip.querySelector('Name')?.getAttribute('Value') || 'Unbenannt';
+    // Extract key from end of name: "Track -am" → name="Track", key="am"
+    const keyMatch = rawName.match(/^(.*?)\s*-([a-gA-G][^-\s]*)$/);
+    const name = keyMatch ? keyMatch[1].trim() : rawName.trim();
+    const key  = keyMatch ? keyMatch[2].trim() : '';
+    const start = parseFloat(clip.querySelector('CurrentStart')?.getAttribute('Value') || 0);
+    const end   = parseFloat(clip.querySelector('CurrentEnd')?.getAttribute('Value') || 0);
+    const beats = end - start;
+    const durationSecs = beatsToSeconds(beats, bpm);
+
+    // Find parts that overlap this song's time range
+    const parts = [];
+    partClips.forEach(pc => {
+      const ps = parseFloat(pc.querySelector('CurrentStart')?.getAttribute('Value') || 0);
+      const pe = parseFloat(pc.querySelector('CurrentEnd')?.getAttribute('Value') || 0);
+      // Part belongs to this song if it starts within the song's range
+      if (ps >= start && ps < end) {
+        const pName = pc.querySelector('Name')?.getAttribute('Value') || 'Part';
+        const pBeats = pe - ps;
+        const pSecs = beatsToSeconds(pBeats, bpm);
+        parts.push({ name: pName, beats: pBeats, secs: pSecs, length: formatTime(pSecs) });
+      }
+    });
+
+    _parsedSongs.push({
+      name,
+      key,
+      beats,
+      secs: durationSecs,
+      length: formatTime(durationSecs),
+      bpm: Math.round(bpm),
+      parts
+    });
+  });
+
+  if (_parsedSongs.length === 0) {
+    showError('Keine Clips in der SONG Spur gefunden.');
+    return;
+  }
+
+  renderResults();
+}
+
+function getBPM(xml) {
+  // Try AutomationEnvelope for tempo (PointeeId="8" or "9" typically)
+  // Fallback: get Tempo value directly
+  const tempoNode = xml.querySelector('Tempo > Manual');
+  if (tempoNode) return parseFloat(tempoNode.getAttribute('Value')) || 120;
+  
+  // Try LiveSet > MasterTrack tempo
+  const autoTempo = xml.querySelector('AutomationEvent');
+  if (autoTempo) return parseFloat(autoTempo.getAttribute('Value')) || 120;
+  
+  return 120;
+}
+
+function beatsToSeconds(beats, bpm) {
+  return (beats / bpm) * 60;
+}
+
+function formatTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+// ── RENDER ─────────────────────────────────────────────────────
+function renderResults() {
+  const list = document.getElementById('songs-list');
+  list.innerHTML = '';
+
+  _parsedSongs.forEach((song, i) => {
+    const card = document.createElement('div');
+    card.className = 'song-card';
+
+    const partsHtml = song.parts.length > 0
+      ? `<div class="parts-header"><span>PART</span><span style="text-align:right">LÄNGE</span></div>` +
+        song.parts.map(p => `
+          <div class="part-row">
+            <span class="part-name">${esc(p.name)}</span>
+            <span class="part-length">${p.length}</span>
+          </div>`).join('')
+      : `<div class="no-parts">Keine Parts in diesem Song gefunden</div>`;
+
+    card.innerHTML = `
+      <div class="song-header" onclick="toggleCard(${i})">
+        <span class="song-name">${esc(song.name)}</span>
+        <div class="song-meta">
+          <span><b>${song.length}</b> DAUER</span>
+          <span><b>${song.bpm}</b> BPM</span>
+          ${song.key ? `<span><b>${song.key}</b> TONART</span>` : ''}
+          ${song.parts.length > 0 ? `<span><b>${song.parts.length}</b> PARTS</span>` : ''}
+        </div>
+        <span class="song-toggle">▾</span>
+      </div>
+      <div class="parts-list">${partsHtml}</div>`;
+
+    list.appendChild(card);
+  });
+
+  // Meta info
+  const total = _parsedSongs.reduce((s, x) => s + x.secs, 0);
+  document.getElementById('results-meta').textContent =
+    _parsedSongs.length + ' Songs · Gesamt ' + formatTime(total);
+
+  // Build copy text
+  let text = '';
+  _parsedSongs.forEach(song => {
+    text += song.name + ' | ' + song.length + ' | ' + song.bpm + (song.key ? ' | ' + song.key : '') + '\n';
+    if (song.parts.length > 0) {
+      song.parts.forEach(p => {
+        text += '  ' + p.name + ' · ' + p.length + '\n';
+      });
+    }
+    text += '\n';
+  });
+  document.getElementById('copy-box').textContent = text.trim();
+
+  document.getElementById('results').classList.add('visible');
+}
+
+function toggleCard(i) {
+  const cards = document.querySelectorAll('.song-card');
+  cards[i].classList.toggle('open');
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyText() {
+  const text = document.getElementById('copy-box').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const c = document.getElementById('copy-confirm');
+    c.classList.add('show');
+    setTimeout(() => c.classList.remove('show'), 2000);
+  });
+}
+
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  box.textContent = '⚠ ' + msg;
+  box.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('error-box').style.display = 'none';
+}
+</script>
+</body>
+</html>
