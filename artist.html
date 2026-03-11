@@ -4540,7 +4540,11 @@ async function alsParseFile(file) {
     const dec = await new Response(ds.readable).arrayBuffer();
     const xmlText = new TextDecoder('utf-8').decode(dec);
     const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
-    if (xml.querySelector('parsererror')) { alsShowError('XML Fehler beim Lesen der Datei.'); return; }
+    const parseErr = xml.querySelector('parsererror') || xml.getElementsByTagName('parsererror')[0];
+    if (parseErr) { alsShowError('XML Fehler beim Lesen der Datei.'); return; }
+    // Quick sanity check
+    const tracks = xml.getElementsByTagName('MidiTrack');
+    if (!tracks.length) { alsShowError('Keine MIDI-Spuren gefunden — ist das eine Ableton Arrangement-Datei?'); return; }
     alsExtract(xml);
   } catch(e) {
     alsShowError('Fehler: ' + e.message);
@@ -4564,29 +4568,33 @@ function alsBeatsToSeconds(startBeat, endBeat, tempoEvents, globalBpm) {
 }
 
 function alsExtract(xml) {
-  const midiTracks = xml.querySelectorAll('MidiTrack');
+  // Use getElementsByTagName — works reliably in XML docs (case-sensitive, no CSS quirks)
+  const midiTracks = xml.getElementsByTagName('MidiTrack');
   let songTrack = null, partTrack = null;
-  midiTracks.forEach(t => {
-    const nameEl = t.querySelector('Name');
-    const usr = nameEl?.querySelector('UserName')?.getAttribute('Value')?.trim() || '';
-    const eff = nameEl?.querySelector('EffectiveName')?.getAttribute('Value')?.trim() || '';
-    const n = (usr || eff).toUpperCase();  // UserName has priority, like Python script
+  Array.from(midiTracks).forEach(t => {
+    const nameEl = t.getElementsByTagName('Name')[0];
+    const usr = nameEl?.getElementsByTagName('UserName')[0]?.getAttribute('Value')?.trim() || '';
+    const eff = nameEl?.getElementsByTagName('EffectiveName')[0]?.getAttribute('Value')?.trim() || '';
+    const n = (usr || eff).toUpperCase();
     if (/^SONGS?$/.test(n)) songTrack = t;
     if (/^PARTS?$/.test(n)) partTrack = t;
   });
   if (!songTrack) { alsShowError('Keine SONG / SONGS Spur gefunden.'); return; }
 
-  // Global BPM from Tempo/Manual (anywhere in doc, Python uses .//Tempo/Manual)
+  // Global BPM
   let globalBpm = 120;
-  const manualEl = xml.querySelector('Tempo Manual');
-  if (manualEl) globalBpm = parseFloat(manualEl.getAttribute('Value')) || 120;
+  const tempoEls = xml.getElementsByTagName('Tempo');
+  for (const te of tempoEls) {
+    const manualEl = te.getElementsByTagName('Manual')[0];
+    if (manualEl) { globalBpm = parseFloat(manualEl.getAttribute('Value')) || 120; break; }
+  }
 
   // Tempo automation: AutomationEnvelope where PointeeId Value="8"
   const tempoEvents = [];
-  xml.querySelectorAll('AutomationEnvelope').forEach(env => {
-    const pid = env.querySelector('EnvelopeTarget PointeeId');
+  Array.from(xml.getElementsByTagName('AutomationEnvelope')).forEach(env => {
+    const pid = env.getElementsByTagName('PointeeId')[0];
     if (pid?.getAttribute('Value') === '8') {
-      env.querySelectorAll('FloatEvent').forEach(ev => {
+      Array.from(env.getElementsByTagName('FloatEvent')).forEach(ev => {
         const t = parseFloat(ev.getAttribute('Time') || 0);
         const v = parseFloat(ev.getAttribute('Value') || globalBpm);
         if (t >= 0) tempoEvents.push({ t, v });
@@ -4595,21 +4603,20 @@ function alsExtract(xml) {
   });
   tempoEvents.sort((a, b) => a.t - b.t);
 
-  const songClips = songTrack.querySelectorAll('MidiClip');
-  const partClips = partTrack ? partTrack.querySelectorAll('MidiClip') : [];
+  const songClips = Array.from(songTrack.getElementsByTagName('MidiClip'));
+  const partClips = partTrack ? Array.from(partTrack.getElementsByTagName('MidiClip')) : [];
 
   _alsImportData = [];
   songClips.forEach(clip => {
-    const rawName = clip.querySelector('Name')?.getAttribute('Value') || 'Unbenannt';
+    const rawName = clip.getElementsByTagName('Name')[0]?.getAttribute('Value') || 'Unbenannt';
     const keyMatch = rawName.match(/ -([a-zA-Z#]{1,12})$/);
     const keyCandidate = keyMatch ? keyMatch[1] : '';
     const key  = keyCandidate && ALS_VALID_KEYS.has(keyCandidate) ? keyCandidate : '';
     const name = key ? rawName.slice(0, rawName.length - keyCandidate.length - 2).trim() : rawName.trim();
 
-    const start = parseFloat(clip.querySelector('CurrentStart')?.getAttribute('Value') || 0);
-    const end   = parseFloat(clip.querySelector('CurrentEnd')?.getAttribute('Value') || 0);
+    const start = parseFloat(clip.getElementsByTagName('CurrentStart')[0]?.getAttribute('Value') || 0);
+    const end   = parseFloat(clip.getElementsByTagName('CurrentEnd')[0]?.getAttribute('Value') || 0);
     if (end <= start) return;
-    // BPM at clip start (like Python: get_bpm_at)
     let bpmAtClip = globalBpm;
     for (const e of tempoEvents) { if (e.t <= start) bpmAtClip = e.v; else break; }
     const secs  = alsBeatsToSeconds(start, end, tempoEvents, globalBpm);
@@ -4619,10 +4626,10 @@ function alsExtract(xml) {
     // Parts
     const parts = [];
     partClips.forEach(pc => {
-      const ps = parseFloat(pc.querySelector('CurrentStart')?.getAttribute('Value') || 0);
-      const pe = parseFloat(pc.querySelector('CurrentEnd')?.getAttribute('Value') || 0);
+      const ps = parseFloat(pc.getElementsByTagName('CurrentStart')[0]?.getAttribute('Value') || 0);
+      const pe = parseFloat(pc.getElementsByTagName('CurrentEnd')[0]?.getAttribute('Value') || 0);
       if (ps >= start && ps < end) {
-        const pName = pc.querySelector('Name')?.getAttribute('Value') || 'Part';
+        const pName = pc.getElementsByTagName('Name')[0]?.getAttribute('Value') || 'Part';
         const pSecs = alsBeatsToSeconds(ps, pe, tempoEvents, globalBpm);
         parts.push(pName + ' · ' + alsFormatTime(pSecs));
       }
