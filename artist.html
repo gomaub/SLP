@@ -748,7 +748,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.13</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.16</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -1209,7 +1209,11 @@ function render() {
       if (c === 'bpm')    return `<span class="track-bpm track-inline-edit ${t.bpm?'filled':''}" contenteditable="true" data-field="bpm" data-id="${t.id}">${t.bpm||'—'}</span>`;
       if (c === 'structure') {
         const hasStr = !!(annotations[t.id]||{}).structure;
-        return `<span style="text-align:center;cursor:${hasStr?'pointer':'default'};opacity:${hasStr?'1':'.25'};display:flex;align-items:center;justify-content:center;color:var(--fg)" ${hasStr?`onclick="alsShowStructure(${t.id},this);event.stopPropagation()"`:''}title="${hasStr?'Ablauf anzeigen':'kein Ablauf'}"><svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></svg></span>`;
+        const eyeClick = hasStr ? 'onclick="alsShowStructure(' + t.id + ',this);event.stopPropagation()"' : '';
+        const eyeCursor = hasStr ? 'pointer' : 'default';
+        const eyeOpacity = hasStr ? '1' : '.25';
+        const eyeTitle = hasStr ? 'Ablauf anzeigen' : 'kein Ablauf';
+        return '<span style="text-align:center;cursor:' + eyeCursor + ';opacity:' + eyeOpacity + ';display:flex;align-items:center;justify-content:center;color:var(--fg)" ' + eyeClick + ' title="' + eyeTitle + '"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>';
       }
       return '';
     }).join('');
@@ -3748,10 +3752,14 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.11 ─────────────────────────────────────────
+// ── ALS IMPORT v1.16 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
+let _alsDetectedTracks = {};
+
+// Make alsShowStructure globally accessible for inline onclick handlers
+window.alsShowStructure = function(trackId, btn) { alsShowStructure(trackId, btn); };
 
 const ALS_VALID_KEYS = new Set([
   'C','D','E','F','G','A','B','H',
@@ -3851,7 +3859,7 @@ function alsExtract(xml) {
     const eff = nameEl?.getElementsByTagName('EffectiveName')[0]?.getAttribute('Value')?.trim() || '';
     const n = (usr || eff).toUpperCase();
     if (/^SONGS?$/.test(n)) songTrack = t;
-    if (/^PARTS?$/.test(n)) partTrack = t;
+    if (/^PARTS?$|^ABLAUF$|^ABLÄUFE$|^STRUCTURE$|^STRUCT$|^SECTIONS?$/.test(n)) partTrack = t;
   }
   if (!songTrack) { alsShowError('Keine SONG / SONGS Spur gefunden.'); return; }
 
@@ -3932,6 +3940,8 @@ function alsExtract(xml) {
   }
 
   if (!_alsImportData.length) { alsShowError('Keine Clips in SONG Spur gefunden.'); return; }
+  // Store detected track names for display
+  _alsDetectedTracks = { song: songTrack ? (songTrack.getElementsByTagName('UserName')[0]?.getAttribute('Value') || 'SONG') : '—', part: partTrack ? (partTrack.getElementsByTagName('UserName')[0]?.getAttribute('Value') || 'PART') : 'nicht gefunden' };
   alsRenderPreview();
 }
 
@@ -3955,7 +3965,8 @@ function alsRenderPreview() {
   const updates = _alsImportData.filter(d => d.isUpdate).length;
   const news    = _alsImportData.filter(d => !d.isUpdate && !d.isFuzzy).length;
   const fuzzy   = _alsImportData.filter(d => d.isFuzzy).length;
-  meta.textContent = `${_alsImportData.length} Songs — ${updates} Update · ${news} Neu · ${fuzzy} Ähnlich`;
+  const partsTotal = _alsImportData.reduce((n,d) => n + (d.parts||[]).length, 0);
+  meta.textContent = `${_alsImportData.length} Songs — ${updates} Update · ${news} Neu · ${fuzzy} Ähnlich · ${partsTotal} Ablauf-Parts (Spur: ${(_alsDetectedTracks.part)||'–'})`;
 
   list.innerHTML = _alsImportData.map((d, idx) => {
     let badge = '';
