@@ -748,7 +748,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.10</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span>
+      <span>SETLIST PLANNER v1.13</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -772,7 +772,8 @@
         <button onclick="openImportModal();closeFileMenu()">↑ IMPORT TXT</button>
         <button onclick="importData();closeFileMenu()">↑ IMPORT FILE</button>
         <div class="file-menu-sep"></div>
-        <button onclick="openSaveModal();closeFileMenu()">✦ SPEICHERN</button>
+        <button onclick="quickSave();closeFileMenu()">✦ SPEICHERN</button>
+        <button onclick="openSaveModal();closeFileMenu()">✦ SPEICHERN ALS ...</button>
         <div class="file-menu-sep"></div>
         <div class="file-menu-admin-label">— ADMIN —</div>
         <div id="artist-switcher" style="padding:6px 12px 12px;box-sizing:border-box;width:100%">
@@ -794,6 +795,7 @@
   <div class="toolbar">
     <button onclick="openPool()" id="pool-btn">[ ◀ POOL ]</button>
     <button id="btn-more" onclick="toggleMoreButtons()" style="display:none">[ ••• ]</button>
+    <button onclick="quickSave()" id="main-save-btn" title="Setlist speichern">[ ✦ SAVE ]</button>
     <button onclick="toggleAddForm()" id="add-btn">[ + ADD ]</button>
     <button class="accent" onclick="openExportModal()">[ EXPORT ]</button>
     <button class="toolbar-secondary" onclick="autoGenerateLTC()" title="LTC automatisch vergeben (10-Min-Abstand)">[ ⏱ LTC ]</button>
@@ -3211,6 +3213,8 @@ function quickSave() {
       document.querySelectorAll('.pool-header button').forEach(function(b){
         if(b.textContent==='SAVE'){b.textContent='✓';setTimeout(function(){b.textContent='SAVE';},1200);}
       });
+      var sb = document.getElementById('main-save-btn');
+      if (sb) { sb.textContent='[ ✓ SAVED ]'; setTimeout(function(){ sb.textContent='[ ✦ SAVE ]'; }, 1400); }
       return;
     }
   }
@@ -3254,6 +3258,7 @@ function confirmSave() {
   saveArchive(archive);
   _currentSaveId = entry.id;
   _currentSaveName = name;
+  updateSetlistLabel();
   closeSaveModal();
   switchView('archive');
 }
@@ -3312,6 +3317,7 @@ function loadSetlist(id) {
     nextId = Math.max(nextId, ...pool.map(t=>t.id+1), 1);
     _currentSaveId = entry.id;
     _currentSaveName = entry.name;
+    updateSetlistLabel();
     snapshot();
     switchView('main');
     render();
@@ -3742,7 +3748,7 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.10 ─────────────────────────────────────────
+// ── ALS IMPORT v1.11 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -4047,6 +4053,7 @@ function alsShowError(msg) {
 
 // Drop zone setup
 document.addEventListener('DOMContentLoaded', function() {
+  updateSetlistLabel();
   const dz = document.getElementById('als-drop-zone');
   const fi = document.getElementById('als-file-input');
   if (!dz || !fi) return;
@@ -4123,6 +4130,12 @@ function alsShowStructure(trackId, btn) {
 }
 
 // Eye buttons rendered directly in row.innerHTML
+
+function updateSetlistLabel() {
+  const el = document.getElementById('current-setlist-label');
+  if (!el) return;
+  el.textContent = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? '· ' + _currentSaveName.toUpperCase() : '· -EMPTY-';
+}
 </script>
 </body>
 </html>
