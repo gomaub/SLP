@@ -19,7 +19,7 @@
   body { background:var(--bg); color:var(--fg); font-family:'Space Mono',monospace; font-size:11px; min-height:100vh; overflow-x:hidden; }
 
 
-  .shell { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:0 32px 80px; transition:margin-left .3s cubic-bezier(.4,0,.2,1); }
+  .shell { position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:0 24px 80px; transition:margin-left .3s cubic-bezier(.4,0,.2,1); }
   body.pool-open .shell { margin-left:300px; max-width:calc(1100px + 300px); }
 
   header { display:flex; justify-content:space-between; align-items:flex-start; padding:20px 0 0; }
@@ -748,7 +748,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.4</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span>
+      <span>SETLIST PLANNER v1.10</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -851,6 +851,7 @@
     <label><input type="checkbox" id="vis-ltc" checked onchange="toggleTC()"> LTC</label>
     <label><input type="checkbox" id="vis-key" checked onchange="render()"> TONART</label>
     <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
+    <label><input type="checkbox" id="vis-structure" checked onchange="render()"> ABLAUF</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
     <span style="color:var(--line);margin:0 2px">|</span>
     <label style="display:flex;align-items:center;gap:6px">
@@ -911,7 +912,7 @@
 </div>
 
 
-<footer style="position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 32px 32px;display:flex;justify-content:space-between;font-size:9px;color:#333">
+<footer style="position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:0 24px 32px;display:flex;justify-content:space-between;font-size:9px;color:#333">
   <span id="footer-count">0 TRACKS</span><span>© 2026</span>
 </footer>
 
@@ -960,7 +961,7 @@ let pool = [];
 // annotations[trackId] = { intro, outro, transIn, transOut, note }
 let annotations = {};
 let trackColors = {};
-let colOrder = ['ltc','key','notes','todo','length','bpm']; // full column order
+let colOrder = ['ltc','key','notes','todo','structure','length','bpm']; // full column order
 let _currentSaveId = null;
 let todos = {}; // trackId -> [{id, text, done, doneAt}]  // ID of last saved archive entry (for quick-save overwrite)
 let _currentSaveName = '';  // name of last saved entry
@@ -1094,9 +1095,10 @@ function render() {
   // ── Dynamic column system ──────────────────────────────────
   const showKey = visChecked('vis-key');
   const showTodo = visChecked('vis-todo');
-  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, length:showLength, bpm:showBpm };
-  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', length:'80px', bpm:'60px' };
-  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
+  const showStructure = visChecked('vis-structure');
+  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, structure:showStructure, length:showLength, bpm:showBpm };
+  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', structure:'36px', length:'80px', bpm:'60px' };
+  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', structure:'◎ ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
   const visCols = colOrder.filter(c => COL_VISIBLE[c]);
   const gridTpl = '36px 1fr ' + visCols.map(c => COL_WIDTHS[c]).join(' ') + ' 36px';
 
@@ -1203,6 +1205,10 @@ function render() {
       if (c === 'notes')  return `<span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)">${ann.note||'—'}</span>`;
       if (c === 'length') return `<span class="track-length track-inline-edit" contenteditable="true" data-field="length" data-id="${t.id}">${t.length||'—'}</span>`;
       if (c === 'bpm')    return `<span class="track-bpm track-inline-edit ${t.bpm?'filled':''}" contenteditable="true" data-field="bpm" data-id="${t.id}">${t.bpm||'—'}</span>`;
+      if (c === 'structure') {
+        const hasStr = !!(annotations[t.id]||{}).structure;
+        return `<span style="text-align:center;cursor:${hasStr?'pointer':'default'};opacity:${hasStr?'1':'.25'};display:flex;align-items:center;justify-content:center;color:var(--fg)" ${hasStr?`onclick="alsShowStructure(${t.id},this);event.stopPropagation()"`:''}title="${hasStr?'Ablauf anzeigen':'kein Ablauf'}"><svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></svg></span>`;
+      }
       return '';
     }).join('');
 
@@ -1211,7 +1217,7 @@ function render() {
       <span class="track-name">${t.name}${t.uncertain?'<span class="uncertain-badge"></span>':''}${col?`<span class="color-dot" style="background:${col}"></span>`:''}</span>
       ${colCells}
       <span style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
-        <button class="track-edit-btn" onclick="openEditModal(${t.id})">✎</button>
+<button class="track-edit-btn" onclick="openEditModal(${t.id})">✎</button>
         <button class="track-delete-btn" onclick="removeFromSetlist(${t.id})">✕</button>
       </span>`;
 
@@ -2469,13 +2475,15 @@ function toggleTC() {
 function updateTrackFontSize(val) {
   val = +val;
   document.documentElement.style.setProperty('--track-name-fs', val + 'px');
-  // Scale cell font proportionally (cell is always a bit smaller than name)
+  // Scale cell font proportionally
   const cellFs = Math.max(8, val - 2);
   document.documentElement.style.setProperty('--cell-fs', cellFs + 'px');
   // Scale row height
   const rowH = Math.max(36, val * 3);
   document.documentElement.style.setProperty('--track-row-h', rowH + 'px');
-
+  // Scale layout width with font size (12px = 1400px base, scales up/down)
+  const maxW = Math.round(1400 * (val / 12));
+  document.querySelectorAll('.shell, footer').forEach(el => el.style.maxWidth = maxW + 'px');
 }
 
 // ── TONART / KEY COLUMN ───────────────────────────────────────
@@ -3734,7 +3742,7 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.4 ─────────────────────────────────────────
+// ── ALS IMPORT v1.10 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -3999,20 +4007,24 @@ function confirmAlsImport() {
       const update = { length: d.length, bpm: d.bpm };
       if (d.key) update.key = d.key;
 
+      const saveStructure = (tid) => {
+        if (!d.parts || !d.parts.length) return;
+        if (!annotations[tid]) annotations[tid] = {};
+        annotations[tid].structure = d.parts.join('\n');
+      };
       if (d.isUpdate) {
-        // Update existing pool entry
         const t = pool.find(p => p.id === d.existingId);
-        if (t) Object.assign(t, update);
+        if (t) { Object.assign(t, update); saveStructure(t.id); }
       } else if (d.isFuzzy && d.fuzzyAccepted) {
         const t = pool.find(p => p.id === d.fuzzyId);
-        if (t) Object.assign(t, update);
+        if (t) { Object.assign(t, update); saveStructure(t.id); }
       } else if (d.manualId) {
         const t = pool.find(p => p.id === d.manualId);
-        if (t) Object.assign(t, update);
+        if (t) { Object.assign(t, update); saveStructure(t.id); }
       } else {
-        // New track — add to pool only
         const newId = Math.max(0, ...pool.map(p => p.id), ...setlist.map(s => s)) + 1;
         pool.push({ id: newId, name: d.name, ...update, ltc: '', uncertain: false, todo: false });
+        saveStructure(newId);
       }
     }
     snapshot();
@@ -4049,6 +4061,68 @@ document.addEventListener('DOMContentLoaded', function() {
   // confirm button
   document.getElementById('als-confirm-btn').addEventListener('click', confirmAlsImport);
 });
+
+// ── STRUCTURE POPUP ─────────────────────────────────────────
+function alsShowStructure(trackId, btn) {
+  // Remove any existing popup
+  const existing = document.getElementById('als-structure-popup');
+  if (existing) {
+    existing.remove();
+    if (existing.dataset.tid === String(trackId)) return; // toggle off
+  }
+
+  const ann = (typeof annotations !== 'undefined' && annotations[trackId]) || {};
+  const structure = ann.structure || '';
+  if (!structure) return;
+
+  const popup = document.createElement('div');
+  popup.id = 'als-structure-popup';
+  popup.dataset.tid = String(trackId);
+  popup.style.cssText = `
+    position:fixed; z-index:8000;
+    background:#1a1a1a; border:1px solid #444;
+    padding:14px 16px; min-width:180px; max-width:280px;
+    box-shadow:0 6px 24px rgba(0,0,0,.6);
+    font-family:'Space Mono',monospace; font-size:10px; color:#ccc;
+    line-height:1.7; letter-spacing:.04em;
+  `;
+
+  // Position near the button
+  const rect = btn.getBoundingClientRect();
+  const top = rect.bottom + 6;
+  const left = Math.min(rect.left, window.innerWidth - 300);
+  popup.style.top = top + 'px';
+  popup.style.left = left + 'px';
+
+  // Find track name
+  const track = (typeof pool !== 'undefined' ? pool : []).find(t => t.id === trackId)
+             || (typeof setlist !== 'undefined' ? [] : []);
+  const trackName = (typeof pool !== 'undefined' && pool.find(t => t.id === trackId))
+                  ? pool.find(t => t.id === trackId).name : '';
+
+  popup.innerHTML =
+    (trackName ? `<div style="font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:.06em;border-bottom:1px solid #333;padding-bottom:6px">${trackName}</div>` : '') +
+    structure.split('\n').map(line =>
+      line.trim() ? `<div style="display:flex;justify-content:space-between;gap:16px">
+        <span>${line.split(' · ')[0] || line}</span>
+        <span style="color:#888">${line.split(' · ')[1] || ''}</span>
+      </div>` : ''
+    ).join('');
+
+  document.body.appendChild(popup);
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function closePopup(e) {
+      if (!popup.contains(e.target) && e.target !== btn) {
+        popup.remove();
+        document.removeEventListener('click', closePopup);
+      }
+    });
+  }, 50);
+}
+
+// Eye buttons rendered directly in row.innerHTML
 </script>
 </body>
 </html>
