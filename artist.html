@@ -749,7 +749,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.19</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.20</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -3754,7 +3754,7 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.19 ─────────────────────────────────────────
+// ── ALS IMPORT v1.20 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -3862,7 +3862,7 @@ function alsExtract(xml) {
     const n = (usr || eff).toUpperCase();
     if (/^SONGS?$/.test(n)) songTrack = t;
     if (/^PARTS?$|^ABLAUF$|^ABLÄUFE$|^STRUCTURE$|^STRUCT$|^SECTIONS?$/.test(n)) partTrack = t;
-    if (/^LTCS?$/.test(n)) ltcTrack = t;
+    if (/^LTCS?$|^TIMECODES?$|^TC$/.test(n)) ltcTrack = t;
   }
   if (!songTrack) { alsShowError('Keine SONG / SONGS Spur gefunden.'); return; }
 
@@ -3965,18 +3965,20 @@ function alsExtract(xml) {
 
 function alsParseTimecode(name) {
   if (!name) return '';
-  // Format 1: 25fps-44100hz-h0-m6-s10_h0-m10-s0  → take first h/m/s group
-  let m = name.match(/h(\d+)-m(\d+)-s(\d+)/i);
+  // Format: 25fps-44100hz-h0-m30-s0_h0-m10-s0 → take FIRST h/m/s group (before _)
+  const firstPart = name.split('_')[0];
+  let m = firstPart.match(/h(\d+)-m(\d+)-s(\d+)/i);
   if (m) {
-    const h = m[1].padStart(2,'0'), min = m[2].padStart(2,'0'), s = m[3].padStart(2,'0');
+    const h = String(+m[1]).padStart(2,'0');
+    const min = String(+m[2]).padStart(2,'0');
+    const s = String(+m[3]).padStart(2,'0');
     return h + ':' + min + ':' + s;
   }
-  // Format 2: LTC_01000000_... → 8-digit HHMMSSFF → HH:MM:SS
+  // Format: LTC_01000000_... → 8-digit HHMMSSFF → HH:MM:SS
   m = name.match(/(\d{8})/);
   if (m) {
     const d = m[1];
-    const h = d.slice(0,2), min = d.slice(2,4), s = d.slice(4,6);
-    return h + ':' + min + ':' + s;
+    return d.slice(0,2) + ':' + d.slice(2,4) + ':' + d.slice(4,6);
   }
   return '';
 }
@@ -4283,7 +4285,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v1.19</div>' +
+  '</table><div class="wm">SETLIST PLANNER v1.20</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
