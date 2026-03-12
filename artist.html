@@ -688,6 +688,7 @@
       <label class="export-fmt-btn"><input type="radio" name="exp-fmt" value="csv"> CSV</label>
       <label class="export-fmt-btn"><input type="radio" name="exp-fmt" value="pdf-a4"> PDF A4</label>
       <label class="export-fmt-btn"><input type="radio" name="exp-fmt" value="pdf-fit"> PDF Originalgröße</label>
+      <label class="export-fmt-btn"><input type="radio" name="exp-fmt" value="tecsheet"> TecSheet</label>
     </div>
 
     <p style="font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Enthaltene Infos</p>
@@ -748,7 +749,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.16</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.19</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -1795,6 +1796,7 @@ function runExport() {
   const opts = getExportOpts();
   if (opts.fmt === 'txt') exportTxt(opts);
   else if (opts.fmt === 'csv') exportCsv(opts);
+  else if (opts.fmt === 'tecsheet') exportTecSheet(opts);
   else exportPdf(opts);
   closeExportModal();
 }
@@ -3752,7 +3754,7 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.16 ─────────────────────────────────────────
+// ── ALS IMPORT v1.19 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -3852,7 +3854,7 @@ function alsBeatsToSeconds(start, end, tempoEvents, globalBpm) {
 function alsExtract(xml) {
   // Use getElementsByTagName — querySelector behaves differently in XML docs
   const midiTracks = Array.from(xml.getElementsByTagName('MidiTrack'));
-  let songTrack = null, partTrack = null;
+  let songTrack = null, partTrack = null, ltcTrack = null;
   for (const t of midiTracks) {
     const nameEl = t.getElementsByTagName('Name')[0];
     const usr = nameEl?.getElementsByTagName('UserName')[0]?.getAttribute('Value')?.trim() || '';
@@ -3860,6 +3862,7 @@ function alsExtract(xml) {
     const n = (usr || eff).toUpperCase();
     if (/^SONGS?$/.test(n)) songTrack = t;
     if (/^PARTS?$|^ABLAUF$|^ABLÄUFE$|^STRUCTURE$|^STRUCT$|^SECTIONS?$/.test(n)) partTrack = t;
+    if (/^LTCS?$/.test(n)) ltcTrack = t;
   }
   if (!songTrack) { alsShowError('Keine SONG / SONGS Spur gefunden.'); return; }
 
@@ -3887,6 +3890,15 @@ function alsExtract(xml) {
 
   const songClips = Array.from(songTrack.getElementsByTagName('MidiClip'));
   const partClips = partTrack ? Array.from(partTrack.getElementsByTagName('MidiClip')) : [];
+
+  // LTC clips indexed by start-beat for O(1) lookup
+  const ltcByBeat = {};
+  if (ltcTrack) {
+    Array.from(ltcTrack.getElementsByTagName('MidiClip')).forEach(function(lc) {
+      const ls = parseFloat(lc.getElementsByTagName('CurrentStart')[0]?.getAttribute('Value') || -1);
+      if (ls >= 0) ltcByBeat[ls] = lc.getElementsByTagName('Name')[0]?.getAttribute('Value') || '';
+    });
+  }
 
   _alsImportData = [];
   for (const clip of songClips) {
@@ -3931,8 +3943,14 @@ function alsExtract(xml) {
       });
     }
 
+    // Parse LTC timecode from LTC track clip at same start beat
+    let ltc = '';
+    if (ltcByBeat[start] !== undefined) {
+      ltc = alsParseTimecode(ltcByBeat[start]);
+    }
+
     _alsImportData.push({
-      name, length, bpm: String(bpmR), key, parts,
+      name, length, bpm: String(bpmR), key, parts, ltc,
       isUpdate: !!exact, existingId: exact?.id,
       isFuzzy: !exact && !!fuzzy, fuzzyId: fuzzy?.id, fuzzyName: fuzzy?.name,
       fuzzyAccepted: false
@@ -3943,6 +3961,24 @@ function alsExtract(xml) {
   // Store detected track names for display
   _alsDetectedTracks = { song: songTrack ? (songTrack.getElementsByTagName('UserName')[0]?.getAttribute('Value') || 'SONG') : '—', part: partTrack ? (partTrack.getElementsByTagName('UserName')[0]?.getAttribute('Value') || 'PART') : 'nicht gefunden' };
   alsRenderPreview();
+}
+
+function alsParseTimecode(name) {
+  if (!name) return '';
+  // Format 1: 25fps-44100hz-h0-m6-s10_h0-m10-s0  → take first h/m/s group
+  let m = name.match(/h(\d+)-m(\d+)-s(\d+)/i);
+  if (m) {
+    const h = m[1].padStart(2,'0'), min = m[2].padStart(2,'0'), s = m[3].padStart(2,'0');
+    return h + ':' + min + ':' + s;
+  }
+  // Format 2: LTC_01000000_... → 8-digit HHMMSSFF → HH:MM:SS
+  m = name.match(/(\d{8})/);
+  if (m) {
+    const d = m[1];
+    const h = d.slice(0,2), min = d.slice(2,4), s = d.slice(4,6);
+    return h + ':' + min + ':' + s;
+  }
+  return '';
 }
 
 function alsFormatTime(secs) {
@@ -3966,7 +4002,8 @@ function alsRenderPreview() {
   const news    = _alsImportData.filter(d => !d.isUpdate && !d.isFuzzy).length;
   const fuzzy   = _alsImportData.filter(d => d.isFuzzy).length;
   const partsTotal = _alsImportData.reduce((n,d) => n + (d.parts||[]).length, 0);
-  meta.textContent = `${_alsImportData.length} Songs — ${updates} Update · ${news} Neu · ${fuzzy} Ähnlich · ${partsTotal} Ablauf-Parts (Spur: ${(_alsDetectedTracks.part)||'–'})`;
+  const ltcTotal = _alsImportData.filter(d => d.ltc).length;
+  meta.textContent = `${_alsImportData.length} Songs — ${updates} Update · ${news} Neu · ${fuzzy} Ähnlich · ${partsTotal} Parts · ${ltcTotal} LTC`;
 
   list.innerHTML = _alsImportData.map((d, idx) => {
     let badge = '';
@@ -3996,7 +4033,7 @@ function alsRenderPreview() {
     return `<div style="padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:10px">
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:700;letter-spacing:.04em">${d.name}</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:2px">${d.length} · ${d.bpm} BPM${d.key ? ' · ' + d.key : ''}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">${d.length} · ${d.bpm} BPM${d.key ? ' · ' + d.key : ''}${d.ltc ? ' · LTC ' + d.ltc : ''}</div>
         ${fuzzyRow}${manualRow}
       </div>
       ${badge}
@@ -4023,6 +4060,7 @@ function confirmAlsImport() {
     for (const d of _alsImportData) {
       const update = { length: d.length, bpm: d.bpm };
       if (d.key) update.key = d.key;
+      if (d.ltc) update.ltc = d.ltc;
 
       const saveStructure = (tid) => {
         if (!d.parts || !d.parts.length) return;
@@ -4147,6 +4185,112 @@ function updateSetlistLabel() {
   if (!el) return;
   el.textContent = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? '· ' + _currentSaveName.toUpperCase() : '· -EMPTY-';
 }
+
+function exportTecSheet(opts) {
+  const showBpm    = opts.bpm;
+  const showLength = opts.length;
+  const showTrans  = opts.transitions;
+  const showBlocks = opts.blocks;
+  const showKey    = typeof visChecked === 'function' ? visChecked('vis-key') : true;
+  const showNotes  = opts.notes;
+
+  const total = setlist.reduce((s,tid) => s + toSeconds(getTrack(tid)?.length||''), 0);
+  const title = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist';
+
+  let trackNum = 0;
+  let rows = [];
+  let currentBlock = '';
+
+  setlist.forEach(function(tid) {
+    const t = getTrack(tid);
+    if (!t) return;
+    if (showBlocks && typeof blocks !== 'undefined') {
+      const blk = blocks.find(function(b){ return b.startId === tid; });
+      if (blk) currentBlock = blk.label;
+    }
+    if (!t.special) trackNum++;
+    const ann = (typeof annotations !== 'undefined' && annotations[tid]) || {};
+    const trans = [];
+    if (showTrans) {
+      if (ann.intro)    trans.push('INTRO: ' + ann.intro);
+      if (ann.transIn)  trans.push('↓ ' + ann.transIn);
+      if (ann.transOut) trans.push('↑ ' + ann.transOut);
+      if (ann.outro)    trans.push('OUTRO: ' + ann.outro);
+    }
+    rows.push({ num: t.special ? '·' : String(trackNum).padStart(2,'00'),
+      name: t.name, length: t.length||'', bpm: t.bpm||'',
+      ltc: t.ltc||'', key: t.key||'', trans: trans, note: ann.note||'',
+      block: currentBlock, special: t.special, uncertain: t.uncertain });
+  });
+
+  const cols = ['#','SONG'];
+  if (showLength) cols.push('DAUER');
+  if (showBpm)    cols.push('BPM');
+  cols.push('LTC');
+  if (showKey)    cols.push('TONART');
+  if (showTrans)  cols.push('ÜBERGÄNGE');
+  if (showNotes)  cols.push('NOTIZ');
+  if (showBlocks) cols.push('GRUPPE');
+
+  const thCells = cols.map(function(c){ return '<th>' + c + '</th>'; }).join('');
+
+  const bodyRows = rows.map(function(r) {
+    const cells = [
+      '<td class="num">' + r.num + '</td>',
+      '<td class="name">' + r.name + (r.uncertain ? ' <span class="unc">?</span>' : '') + '</td>'
+    ];
+    if (showLength) cells.push('<td>' + r.length + '</td>');
+    if (showBpm)    cells.push('<td>' + r.bpm + '</td>');
+    cells.push('<td class="mono">' + r.ltc + '</td>');
+    if (showKey)    cells.push('<td>' + r.key + '</td>');
+    if (showTrans)  cells.push('<td class="trans">' + r.trans.join('<br>') + '</td>');
+    if (showNotes)  cells.push('<td class="note">' + (r.note||'') + '</td>');
+    if (showBlocks) cells.push('<td class="blk">' + (r.block||'') + '</td>');
+    const cls = r.special ? ' class="sp"' : (r.uncertain ? ' class="unc-row"' : '');
+    return '<tr' + cls + '>' + cells.join('') + '</tr>';
+  }).join('');
+
+  const dateStr = new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>TecSheet</title>' +
+  '<style>' +
+  '@import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap");' +
+  '*{margin:0;padding:0;box-sizing:border-box}' +
+  'body{font-family:"Space Mono",monospace;background:#fff;color:#111;padding:32px 40px;font-size:11px}' +
+  'header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #111}' +
+  'h1{font-family:"Bebas Neue",sans-serif;font-size:52px;line-height:1}' +
+  '.sub{font-size:9px;letter-spacing:.14em;color:#888;text-transform:uppercase;margin-bottom:4px}' +
+  '.meta{font-size:9px;color:#888;letter-spacing:.1em;text-align:right;line-height:2}' +
+  'table{width:100%;border-collapse:collapse;margin-top:4px}' +
+  'thead th{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:#111;padding:7px 10px;text-align:left;border-right:1px solid #333}' +
+  'thead th:last-child{border-right:none}' +
+  'tbody tr{border-bottom:1px solid #e8e8e8}' +
+  'tbody tr:nth-child(even){background:#f7f7f7}' +
+  'tr.sp{background:#111;color:#fff}' +
+  'tr.unc-row{opacity:.6}' +
+  'td{padding:8px 10px;vertical-align:top;border-right:1px solid #eee}' +
+  'td:last-child{border-right:none}' +
+  'td.num{font-size:9px;color:#aaa;width:28px;white-space:nowrap}' +
+  'td.name{font-weight:700;font-size:12px;min-width:140px}' +
+  'td.mono{font-family:"Space Mono",monospace;font-size:10px;white-space:nowrap}' +
+  'td.trans{font-size:9px;color:#666;font-style:italic;line-height:1.7}' + 'td.note{font-size:9px;color:#555;line-height:1.6}' +
+  'td.blk{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#888}' +
+  'span.unc{color:#cc4400;font-size:9px}' +
+  'tfoot td{font-size:9px;color:#888;padding:10px;border-top:2px solid #111}' +
+  '.wm{margin-top:20px;font-size:8px;color:#ccc;letter-spacing:.1em}' +
+  '@media print{body{padding:15mm 20mm}thead th,tr.sp{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
+  '</style></head><body>' +
+  '<header><div><div class="sub">TECSHEET</div><h1>' + title.toUpperCase() + '</h1></div>' +
+  '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
+  '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
+  '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
+  '</table><div class="wm">SETLIST PLANNER v1.19</div>' +
+  '</body></html>';
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
 </script>
 </body>
 </html>
