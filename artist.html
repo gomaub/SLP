@@ -768,7 +768,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.24</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.44</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -4132,7 +4132,7 @@ window.resetAnnStyle = function() {
 </div>
 
 <script>
-// ── ALS IMPORT v1.24 ─────────────────────────────────────────
+// ── ALS IMPORT v1.44 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -4351,20 +4351,20 @@ function alsExtract(xml) {
 
 function alsParseTimecode(name) {
   if (!name) return '';
-  // Format: 25fps-44100hz-h0-m30-s0_h0-m10-s0 → take FIRST h/m/s group (before _)
+  // Format 1: 25fps-44100hz-h1-m0-s0_... → h/m/s groups
   const firstPart = name.split('_')[0];
   let m = firstPart.match(/h(\d+)-m(\d+)-s(\d+)/i);
   if (m) {
-    const h = String(+m[1]).padStart(2,'0');
-    const min = String(+m[2]).padStart(2,'0');
-    const s = String(+m[3]).padStart(2,'0');
-    return h + ':' + min + ':' + s;
+    return String(+m[1]).padStart(2,'0') + ':' + String(+m[2]).padStart(2,'0') + ':' + String(+m[3]).padStart(2,'0');
   }
-  // Format: LTC_01000000_... → 8-digit HHMMSSFF → HH:MM:SS
-  m = name.match(/(\d{8})/);
+  // Format 2: pure digit string — 8=HHMMSSFF, 6=HHMMSS, 4=HHMM
+  m = name.match(/(?<!\d)(\d{8}|\d{6}|\d{4})(?!\d)/);
   if (m) {
     const d = m[1];
-    return d.slice(0,2) + ':' + d.slice(2,4) + ':' + d.slice(4,6);
+    const h  = d.slice(0,2);
+    const mi = d.slice(2,4);
+    const s  = d.length >= 6 ? d.slice(4,6) : '00';
+    return h + ':' + mi + ':' + s;
   }
   return '';
 }
@@ -4671,7 +4671,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v1.24</div>' +
+  '</table><div class="wm">SETLIST PLANNER v1.44</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
