@@ -770,7 +770,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.25</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.26</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -3825,7 +3825,7 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.25 ─────────────────────────────────────────
+// ── ALS IMPORT v1.26 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -4289,7 +4289,7 @@ function applyAnnStyles() {
   });
 }
 
-function openAnnStyleModal(type) {
+window.openAnnStyleModal = function openAnnStyleModal(type) {
   _annStyleType = type;
   const m = document.getElementById('ann-style-modal');
   const title = document.getElementById('ann-style-title');
@@ -4318,31 +4318,59 @@ function openAnnStyleModal(type) {
     sw.appendChild(btn);
   });
 
-  // Size buttons
+  // Size stepper with arrows
   const sb = document.getElementById('ann-size-btns');
   sb.innerHTML = '';
-  ANN_SIZES.forEach(function(sz) {
-    const btn = document.createElement('button');
-    const isActive = String(cur.fs||'') === String(sz);
-    btn.textContent = sz + 'px';
-    btn.style.cssText = 'font-family:"Space Mono",monospace;font-size:9px;letter-spacing:.06em;padding:4px 8px;cursor:pointer;border:1px solid ' + (isActive ? 'var(--fg)' : 'var(--line)') + ';background:' + (isActive ? 'var(--fg)' : 'none') + ';color:' + (isActive ? 'var(--bg)' : 'var(--fg)') + ';';
-    btn.onclick = function() {
-      annStyles[_annStyleType] = annStyles[_annStyleType] || {};
-      annStyles[_annStyleType].fs = sz;
-      applyAnnStyles();
-      openAnnStyleModal(_annStyleType);
-    };
-    sb.appendChild(btn);
-  });
+  const curFs = parseInt(cur.fs || '0') || 0;
+  const displayFs = curFs || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ann-fs')) || 9;
+  
+  const minusBtn = document.createElement('button');
+  minusBtn.textContent = '−';
+  minusBtn.style.cssText = 'font-family:"Space Mono",monospace;font-size:13px;padding:4px 10px;cursor:pointer;border:1px solid var(--line);background:none;color:var(--fg);line-height:1;';
+  minusBtn.onclick = function() {
+    const cur2 = annStyles[_annStyleType] || {};
+    const fs = parseInt(cur2.fs||'0') || displayFs;
+    annStyles[_annStyleType] = Object.assign({}, cur2, { fs: Math.max(7, fs - 1) });
+    applyAnnStyles(); openAnnStyleModal(_annStyleType);
+  };
+  
+  const label = document.createElement('span');
+  label.textContent = displayFs + 'px';
+  label.style.cssText = 'font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.06em;padding:4px 8px;color:var(--fg);min-width:36px;text-align:center;display:inline-block;';
+  
+  const plusBtn = document.createElement('button');
+  plusBtn.textContent = '+';
+  plusBtn.style.cssText = 'font-family:"Space Mono",monospace;font-size:13px;padding:4px 10px;cursor:pointer;border:1px solid var(--line);background:none;color:var(--fg);line-height:1;';
+  plusBtn.onclick = function() {
+    const cur2 = annStyles[_annStyleType] || {};
+    const fs = parseInt(cur2.fs||'0') || displayFs;
+    annStyles[_annStyleType] = Object.assign({}, cur2, { fs: Math.min(18, fs + 1) });
+    applyAnnStyles(); openAnnStyleModal(_annStyleType);
+  };
+  
+  const resetFsBtn = document.createElement('button');
+  resetFsBtn.textContent = '↺';
+  resetFsBtn.title = 'Größe zurücksetzen';
+  resetFsBtn.style.cssText = 'font-family:"Space Mono",monospace;font-size:11px;padding:4px 8px;cursor:pointer;border:1px solid var(--line);background:none;color:var(--muted);margin-left:6px;';
+  resetFsBtn.onclick = function() {
+    const cur2 = annStyles[_annStyleType] || {};
+    annStyles[_annStyleType] = Object.assign({}, cur2, { fs: '' });
+    applyAnnStyles(); openAnnStyleModal(_annStyleType);
+  };
+  
+  sb.appendChild(minusBtn);
+  sb.appendChild(label);
+  sb.appendChild(plusBtn);
+  sb.appendChild(resetFsBtn);
 }
 
-function closeAnnStyleModal() {
+window.closeAnnStyleModal = function closeAnnStyleModal() {
   const m = document.getElementById('ann-style-modal');
   if (m) m.style.cssText = 'display:none';
   snapshot();
 }
 
-function resetAnnStyle() {
+window.resetAnnStyle = function resetAnnStyle() {
   annStyles[_annStyleType] = { color:'', fs:'' };
   applyAnnStyles();
   openAnnStyleModal(_annStyleType);
@@ -4451,7 +4479,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v1.25</div>' +
+  '</table><div class="wm">SETLIST PLANNER v1.26</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
