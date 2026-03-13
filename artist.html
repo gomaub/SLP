@@ -771,7 +771,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.38</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.39</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -3873,7 +3873,7 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.38 ─────────────────────────────────────────
+// ── ALS IMPORT v1.39 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -4425,7 +4425,7 @@ window.resetAnnStyle = function() {
 };
 
 // ── LINKS MENU ────────────────────────────────────────────────
-function toggleLinksMenu() {
+window.toggleLinksMenu = function toggleLinksMenu() {
   const m = document.getElementById('links-menu');
   if (!m) return;
   const isOpen = m.style.display !== 'none';
@@ -4442,19 +4442,19 @@ function toggleLinksMenu() {
     }, 0);
   }
 }
-function closeLinksMenu() {
+window.closeLinksMenu = function closeLinksMenu() {
   const m = document.getElementById('links-menu');
   if (m) m.style.display = 'none';
 }
 
-function getViewUrl(type) {
+window.getViewUrl = function getViewUrl(type) {
   // Build permanent URL: same file, add ?view=print or ?view=tec
   const url = new URL(window.location.href);
   url.searchParams.set('view', type);
   return url.toString();
 }
 
-function copyViewLink(type) {
+window.copyViewLink = function copyViewLink(type) {
   const url = getViewUrl(type);
   if (navigator.clipboard) {
     navigator.clipboard.writeText(url).then(function() {
@@ -4465,7 +4465,7 @@ function copyViewLink(type) {
   }
 }
 
-function showLinkCopiedToast(type) {
+window.showLinkCopiedToast = function showLinkCopiedToast(type) {
   const label = type === 'print' ? 'Druckversion' : 'Technik-Infos';
   const t = document.createElement('div');
   t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.08em;padding:10px 18px;z-index:9999;white-space:nowrap;';
@@ -4474,10 +4474,10 @@ function showLinkCopiedToast(type) {
   setTimeout(function(){ t.remove(); }, 2200);
 }
 
-function openPrintView() {
+window.openPrintView = function openPrintView() {
   window.open(getViewUrl('print'), '_blank');
 }
-function openTecView() {
+window.openTecView = function openTecView() {
   const title = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist';
   const total = setlist.reduce(function(s,tid){ return s + toSeconds(getTrack(tid)?.length||''); }, 0);
   let trackNum = 0, rows = [], currentBlock = '';
@@ -4554,7 +4554,7 @@ function openTecView() {
 }
 
 // ── VIEW MODE (called after data loaded) ──────────────────────
-function checkViewMode() {
+window.checkViewMode = function checkViewMode() {
   const params = new URLSearchParams(window.location.search);
   const view = params.get('view');
   if (!view) return;
@@ -4580,7 +4580,7 @@ function checkViewMode() {
   if (params.get('autoprint') === '1') window.print();
 }
 
-function buildPrintHTML() {
+window.buildPrintHTML = function buildPrintHTML() {
   const title = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist';
   const total = setlist.reduce(function(s,tid){ return s + toSeconds(getTrack(tid)?.length||''); }, 0);
   let num = 0;
@@ -4608,7 +4608,7 @@ function buildPrintHTML() {
     '<div class="footer"><span>' + new Date().toLocaleDateString("de-DE") + '</span><span>GESAMT: ' + formatTime(total) + '</span></div>';
 }
 
-function buildTecHTML() {
+window.buildTecHTML = function buildTecHTML() {
   // Full tec sheet built inline (same as exportTecSheet but returns HTML string)
   const opts = { bpm:true, length:true, transitions:true, notes:true, blocks:true };
   const showKey = true;
