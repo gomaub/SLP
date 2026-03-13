@@ -29,7 +29,7 @@
 
 
   /* TOOLBAR */
-  .toolbar { display:flex; align-items:center; gap:2px; margin:28px 0 20px; flex-wrap:wrap; }
+  .toolbar { display:flex; align-items:center; gap:2px; margin:28px 0 20px; flex-wrap:wrap; overflow:visible; position:relative; }
   .file-menu-wrap { position:relative; display:inline-block; }
   .file-menu-dropdown { display:none; position:absolute; top:100%; right:0; background:#111; color:#fff; width:300px; z-index:500; box-shadow:0 4px 20px rgba(0,0,0,.3); border:1px solid #333; }
   .file-menu-dropdown.open { display:block; }
@@ -771,7 +771,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.39</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.40</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -823,7 +823,7 @@
     <button class="accent" onclick="openExportModal()">[ EXPORT ]</button>
     <div style="position:relative;display:inline-block" id="links-dropdown-wrap">
       <button onclick="toggleLinksMenu()" id="links-btn">[ ⎘ LINKS ]</button>
-      <div id="links-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card);border:1px solid var(--line);z-index:500;min-width:180px;padding:6px 0;box-shadow:0 4px 16px rgba(0,0,0,.3)">
+      <div id="links-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card);border:1px solid var(--line);z-index:9500;min-width:220px;padding:6px 0;box-shadow:0 4px 16px rgba(0,0,0,.3)">
         <div style="font-size:8px;letter-spacing:.12em;color:var(--muted);padding:4px 12px 6px;border-bottom:1px solid var(--line);margin-bottom:4px">DIREKTLINKS</div>
         <button onclick="copyViewLink('print');closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em;padding:7px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">🖨 DRUCKVERSION — Link kopieren</button>
         <button onclick="copyViewLink('tec');closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em;padding:7px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">⚙ TECHNIK-INFOS — Link kopieren</button>
@@ -3831,6 +3831,136 @@ function initColHeaders() {
   });
 }
 initColHeaders();
+
+
+// ── LINKS MENU ────────────────────────────────────────────────
+window.toggleLinksMenu = function toggleLinksMenu() {
+  const m = document.getElementById('links-menu');
+  if (!m) return;
+  const isOpen = m.style.display !== 'none';
+  m.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    setTimeout(function() {
+      document.addEventListener('click', function handler(e) {
+        const wrap = document.getElementById('links-dropdown-wrap');
+        if (wrap && !wrap.contains(e.target)) {
+          closeLinksMenu();
+          document.removeEventListener('click', handler);
+        }
+      });
+    }, 0);
+  }
+}
+window.closeLinksMenu = function closeLinksMenu() {
+  const m = document.getElementById('links-menu');
+  if (m) m.style.display = 'none';
+}
+
+window.getViewUrl = function getViewUrl(type) {
+  // Build permanent URL: same file, add ?view=print or ?view=tec
+  const url = new URL(window.location.href);
+  url.searchParams.set('view', type);
+  return url.toString();
+}
+
+window.copyViewLink = function copyViewLink(type) {
+  const url = getViewUrl(type);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(function() {
+      showLinkCopiedToast(type);
+    });
+  } else {
+    prompt('Link kopieren:', url);
+  }
+}
+
+window.showLinkCopiedToast = function showLinkCopiedToast(type) {
+  const label = type === 'print' ? 'Druckversion' : 'Technik-Infos';
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.08em;padding:10px 18px;z-index:9999;white-space:nowrap;';
+  t.textContent = '✓ ' + label + '-Link kopiert';
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2200);
+}
+
+window.openPrintView = function openPrintView() {
+  window.open(getViewUrl('print'), '_blank');
+}
+window.openTecView = function openTecView() {
+  const title = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist';
+  const total = setlist.reduce(function(s,tid){ return s + toSeconds(getTrack(tid)?.length||''); }, 0);
+  let trackNum = 0, rows = [], currentBlock = '';
+  setlist.forEach(function(tid) {
+    const t = getTrack(tid);
+    if (!t) return;
+    if (typeof blocks !== 'undefined') {
+      const blk = blocks.find(function(b){ return b.startId === tid; });
+      if (blk) currentBlock = blk.label;
+    }
+    if (t.special === 'zugabe') { rows.push({ zugabe:true }); return; }
+    if (!t.special) trackNum++;
+    const ann = (typeof annotations !== 'undefined' && annotations[tid]) || {};
+    const trans = [];
+    if (ann.intro)    trans.push('INTRO: ' + ann.intro);
+    if (ann.transIn)  trans.push('↓ ' + ann.transIn);
+    if (ann.transOut) trans.push('↑ ' + ann.transOut);
+    if (ann.outro)    trans.push('OUTRO: ' + ann.outro);
+    rows.push({
+      num: t.special ? '·' : String(trackNum).padStart(2,'0'),
+      name: t.name, length: t.length||'', bpm: t.bpm||'',
+      ltc: t.ltc||'', key: t.key||'', trans: trans,
+      note: ann.note||'', block: currentBlock,
+      special: t.special, uncertain: t.uncertain
+    });
+  });
+
+  const cols = ['#','SONG','DAUER','BPM','LTC','TONART','ÜBERGÄNGE','NOTIZ','GRUPPE'];
+  const th = cols.map(function(c){ return '<th>' + c + '</th>'; }).join('');
+  const tbody = rows.map(function(r) {
+    if (r.zugabe) return '<tr><td colspan="' + cols.length + '" style="padding:6px 0"><div style="display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.15em;color:#c00"><span style="flex:1;height:1px;background:#c00;opacity:.3"></span>ZUGABE<span style="flex:1;height:1px;background:#c00;opacity:.3"></span></div></td></tr>';
+    const cells = [
+      '<td style="font-size:9px;color:#999;width:24px">' + r.num + '</td>',
+      '<td style="font-weight:700;font-size:14px">' + r.name + (r.uncertain ? ' <span style="color:#c00;font-size:9px">?</span>' : '') + '</td>',
+      '<td>' + r.length + '</td>',
+      '<td>' + r.bpm + '</td>',
+      '<td style="white-space:nowrap">' + r.ltc + '</td>',
+      '<td>' + r.key + '</td>',
+      '<td style="font-size:8px;color:#888;font-style:italic;line-height:1.6">' + r.trans.join('<br>') + '</td>',
+      '<td style="font-size:8px;color:#666">' + r.note + '</td>',
+      '<td style="font-size:8px;color:#aaa;text-transform:uppercase;letter-spacing:.06em">' + r.block + '</td>'
+    ];
+    return '<tr>' + cells.join('') + '</tr>';
+  }).join('');
+
+  const dateStr = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const songCount = rows.filter(function(r){ return !r.zugabe && !r.special; }).length;
+
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + ' – Technik</title>' +
+    '<style>' +
+    'body{margin:0;padding:32px 40px;font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;font-size:11px}' +
+    'h1{font-size:36px;font-weight:900;margin:0 0 2px 0;letter-spacing:-.5px}' +
+    '.sub{font-size:9px;color:#999;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #111}' +
+    'table{width:100%;border-collapse:collapse}' +
+    'thead th{font-size:8px;letter-spacing:.1em;text-transform:uppercase;background:#111;color:#fff;padding:6px 10px;text-align:left;border-right:1px solid #333}' +
+    'thead th:last-child{border-right:none}' +
+    'tbody td{padding:7px 10px;border-bottom:1px solid #e0e0e0;border-right:1px solid #eee;vertical-align:top}' +
+    'tbody td:last-child{border-right:none}' +
+    'tbody tr:nth-child(even){background:#f5f5f5}' +
+    'tfoot td{font-size:9px;color:#999;padding:8px 10px;border-top:2px solid #111}' +
+    '@media print{body{padding:15mm 18mm}thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 landscape;margin:0}}' +
+    '</style></head><body>' +
+    '<h1>' + title + '</h1>' +
+    '<div class="sub">' + songCount + ' Songs &nbsp;·&nbsp; ' + formatTime(total) + ' &nbsp;·&nbsp; ' + dateStr + '</div>' +
+    '<table>' +
+    '<thead><tr>' + th + '</tr></thead>' +
+    '<tbody>' + tbody + '</tbody>' +
+    '<tfoot><tr><td colspan="' + cols.length + '">Gesamt: ' + formatTime(total) + ' · ' + songCount + ' Songs</td></tr></tfoot>' +
+    '</table></body></html>';
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
 </script>
 
 <div id="dup-modal">
@@ -3873,7 +4003,7 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.39 ─────────────────────────────────────────
+// ── ALS IMPORT v1.40 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -4424,134 +4554,7 @@ window.resetAnnStyle = function() {
   _refreshAnnStyleModal();
 };
 
-// ── LINKS MENU ────────────────────────────────────────────────
-window.toggleLinksMenu = function toggleLinksMenu() {
-  const m = document.getElementById('links-menu');
-  if (!m) return;
-  const isOpen = m.style.display !== 'none';
-  m.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) {
-    setTimeout(function() {
-      document.addEventListener('click', function handler(e) {
-        const wrap = document.getElementById('links-dropdown-wrap');
-        if (wrap && !wrap.contains(e.target)) {
-          closeLinksMenu();
-          document.removeEventListener('click', handler);
-        }
-      });
-    }, 0);
-  }
-}
-window.closeLinksMenu = function closeLinksMenu() {
-  const m = document.getElementById('links-menu');
-  if (m) m.style.display = 'none';
-}
-
-window.getViewUrl = function getViewUrl(type) {
-  // Build permanent URL: same file, add ?view=print or ?view=tec
-  const url = new URL(window.location.href);
-  url.searchParams.set('view', type);
-  return url.toString();
-}
-
-window.copyViewLink = function copyViewLink(type) {
-  const url = getViewUrl(type);
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(url).then(function() {
-      showLinkCopiedToast(type);
-    });
-  } else {
-    prompt('Link kopieren:', url);
-  }
-}
-
-window.showLinkCopiedToast = function showLinkCopiedToast(type) {
-  const label = type === 'print' ? 'Druckversion' : 'Technik-Infos';
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.08em;padding:10px 18px;z-index:9999;white-space:nowrap;';
-  t.textContent = '✓ ' + label + '-Link kopiert';
-  document.body.appendChild(t);
-  setTimeout(function(){ t.remove(); }, 2200);
-}
-
-window.openPrintView = function openPrintView() {
-  window.open(getViewUrl('print'), '_blank');
-}
-window.openTecView = function openTecView() {
-  const title = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist';
-  const total = setlist.reduce(function(s,tid){ return s + toSeconds(getTrack(tid)?.length||''); }, 0);
-  let trackNum = 0, rows = [], currentBlock = '';
-  setlist.forEach(function(tid) {
-    const t = getTrack(tid);
-    if (!t) return;
-    if (typeof blocks !== 'undefined') {
-      const blk = blocks.find(function(b){ return b.startId === tid; });
-      if (blk) currentBlock = blk.label;
-    }
-    if (t.special === 'zugabe') { rows.push({ zugabe:true }); return; }
-    if (!t.special) trackNum++;
-    const ann = (typeof annotations !== 'undefined' && annotations[tid]) || {};
-    const trans = [];
-    if (ann.intro)    trans.push('INTRO: ' + ann.intro);
-    if (ann.transIn)  trans.push('↓ ' + ann.transIn);
-    if (ann.transOut) trans.push('↑ ' + ann.transOut);
-    if (ann.outro)    trans.push('OUTRO: ' + ann.outro);
-    rows.push({
-      num: t.special ? '·' : String(trackNum).padStart(2,'0'),
-      name: t.name, length: t.length||'', bpm: t.bpm||'',
-      ltc: t.ltc||'', key: t.key||'', trans: trans,
-      note: ann.note||'', block: currentBlock,
-      special: t.special, uncertain: t.uncertain
-    });
-  });
-
-  const cols = ['#','SONG','DAUER','BPM','LTC','TONART','ÜBERGÄNGE','NOTIZ','GRUPPE'];
-  const th = cols.map(function(c){ return '<th>' + c + '</th>'; }).join('');
-  const tbody = rows.map(function(r) {
-    if (r.zugabe) return '<tr><td colspan="' + cols.length + '" style="padding:6px 0"><div style="display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.15em;color:#c00"><span style="flex:1;height:1px;background:#c00;opacity:.3"></span>ZUGABE<span style="flex:1;height:1px;background:#c00;opacity:.3"></span></div></td></tr>';
-    const cells = [
-      '<td style="font-size:9px;color:#999;width:24px">' + r.num + '</td>',
-      '<td style="font-weight:700;font-size:14px">' + r.name + (r.uncertain ? ' <span style="color:#c00;font-size:9px">?</span>' : '') + '</td>',
-      '<td>' + r.length + '</td>',
-      '<td>' + r.bpm + '</td>',
-      '<td style="white-space:nowrap">' + r.ltc + '</td>',
-      '<td>' + r.key + '</td>',
-      '<td style="font-size:8px;color:#888;font-style:italic;line-height:1.6">' + r.trans.join('<br>') + '</td>',
-      '<td style="font-size:8px;color:#666">' + r.note + '</td>',
-      '<td style="font-size:8px;color:#aaa;text-transform:uppercase;letter-spacing:.06em">' + r.block + '</td>'
-    ];
-    return '<tr>' + cells.join('') + '</tr>';
-  }).join('');
-
-  const dateStr = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'});
-  const songCount = rows.filter(function(r){ return !r.zugabe && !r.special; }).length;
-
-  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + ' – Technik</title>' +
-    '<style>' +
-    'body{margin:0;padding:32px 40px;font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;font-size:11px}' +
-    'h1{font-size:36px;font-weight:900;margin:0 0 2px 0;letter-spacing:-.5px}' +
-    '.sub{font-size:9px;color:#999;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #111}' +
-    'table{width:100%;border-collapse:collapse}' +
-    'thead th{font-size:8px;letter-spacing:.1em;text-transform:uppercase;background:#111;color:#fff;padding:6px 10px;text-align:left;border-right:1px solid #333}' +
-    'thead th:last-child{border-right:none}' +
-    'tbody td{padding:7px 10px;border-bottom:1px solid #e0e0e0;border-right:1px solid #eee;vertical-align:top}' +
-    'tbody td:last-child{border-right:none}' +
-    'tbody tr:nth-child(even){background:#f5f5f5}' +
-    'tfoot td{font-size:9px;color:#999;padding:8px 10px;border-top:2px solid #111}' +
-    '@media print{body{padding:15mm 18mm}thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 landscape;margin:0}}' +
-    '</style></head><body>' +
-    '<h1>' + title + '</h1>' +
-    '<div class="sub">' + songCount + ' Songs &nbsp;·&nbsp; ' + formatTime(total) + ' &nbsp;·&nbsp; ' + dateStr + '</div>' +
-    '<table>' +
-    '<thead><tr>' + th + '</tr></thead>' +
-    '<tbody>' + tbody + '</tbody>' +
-    '<tfoot><tr><td colspan="' + cols.length + '">Gesamt: ' + formatTime(total) + ' · ' + songCount + ' Songs</td></tr></tfoot>' +
-    '</table></body></html>';
-
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-}
+// links moved to script 2
 
 // ── VIEW MODE (called after data loaded) ──────────────────────
 window.checkViewMode = function checkViewMode() {
