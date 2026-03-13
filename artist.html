@@ -128,21 +128,21 @@
   .track-row:hover .track-delete-btn { opacity:1; }
 
   /* ANNOTATION ROWS (intro/outro/transition/note) */
+  :root { --ann-color-intro:''; --ann-color-outro:''; --ann-color-trans:''; --ann-color-note:''; --ann-fs-intro:''; --ann-fs-outro:''; --ann-fs-trans:''; --ann-fs-note:''; }
+
   .annotation-row { display:flex; align-items:center; gap:6px; padding:2px 6px 2px 14px; border-bottom:1px solid var(--line); position:relative; overflow:visible; background:rgba(0,0,0,.03); min-height:0; }
   .annotation-row.in-block::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); pointer-events:none; z-index:1; }
   .ann-arrow { flex-shrink:0; font-size:var(--ann-fs,9px); line-height:1; width:14px; text-align:center; opacity:.7; }
-  .ann-type-intro .ann-arrow  { color:var(--ann-color-intro,var(--green)); }
-  .ann-type-outro .ann-arrow  { color:var(--ann-color-outro,var(--accent)); }
-  .ann-type-trans .ann-arrow  { color:var(--ann-color-trans,var(--muted)); }
-  .ann-type-note .ann-arrow   { color:var(--ann-color-note,#ccc); }
+  .ann-type-intro .ann-arrow  { color:var(--green); }
+  .ann-type-outro .ann-arrow  { color:var(--accent); }
+  .ann-type-trans .ann-arrow  { color:var(--muted); }
+  .ann-type-note .ann-arrow   { color:#ccc; }
   .ann-badge { font-size:var(--ann-fs,9px); letter-spacing:.06em; text-transform:uppercase; font-weight:700; padding:2px 6px; flex-shrink:0; flex:1; }
-  .ann-badge.intro  { color:var(--ann-color-intro,var(--green)); font-size:var(--ann-fs-intro,var(--ann-fs,9px)); }
-  .ann-badge.outro  { color:var(--ann-color-outro,var(--accent)); font-size:var(--ann-fs-outro,var(--ann-fs,9px)); }
-  .ann-badge.trans  { color:var(--ann-color-trans,#777); font-size:var(--ann-fs-trans,var(--ann-fs,9px)); }
-  .ann-badge.note   { color:var(--ann-color-note,#777); font-size:var(--ann-fs-note,var(--ann-fs,9px)); font-style:italic; text-transform:none; letter-spacing:.02em; }
+  .ann-badge.intro  { color:var(--green); }
+  .ann-badge.outro  { color:var(--accent); }
+  .ann-badge.trans  { color:#333; }
+  .ann-badge.note   { color:#333; font-style:italic; text-transform:none; letter-spacing:.02em; }
   .ann-remove { background:none; border:none; color:#888; cursor:pointer; font-size:10px; padding:1px 3px; touch-action:manipulation; flex-shrink:0; opacity:0; transition:opacity .15s; }
-  .ann-edit-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:10px; padding:1px 4px; touch-action:manipulation; flex-shrink:0; opacity:.5; transition:opacity .15s; }
-  .ann-edit-btn:hover { opacity:1; color:var(--fg); }
   .annotation-row:hover .ann-remove { opacity:1; }
   @media(max-width:600px) { .ann-remove { opacity:1; } }
 
@@ -746,32 +746,11 @@
     </div>
   </div>
 </div>
-
-<!-- Ann Style Modal -->
-<div class="modal-overlay" id="ann-style-modal" style="display:none">
-  <div class="modal" style="min-width:300px;max-width:380px">
-    <h3 id="ann-style-title">STIL: ÜBERGANG</h3>
-    <p style="font-size:9px;color:var(--muted);margin-bottom:16px;letter-spacing:.06em">Gilt für alle Zeilen dieser Kategorie</p>
-    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px">
-      <label style="font-size:9px;letter-spacing:.1em;color:var(--muted)">SCHRIFTFARBE
-        <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap" id="ann-color-swatches"></div>
-      </label>
-      <label style="font-size:9px;letter-spacing:.1em;color:var(--muted)">SCHRIFTGRÖSSE
-        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap" id="ann-size-btns"></div>
-      </label>
-    </div>
-    <div class="modal-actions">
-      <button onclick="resetAnnStyle()">ZURÜCKSETZEN</button>
-      <button class="primary" onclick="closeAnnStyleModal()">OK</button>
-    </div>
-  </div>
-</div>
-
 <div class="shell">
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.41</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.24</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -822,14 +801,13 @@
     <button onclick="toggleAddForm()" id="add-btn">[ + ADD ]</button>
     <button class="accent" onclick="openExportModal()">[ EXPORT ]</button>
     <div style="position:relative;display:inline-block" id="links-dropdown-wrap">
-      <button onclick="toggleLinksMenu()" id="links-btn">[ ⎘ LINKS ]</button>
-      <div id="links-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card);border:1px solid var(--line);z-index:9500;min-width:220px;padding:6px 0;box-shadow:0 4px 16px rgba(0,0,0,.3)">
-        <div style="font-size:8px;letter-spacing:.12em;color:var(--muted);padding:4px 12px 6px;border-bottom:1px solid var(--line);margin-bottom:4px">DIREKTLINKS</div>
-        <button onclick="copyViewLink('print');closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em;padding:7px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">🖨 DRUCKVERSION — Link kopieren</button>
-        <button onclick="copyViewLink('tec');closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em;padding:7px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">⚙ TECHNIK-INFOS — Link kopieren</button>
-        <div style="border-top:1px solid var(--line);margin:4px 0"></div>
-        <button onclick="openPrintView();closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--muted);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">↗ Druckversion öffnen</button>
-        <button onclick="openTecView();closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--muted);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">↗ Technik-Infos öffnen</button>
+      <button class="toolbar-secondary" onclick="toggleLinksMenu()" id="links-btn">[ ⎘ LINKS ]</button>
+      <div id="links-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--card);border:1px solid var(--line);z-index:9500;min-width:210px;padding:6px 0;box-shadow:0 4px 16px rgba(0,0,0,.4)">
+        <div style="font-size:8px;letter-spacing:.12em;color:var(--muted);padding:6px 14px 4px;text-transform:uppercase;border-bottom:1px solid var(--line);margin-bottom:4px">Technik-Links</div>
+        <button onclick="copyViewLink('tec');closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">⎘ Technik-Link kopieren</button>
+        <button onclick="openTecView();closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">↗ Technik-Ansicht öffnen</button>
+        <button onclick="copyViewLink('print');closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">⎘ Druck-Link kopieren</button>
+        <button onclick="openPrintView();closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">↗ Druckansicht öffnen</button>
       </div>
     </div>
     <button class="toolbar-secondary" onclick="autoGenerateLTC()" title="LTC automatisch vergeben (10-Min-Abstand)">[ ⏱ LTC ]</button>
@@ -941,7 +919,7 @@
     </div>
     <div class="archive-toolbar">
       <input type="text" id="archive-search" placeholder="Setlist suchen…" oninput="renderArchive()" />
-      <button onclick="quickSave()" style="background:var(--fg);border:none;color:var(--bg);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:8px 16px;cursor:pointer;touch-action:manipulation;white-space:nowrap">+ AKTUELLE SETLIST SPEICHERN</button>
+      <button onclick="openSaveModal()" style="background:var(--fg);border:none;color:var(--bg);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:8px 16px;cursor:pointer;touch-action:manipulation;white-space:nowrap">+ AKTUELLE SETLIST SPEICHERN</button>
     </div>
     <div class="archive-list" id="archive-list"></div>
   </div>
@@ -996,8 +974,8 @@ let pool = [];
 
 // annotations[trackId] = { intro, outro, transIn, transOut, note }
 let annotations = {};
-let annStyles = { intro:{color:'',fs:''}, outro:{color:'',fs:''}, trans:{color:'',fs:''}, note:{color:'',fs:''} };
 let trackColors = {};
+let annStyles = {}; // {intro:{color,fs}, outro:{...}, trans:{...}, note:{...}}
 let colOrder = ['ltc','key','notes','todo','structure','length','bpm']; // full column order
 let _currentSaveId = null;
 let todos = {}; // trackId -> [{id, text, done, doneAt}]  // ID of last saved archive entry (for quick-save overwrite)
@@ -1045,12 +1023,14 @@ function restore(state) {
   const s = JSON.parse(state);
   setlist = s.setlist;
   annotations = s.annotations;
-  if (s.annStyles) { annStyles = s.annStyles; applyAnnStyles(); }
-  if (s.fontSize) { const el = document.getElementById('track-font-size'); if(el){ el.value = s.fontSize; updateTrackFontSize(s.fontSize); } }
+  annStyles = s.annStyles || {}; applyAnnStyles();
   trackColors = s.trackColors||{};
   columnOrder = s.columnOrder||['length','bpm'];
+  if (s.fontSize) { const el = document.getElementById('track-font-size'); if(el){ el.value=s.fontSize; updateTrackFontSize(s.fontSize); } }
   blocks = s.blocks||[];
   render();
+  applyAnnStyles();
+  checkViewMode();
   if (document.getElementById('pool-sidebar').classList.contains('open')) renderPool();
   updateUndoButtons();
 }
@@ -1409,7 +1389,7 @@ function makeAnnRow(type, label, text, trackId, field) {
   div.innerHTML = `
     <span class="ann-arrow">${type === "intro" ? "↳" : type === "outro" ? "↲" : type === "trans" ? "→" : "·"}</span>
     <span class="ann-badge ${type} ann-inline-edit" contenteditable="true" data-track-id="${trackId}" data-field="${field}" title="Klicken zum Bearbeiten">${displayText}</span>
-    <button class="ann-edit-btn" onclick="openAnnStyleModal('${type}')" title="Stil bearbeiten">✎</button>
+    <button class="ann-style-btn" onclick="openAnnStyleModal('${type}')" title="Stil bearbeiten" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;opacity:.5;padding:0 4px;line-height:1" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✎</button>
     <button class="ann-remove" onclick="clearAnnotation(${trackId},'${field}')">✕</button>`;
 
   const badge = div.querySelector('.ann-inline-edit');
@@ -1994,6 +1974,29 @@ function exportPdf(opts) {
 ${body}
 <div class="footer">GESAMT: ${formatTime(total)} · ${setlist.length} TRACKS</div>
 
+<!-- ANNOTATION STYLE MODAL -->
+<div id="ann-style-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:8000;align-items:center;justify-content:center" onclick="if(event.target===this)closeAnnStyleModal()">
+  <div style="background:var(--card);border:1px solid var(--line);padding:20px 24px;min-width:280px;max-width:360px;width:100%">
+    <div style="font-size:9px;letter-spacing:.12em;color:var(--muted);margin-bottom:14px;text-transform:uppercase" id="ann-modal-title">Stil: Übergang</div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:8px;color:var(--muted);letter-spacing:.08em;margin-bottom:6px">FARBE</div>
+      <div id="ann-color-swatches" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:8px;color:var(--muted);letter-spacing:.08em;margin-bottom:6px">GRÖSSE</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="changeAnnSize(-1)" style="background:none;border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+        <span id="ann-size-display" style="font-size:11px;min-width:32px;text-align:center">9px</span>
+        <button onclick="changeAnnSize(1)" style="background:none;border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+        <button onclick="resetAnnStyle()" style="background:none;border:1px solid var(--line);color:var(--muted);font-family:'Space Mono',monospace;font-size:9px;padding:4px 8px;cursor:pointer;margin-left:4px">↺</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button onclick="closeAnnStyleModal()" style="background:none;border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;padding:6px 14px;cursor:pointer;letter-spacing:.06em">SCHLIESSEN</button>
+    </div>
+  </div>
+</div>
+
 <div id="dup-modal">
   <div class="dup-box">
     <div class="dup-box-header">Track bereits vorhanden</div>
@@ -2146,7 +2149,6 @@ function initArtistSwitcher() {
   // Update tab label with display name
   const tabLbl = document.getElementById('tab-artist-label');
   if (tabLbl && ARTIST_ID !== 'default') tabLbl.textContent = getArtistDisplayName(ARTIST_ID).toUpperCase();
-  // Browser tab title
   const artistName = ARTIST_ID !== 'default' ? getArtistDisplayName(ARTIST_ID) : '';
   document.title = artistName ? artistName.toUpperCase() + ' SLP' : 'SETLIST PLANNER';
 }
@@ -2983,19 +2985,16 @@ function closeImportModal() {
 }
 
 function parseLtcShorthand(s) {
-  // Formats: LTC0,25 or LTC 0,25 or 0,25 (with comma = shorthand)
-  // Strip optional LTC prefix (case-insensitive, optional space)
   const stripped = s.replace(/^LTC\s*/i, '').trim();
-  // Must contain a comma to be shorthand
   if (!stripped.includes(',')) return null;
-  const [hourPart, rest] = stripped.split(',');
-  const h = parseInt(hourPart, 10);
+  const parts = stripped.split(',');
+  const h = parseInt(parts[0], 10);
   if (isNaN(h)) return null;
-  // rest: first 2 chars = minutes (pad left if 1 char), remaining = ms (pad right to 3)
-  let minStr = '', msStr = '';
+  const rest = parts[1] || '';
+  let minStr, msStr;
   if (rest.length === 0) { minStr = '00'; msStr = '000'; }
-  else if (rest.length === 1) { minStr = rest + '0'; msStr = '000'; }  // "1" → "10"
-  else { minStr = rest.slice(0,2); msStr = rest.slice(2).padEnd(3,'0').slice(0,3); }
+  else if (rest.length === 1) { minStr = rest + '0'; msStr = '000'; }
+  else { minStr = rest.slice(0,2); msStr = (rest.slice(2) + '000').slice(0,3); }
   const m = parseInt(minStr, 10);
   if (isNaN(m) || m > 59) return null;
   return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + msStr;
@@ -3017,7 +3016,7 @@ function parseImportLine(line) {
       if (ltcShort) {
         ltc = ltcShort;
       } else if (/^\d{2}:\d{2}:\d{2}(:\d{2})?$/.test(p) && p.split(':').length >= 3 && +p.split(':')[0] >= 0) {
-        ltc = p; // LTC timecode HH:MM:SS or HH:MM:SS:FF
+        ltc = p;
       } else if (/^\d{1,2}:\d{2}$/.test(p)) {
         length = p; // song length M:SS
       } else if (/^\d{2,3}$/.test(p) && +p >= 40 && +p <= 300) {
@@ -3034,13 +3033,9 @@ function parseImportLine(line) {
   const bpmMatch = rest.match(/\b([4-9]\d|[1-2]\d{2}|300)\b/);
   const bpm = bpmMatch ? bpmMatch[1] : '';
   rest = rest.replace(bpmMatch ? bpmMatch[0] : '', '');
-  // Check for LTC shorthand token in free format
   let ltcFree = '';
   const ltcToken = rest.match(/LTC\s*[\d]+,[\d]*/i) || rest.match(/\b[\d]+,[\d]+\b/);
-  if (ltcToken) {
-    ltcFree = parseLtcShorthand(ltcToken[0]) || '';
-    rest = rest.replace(ltcToken[0], '');
-  }
+  if (ltcToken) { ltcFree = parseLtcShorthand(ltcToken[0]) || ''; rest = rest.replace(ltcToken[0], ''); }
   const name = rest.replace(/\s+/g, ' ').trim();
   if (!name) return null;
   return { name, length, bpm, ltc: ltcFree };
@@ -3142,12 +3137,11 @@ function applyFullState(s) {
   todos = s.todos || {};
   if (s.setlist)      setlist      = s.setlist.map(Number);
   if (s.annotations)  annotations  = s.annotations;
-  if (s.annStyles)    { annStyles = s.annStyles; applyAnnStyles(); }
-  if (s.fontSize)     { const el = document.getElementById('track-font-size'); if(el){ el.value = s.fontSize; updateTrackFontSize(s.fontSize); } }
   if (s.trackColors)  trackColors  = s.trackColors;
   if (s.columnOrder)  columnOrder  = s.columnOrder;
   if (s.blocks)       blocks       = s.blocks;
   if (s.archiveStore) archiveStore = s.archiveStore;
+  if (s.fontSize) { const el = document.getElementById('track-font-size'); if(el){ el.value=s.fontSize; updateTrackFontSize(s.fontSize); } }
   nextId = pool.length ? Math.max(1, ...pool.map(t => t.id + 1)) : 1;
 }
 
@@ -3572,7 +3566,6 @@ function visChecked(id) {
   }
   _dataReady = true;
   render(); snapshot();
-  if (typeof checkViewMode === 'function') checkViewMode();
   initRealtimeSync();
   // Show artist name in header and tab
   initArtistSwitcher(); // sets tab label using display name
@@ -3827,14 +3820,15 @@ function initColHeaders() {
       colOrder.splice(si, 1);
       colOrder.splice(di, 0, src);
       render();
+    applyAnnStyles();
+    checkViewMode();
     });
   });
 }
 initColHeaders();
 
-
 // ── LINKS MENU ────────────────────────────────────────────────
-window.toggleLinksMenu = function toggleLinksMenu() {
+window.toggleLinksMenu = function() {
   const m = document.getElementById('links-menu');
   if (!m) return;
   const isOpen = m.style.display !== 'none';
@@ -3850,49 +3844,264 @@ window.toggleLinksMenu = function toggleLinksMenu() {
       });
     }, 0);
   }
-}
-window.closeLinksMenu = function closeLinksMenu() {
+};
+window.closeLinksMenu = function() {
   const m = document.getElementById('links-menu');
   if (m) m.style.display = 'none';
-}
-
-window.getViewUrl = function getViewUrl(type) {
-  // Build permanent URL: same file, add ?view=print or ?view=tec
+};
+window.getViewUrl = function(type) {
   const url = new URL(window.location.href);
   url.searchParams.set('view', type);
   return url.toString();
-}
-
-window.copyViewLink = function copyViewLink(type) {
-  const url = getViewUrl(type);
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(url).then(function() {
-      showLinkCopiedToast(type);
-    });
-  } else {
-    prompt('Link kopieren:', url);
-  }
-}
-
-window.showLinkCopiedToast = function showLinkCopiedToast(type) {
-  const label = type === 'print' ? 'Druckversion' : 'Technik-Infos';
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.08em;padding:10px 18px;z-index:9999;white-space:nowrap;';
-  t.textContent = '✓ ' + label + '-Link kopiert';
-  document.body.appendChild(t);
-  setTimeout(function(){ t.remove(); }, 2200);
-}
-
-window.openPrintView = function openPrintView() {
-  window.open(getViewUrl('print'), '_blank');
-}
-window.openTecView = function openTecView() {
+};
+window.copyViewLink = function(type) {
+  navigator.clipboard.writeText(getViewUrl(type)).then(function() {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✓ Kopiert!';
+    setTimeout(function(){ btn.textContent = orig; }, 1800);
+  });
+};
+window.openTecView = function() {
   const html = buildTecHTML();
   const w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
-}
+};
+window.openPrintView = function() {
+  const html = buildPrintHTML();
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+};
+window.buildPrintHTML = function() {
+  const artistName = (typeof ARTIST_ID !== 'undefined' && ARTIST_ID !== 'default') ? getArtistDisplayName(ARTIST_ID) : '';
+  const title = artistName || (typeof _currentSaveName !== 'undefined' && _currentSaveName) || 'Setlist';
+  const total = setlist.reduce((s,tid) => s + toSeconds(getTrack(tid)?.length||''), 0);
+  const dateStr = new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  let trackNum = 0;
+  const rows = setlist.map(tid => {
+    const t = getTrack(tid); if (!t) return '';
+    if (t.special === 'zugabe') return '<div style="display:flex;align-items:center;gap:8px;margin:8px 0;font-size:9px;letter-spacing:.15em;color:#c00"><span style="flex:1;height:1px;background:#c00;opacity:.4"></span>ZUGABE<span style="flex:1;height:1px;background:#c00;opacity:.4"></span></div>';
+    if (!t.special) trackNum++;
+    const ann = (annotations && annotations[tid]) || {};
+    const trans = [ann.transIn ? '→ '+ann.transIn : '', ann.transOut ? '← '+ann.transOut : ''].filter(Boolean).join('  ');
+    return '<div style="padding:8px 0;border-bottom:1px solid #ddd;display:flex;align-items:baseline;gap:12px">' +
+      '<span style="font-size:10px;color:#999;min-width:20px;text-align:right">' + (t.special ? '·' : String(trackNum).padStart(2,'0')) + '</span>' +
+      '<span style="font-weight:700;font-size:' + (t.special ? '11' : '14') + 'px;flex:1">' + t.name + '</span>' +
+      (t.length ? '<span style="font-size:10px;color:#666">'+t.length+'</span>' : '') +
+      (t.bpm ? '<span style="font-size:10px;color:#888">'+t.bpm+' BPM</span>' : '') +
+      (trans ? '<span style="font-size:9px;color:#aaa;font-style:italic">'+trans+'</span>' : '') +
+      '</div>';
+  }).join('');
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title>' +
+    '<style>body{margin:0;padding:32px 40px;font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111}' +
+    'h1{font-size:28px;font-weight:900;margin:0 0 4px}.meta{font-size:11px;color:#888;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #111}' +
+    '@media print{body{padding:12mm 15mm}@page{size:A4;margin:0}}</style></head><body>' +
+    '<h1>'+title+'</h1><div class="meta">'+setlist.filter(id=>!getTrack(id)?.special).length+' Songs · '+formatTime(total)+' · '+dateStr+'</div>' +
+    rows + '</body></html>';
+};
+window.buildTecHTML = function() {
+  const artistName = (typeof ARTIST_ID !== 'undefined' && ARTIST_ID !== 'default') ? getArtistDisplayName(ARTIST_ID) : '';
+  const title = artistName || (typeof _currentSaveName !== 'undefined' && _currentSaveName) || 'Setlist';
+  const total = setlist.reduce((s,tid) => s + toSeconds(getTrack(tid)?.length||''), 0);
+  const dateStr = new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  let trackNum = 0, rows = [], currentBlock = '';
+  setlist.forEach(tid => {
+    const t = getTrack(tid); if (!t) return;
+    if (typeof blocks !== 'undefined') { const blk = blocks.find(b => b.startId === tid); if (blk) currentBlock = blk.label; }
+    if (t.special === 'zugabe') { rows.push({zugabe:true}); return; }
+    if (!t.special) trackNum++;
+    const ann = (annotations && annotations[tid]) || {};
+    const trans = [];
+    if (ann.intro)    trans.push('Intro: '+ann.intro);
+    if (ann.transIn)  trans.push('↓ '+ann.transIn);
+    if (ann.transOut) trans.push('↑ '+ann.transOut);
+    if (ann.outro)    trans.push('Outro: '+ann.outro);
+    rows.push({ num: t.special ? '·' : String(trackNum).padStart(2,'0'), name:t.name, length:t.length||'', bpm:t.bpm||'', ltc:t.ltc||'', key:t.key||'', trans, note:ann.note||'', block:currentBlock, uncertain:t.uncertain });
+  });
+  const songCount = rows.filter(r => !r.zugabe).length;
+  const tbody = rows.map(r => {
+    if (r.zugabe) return '<tr><td colspan="9" style="padding:8px 0;text-align:center;font-size:10px;letter-spacing:.2em;color:#bbb;border-bottom:1px solid #eee">— ZUGABE —</td></tr>';
+    return '<tr>' +
+      '<td style="color:#bbb;font-size:10px;text-align:right;padding-right:10px;white-space:nowrap;width:30px">'+r.num+'</td>' +
+      '<td style="font-weight:700;font-size:14px">'+r.name+(r.uncertain?' <span style="color:#c00;font-size:10px">?</span>':'')+'</td>' +
+      '<td style="white-space:nowrap">'+r.length+'</td>' +
+      '<td style="white-space:nowrap">'+r.bpm+'</td>' +
+      '<td style="white-space:nowrap;font-family:monospace;font-size:11px">'+r.ltc+'</td>' +
+      '<td>'+r.key+'</td>' +
+      '<td style="font-size:11px;color:#555;font-style:italic;line-height:1.7">'+r.trans.join('<br>')+'</td>' +
+      '<td style="font-size:11px;color:#444">'+r.note+'</td>' +
+      '<td style="font-size:10px;color:#bbb;text-transform:uppercase;letter-spacing:.05em">'+r.block+'</td>' +
+      '</tr>';
+  }).join('');
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+' – Technik</title>' +
+    '<style>' +
+    'body{margin:0;padding:32px 40px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#111;background:#fff}' +
+    'h1{font-size:28px;font-weight:900;margin:0 0 4px}' +
+    '.meta{font-size:11px;color:#888;margin-bottom:24px;padding-bottom:12px;border-bottom:2px solid #111}' +
+    'table{width:100%;border-collapse:collapse}' +
+    'th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:#111;color:#fff;padding:7px 10px;text-align:left;font-weight:700}' +
+    'td{padding:8px 10px;border-bottom:1px solid #e8e8e8;vertical-align:top}' +
+    'tr:nth-child(even) td{background:#f7f7f7}' +
+    '.foot{font-size:10px;color:#999;margin-top:14px}' +
+    '@media print{body{padding:12mm 15mm}th{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 landscape;margin:0}}' +
+    '</style></head><body>' +
+    '<h1>'+title+'</h1>' +
+    '<div class="meta">'+songCount+' Songs &nbsp;·&nbsp; '+formatTime(total)+' &nbsp;·&nbsp; '+dateStr+'</div>' +
+    '<table><thead><tr><th>#</th><th>Song</th><th>Dauer</th><th>BPM</th><th>LTC</th><th>Tonart</th><th>Übergänge</th><th>Notiz</th><th>Gruppe</th></tr></thead>' +
+    '<tbody>'+tbody+'</tbody></table>' +
+    '<div class="foot">Gesamt: '+formatTime(total)+' · '+songCount+' Songs · Stand: '+dateStr+'</div>' +
+    '</body></html>';
+};
+window.checkViewMode = function() {
+  const params = new URLSearchParams(window.location.search);
+  const view = params.get('view');
+  if (!view) return;
+  let html = '';
+  if (view === 'tec') html = buildTecHTML();
+  else if (view === 'print') html = buildPrintHTML();
+  else return;
+  document.open(); document.write(html); document.close();
+  if (params.get('autoprint') === '1') window.print();
+};
 
+// ── ANN STYLE MODAL ───────────────────────────────────────────
+let _annModalType = 'trans';
+const _annColors = [
+  {name:'Standard', val:''},
+  {name:'Orange',   val:'#e07820'},
+  {name:'Grün',     val:'#2d7a32'},
+  {name:'Blau',     val:'#2060c0'},
+  {name:'Rot',      val:'#c02020'},
+  {name:'Lila',     val:'#8040a0'},
+  {name:'Gelb',     val:'#a08000'},
+  {name:'Weiß',     val:'#ffffff'},
+  {name:'Grau',     val:'#888888'},
+];
+function applyAnnStyles() {
+  const root = document.documentElement;
+  ['intro','outro','trans','note'].forEach(type => {
+    const s = (annStyles && annStyles[type]) || {};
+    root.style.setProperty('--ann-color-'+type, s.color || '');
+    root.style.setProperty('--ann-fs-'+type, s.fs ? s.fs+'px' : '');
+  });
+}
+window.openAnnStyleModal = function(type) {
+  _annModalType = type || 'trans';
+  _refreshAnnStyleModal();
+  const m = document.getElementById('ann-style-modal');
+  if (m) { m.style.display = 'flex'; }
+};
+function _refreshAnnStyleModal() {
+  const type = _annModalType;
+  const titles = {intro:'Stil: Intro', outro:'Stil: Outro', trans:'Stil: Übergang', note:'Stil: Notiz'};
+  const titleEl = document.getElementById('ann-modal-title');
+  if (titleEl) titleEl.textContent = titles[type] || 'Stil';
+  const cur = (annStyles && annStyles[type]) || {};
+  const swatches = document.getElementById('ann-color-swatches');
+  if (swatches) {
+    swatches.innerHTML = '';
+    _annColors.forEach(c => {
+      const btn = document.createElement('button');
+      const active = (cur.color||'') === c.val;
+      btn.title = c.name;
+      btn.style.cssText = 'width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid '+(active?'var(--fg)':'transparent')+';background:'+(c.val||'var(--muted)')+';outline:none;';
+      btn.onclick = function() { if(!annStyles[type]) annStyles[type]={}; annStyles[type].color = c.val; applyAnnStyles(); _refreshAnnStyleModal(); snapshot(); };
+      swatches.appendChild(btn);
+    });
+  }
+  const sizeEl = document.getElementById('ann-size-display');
+  if (sizeEl) sizeEl.textContent = (cur.fs || '9') + 'px';
+}
+window.changeAnnSize = function(delta) {
+  const type = _annModalType;
+  if (!annStyles[type]) annStyles[type] = {};
+  const cur = parseInt(annStyles[type].fs || '9', 10);
+  annStyles[type].fs = String(Math.max(7, Math.min(16, cur + delta)));
+  applyAnnStyles(); _refreshAnnStyleModal(); snapshot();
+};
+window.closeAnnStyleModal = function() {
+  const m = document.getElementById('ann-style-modal');
+  if (m) m.style.display = 'none';
+};
+window.resetAnnStyle = function() {
+  if (annStyles[_annModalType]) delete annStyles[_annModalType];
+  applyAnnStyles(); _refreshAnnStyleModal(); snapshot();
+};
+
+</script>
+
+<!-- ANNOTATION STYLE MODAL -->
+<div id="ann-style-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:8000;align-items:center;justify-content:center" onclick="if(event.target===this)closeAnnStyleModal()">
+  <div style="background:var(--card);border:1px solid var(--line);padding:20px 24px;min-width:280px;max-width:360px;width:100%">
+    <div style="font-size:9px;letter-spacing:.12em;color:var(--muted);margin-bottom:14px;text-transform:uppercase" id="ann-modal-title">Stil: Übergang</div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:8px;color:var(--muted);letter-spacing:.08em;margin-bottom:6px">FARBE</div>
+      <div id="ann-color-swatches" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:8px;color:var(--muted);letter-spacing:.08em;margin-bottom:6px">GRÖSSE</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="changeAnnSize(-1)" style="background:none;border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+        <span id="ann-size-display" style="font-size:11px;min-width:32px;text-align:center">9px</span>
+        <button onclick="changeAnnSize(1)" style="background:none;border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:11px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+        <button onclick="resetAnnStyle()" style="background:none;border:1px solid var(--line);color:var(--muted);font-family:'Space Mono',monospace;font-size:9px;padding:4px 8px;cursor:pointer;margin-left:4px">↺</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button onclick="closeAnnStyleModal()" style="background:none;border:1px solid var(--line);color:var(--fg);font-family:'Space Mono',monospace;font-size:9px;padding:6px 14px;cursor:pointer;letter-spacing:.06em">SCHLIESSEN</button>
+    </div>
+  </div>
+</div>
+
+<div id="dup-modal">
+  <div class="dup-box">
+    <div class="dup-box-header">Track bereits vorhanden</div>
+    <div class="dup-box-body">
+      <span id="dup-msg"></span>
+    </div>
+    <div class="dup-box-footer">
+      <button onclick="resolveDup('replace')" class="primary">ERSETZEN</button>
+      <button onclick="resolveDup('v2')">ALS V2</button>
+      <button onclick="resolveDup('cancel')">ABBRECHEN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALS IMPORT MODAL -->
+<div class="modal-overlay" id="als-import-modal" style="display:none">
+  <div style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;max-height:90vh">
+    <div style="overflow-y:auto;flex:1;padding:24px 24px 0">
+      <h3 style="margin:0 0 4px">ALS IMPORT</h3>
+      <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt</p>
+      <div id="als-drop-zone" style="border:2px dashed var(--line);padding:32px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:16px;position:relative">
+        <input type="file" id="als-file-input" accept=".als" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+        <div style="font-size:20px;color:var(--muted);margin-bottom:8px">◈</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.06em">.als Datei hier ablegen</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.08em;text-transform:uppercase">Drag &amp; Drop oder klicken</div>
+      </div>
+      <div id="als-error" style="display:none;background:rgba(212,52,28,.15);border:1px solid var(--accent);padding:10px 14px;font-size:10px;color:var(--accent);margin-bottom:12px"></div>
+      <div id="als-preview" style="display:none;margin-bottom:16px">
+        <div id="als-preview-meta" style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px"></div>
+        <div id="als-preview-list" style="border:1px solid var(--line)"></div>
+      </div>
+    </div>
+    <div style="flex-shrink:0;padding:14px 24px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;background:var(--card)">
+      <button class="btn-secondary" onclick="closeAlsImportModal()">ABBRECHEN</button>
+      <button class="btn-primary" id="als-confirm-btn" style="display:none">[ ✓ IMPORTIEREN ]</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ALS IMPORT v1.24 ─────────────────────────────────────────
+// Completely isolated block — does not touch main script
+
+let _alsImportData = [];
+let _alsDetectedTracks = {};
+
+// Make alsShowStructure globally accessible for inline onclick handlers
 window.alsShowStructure = function(trackId, btn) { alsShowStructure(trackId, btn); };
 
 const ALS_VALID_KEYS = new Set([
@@ -4244,7 +4453,6 @@ function alsShowError(msg) {
 
 // Drop zone setup
 document.addEventListener('DOMContentLoaded', function() {
-  if (typeof applyAnnStyles === 'function') applyAnnStyles();
   updateSetlistLabel();
   const dz = document.getElementById('als-drop-zone');
   const fi = document.getElementById('als-file-input');
@@ -4323,258 +4531,117 @@ function alsShowStructure(trackId, btn) {
 
 // Eye buttons rendered directly in row.innerHTML
 
-// ── ANN STYLE MODAL ──────────────────────────────────────────
-const ANN_LABELS = { intro:'INTRO', outro:'OUTRO', trans:'ÜBERGANG', note:'NOTIZ' };
-const ANN_COLORS = [
-  { label:'Standard', value:'' },
-  { label:'Orange',   value:'#f97316' },
-  { label:'Grün',     value:'#4ade80' },
-  { label:'Blau',     value:'#60a5fa' },
-  { label:'Rot',      value:'#f87171' },
-  { label:'Lila',     value:'#c084fc' },
-  { label:'Gelb',     value:'#facc15' },
-  { label:'Weiß',     value:'#ffffff' },
-  { label:'Grau',     value:'#9ca3af' },
-];
-let _annStyleType = 'trans';
-
-function applyAnnStyles() {
-  const root = document.documentElement;
-  ['intro','outro','trans','note'].forEach(function(t) {
-    const s = (typeof annStyles !== 'undefined' && annStyles[t]) || {};
-    if (s.color) root.style.setProperty('--ann-color-' + t, s.color);
-    else root.style.removeProperty('--ann-color-' + t);
-    if (s.fs) root.style.setProperty('--ann-fs-' + t, s.fs + 'px');
-    else root.style.removeProperty('--ann-fs-' + t);
-  });
+function updateSetlistLabel() {
+  const el = document.getElementById('current-setlist-label');
+  if (!el) return;
+  el.textContent = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? '· ' + _currentSaveName.toUpperCase() : '· -EMPTY-';
 }
 
-window.openAnnStyleModal = function(type) {
-  _annStyleType = type;
-  const m = document.getElementById('ann-style-modal');
-  if (!m) return;
-  document.getElementById('ann-style-title').textContent = 'STIL: ' + (ANN_LABELS[type] || type.toUpperCase());
-  m.style.cssText = 'display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;padding:20px;';
-  _refreshAnnStyleModal();
-};
+function exportTecSheet(opts) {
+  const showBpm    = opts.bpm;
+  const showLength = opts.length;
+  const showTrans  = opts.transitions;
+  const showBlocks = opts.blocks;
+  const showKey    = typeof visChecked === 'function' ? visChecked('vis-key') : true;
+  const showNotes  = opts.notes;
 
-function _refreshAnnStyleModal() {
-  const type = _annStyleType;
-  const cur = (typeof annStyles !== 'undefined' && annStyles[type]) || {};
-
-  // — Color swatches —
-  const sw = document.getElementById('ann-color-swatches');
-  if (!sw) return;
-  sw.innerHTML = '';
-  ANN_COLORS.forEach(function(c) {
-    const btn = document.createElement('button');
-    const isActive = (cur.color || '') === c.value;
-    btn.style.cssText = 'width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid ' +
-      (isActive ? '#fff' : 'transparent') + ';background:' + (c.value || 'var(--line)') +
-      ';outline:none;position:relative;flex-shrink:0;';
-    btn.title = c.label;
-    if (!c.value) btn.innerHTML = '<span style="font-size:8px;color:var(--fg);position:absolute;inset:0;display:flex;align-items:center;justify-content:center">↺</span>';
-    btn.onclick = function() {
-      if (typeof annStyles === 'undefined') return;
-      if (!annStyles[type]) annStyles[type] = {};
-      annStyles[type].color = c.value;
-      applyAnnStyles();
-      _refreshAnnStyleModal(); // just refresh UI, don't re-open
-    };
-    sw.appendChild(btn);
-  });
-
-  // — Size stepper —
-  const sb = document.getElementById('ann-size-btns');
-  if (!sb) return;
-  sb.innerHTML = '';
-
-  const curFs = parseInt((cur.fs || '0'), 10) || 0;
-  const baseFs = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ann-fs'), 10) || 9;
-  const displayFs = curFs || baseFs;
-
-  function makeStepBtn(text, delta, isReset) {
-    const btn = document.createElement('button');
-    btn.textContent = text;
-    btn.style.cssText = 'font-family:"Space Mono",monospace;font-size:13px;padding:4px 10px;cursor:pointer;' +
-      'border:1px solid var(--line);background:none;color:' + (isReset ? 'var(--muted)' : 'var(--fg)') + ';line-height:1;';
-    btn.onclick = function() {
-      if (typeof annStyles === 'undefined') return;
-      if (!annStyles[type]) annStyles[type] = {};
-      if (isReset) {
-        annStyles[type].fs = '';
-      } else {
-        const current = parseInt(annStyles[type].fs || '0', 10) || baseFs;
-        annStyles[type].fs = Math.min(18, Math.max(7, current + delta));
-      }
-      applyAnnStyles();
-      _refreshAnnStyleModal();
-    };
-    return btn;
-  }
-
-  const label = document.createElement('span');
-  label.id = 'ann-fs-display';
-  label.textContent = displayFs + 'px';
-  label.style.cssText = 'font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.06em;' +
-    'padding:4px 8px;color:var(--fg);min-width:36px;text-align:center;display:inline-block;';
-
-  sb.appendChild(makeStepBtn('−', -1, false));
-  sb.appendChild(label);
-  sb.appendChild(makeStepBtn('+', +1, false));
-  sb.appendChild(makeStepBtn('↺', 0, true));
-}
-
-window.closeAnnStyleModal = function() {
-  const m = document.getElementById('ann-style-modal');
-  if (m) m.style.cssText = 'display:none';
-  if (typeof snapshot === 'function') snapshot();
-};
-
-window.resetAnnStyle = function() {
-  if (typeof annStyles !== 'undefined') annStyles[_annStyleType] = { color:'', fs:'' };
-  applyAnnStyles();
-  _refreshAnnStyleModal();
-};
-
-// links moved to script 2
-
-// ── VIEW MODE (called after data loaded) ──────────────────────
-window.checkViewMode = function checkViewMode() {
-  const params = new URLSearchParams(window.location.search);
-  const view = params.get('view');
-  if (!view) return;
-
-  // Completely replace page with clean HTML (no app CSS)
-  let html = '';
-  if (view === 'print') html = buildPrintHTML();
-  else if (view === 'tec') html = buildTecHTML();
-  else return;
-
-  document.open();
-  document.write(html);
-  document.close();
-
-  if (params.get('autoprint') === '1') window.print();
-}
-
-window.buildPrintHTML = function buildPrintHTML() {
+  const total = setlist.reduce((s,tid) => s + toSeconds(getTrack(tid)?.length||''), 0);
   const title = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist';
-  const total = setlist.reduce(function(s,tid){ return s + toSeconds(getTrack(tid)?.length||''); }, 0);
-  let num = 0;
-  let rows = '';
-  setlist.forEach(function(tid) {
-    const t = getTrack(tid);
-    if (!t) return;
-    if (t.special === 'zugabe') {
-      rows += '<tr class="zr"><td colspan="2" style="padding:4px 0"><div style="display:flex;align-items:center;gap:8px;font-size:8px;letter-spacing:.2em;color:#cc4400"><span style="flex:1;height:1px;background:#cc4400;opacity:.4"></span>ZUGABE<span style="flex:1;height:1px;background:#cc4400;opacity:.4"></span></div></td></tr>';
-      return;
-    }
-    if (!t.special) num++;
-    rows += '<tr><td style="font-size:9px;color:#aaa;width:32px;font-family:Arial">' + (t.special?'':String(num).padStart(2,'0')) + '</td><td style="font-size:16px;font-weight:700;font-family:Arial">' + t.name + (t.uncertain?' <span style="color:#cc4400;font-size:10px">?</span>':'') + '</td></tr>';
-  });
-  return '<style>' +
-    '*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:20mm 18mm;font-size:13px}' +
-    'h1{font-family:Arial,Helvetica,sans-serif;font-size:42px;font-weight:900;line-height:1;margin-bottom:4px;letter-spacing:-.5px}' +
-    '.sub{font-size:9px;letter-spacing:.1em;color:#888;text-transform:uppercase;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #111}' +
-    'table{width:100%;border-collapse:collapse}tr{border-bottom:1px solid #e0e0e0}td{padding:8px 4px;vertical-align:middle}' +
-    '.footer{margin-top:16px;font-size:8px;color:#aaa;letter-spacing:.06em;border-top:1px solid #ddd;padding-top:10px;display:flex;justify-content:space-between}' +
-    '@media print{body{padding:15mm 18mm}@page{size:A4;margin:0}}</style>' +
-    '<h1>' + title.toUpperCase() + '</h1>' +
-    '<div class="sub">' + num + ' SONGS &nbsp;·&nbsp; ' + formatTime(total) + '</div>' +
-    '<table>' + rows + '</table>' +
-    '<div class="footer"><span>' + new Date().toLocaleDateString("de-DE") + '</span><span>GESAMT: ' + formatTime(total) + '</span></div>';
-}
 
-window.buildTecHTML = function buildTecHTML() {
-  const artistName = (typeof ARTIST_ID !== 'undefined' && ARTIST_ID !== 'default') ?
-    (typeof getArtistDisplayName === 'function' ? getArtistDisplayName(ARTIST_ID) : ARTIST_ID) : '';
-  const title = artistName || ((typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist');
-  const total = setlist.reduce(function(s,tid){ return s + toSeconds(getTrack(tid)?.length||''); }, 0);
-  let trackNum = 0, rows = [], currentBlock = '';
+  let trackNum = 0;
+  let rows = [];
+  let currentBlock = '';
 
   setlist.forEach(function(tid) {
     const t = getTrack(tid);
     if (!t) return;
-    if (typeof blocks !== 'undefined') {
+    if (showBlocks && typeof blocks !== 'undefined') {
       const blk = blocks.find(function(b){ return b.startId === tid; });
       if (blk) currentBlock = blk.label;
     }
-    if (t.special === 'zugabe') { rows.push({ zugabe:true }); return; }
     if (!t.special) trackNum++;
     const ann = (typeof annotations !== 'undefined' && annotations[tid]) || {};
     const trans = [];
-    if (ann.intro)    trans.push('Intro: ' + ann.intro);
-    if (ann.transIn)  trans.push('↓ ' + ann.transIn);
-    if (ann.transOut) trans.push('↑ ' + ann.transOut);
-    if (ann.outro)    trans.push('Outro: ' + ann.outro);
-    rows.push({
-      num: t.special ? '·' : String(trackNum).padStart(2,'0'),
+    if (showTrans) {
+      if (ann.intro)    trans.push('INTRO: ' + ann.intro);
+      if (ann.transIn)  trans.push('↓ ' + ann.transIn);
+      if (ann.transOut) trans.push('↑ ' + ann.transOut);
+      if (ann.outro)    trans.push('OUTRO: ' + ann.outro);
+    }
+    rows.push({ num: t.special ? '·' : String(trackNum).padStart(2,'00'),
       name: t.name, length: t.length||'', bpm: t.bpm||'',
-      ltc: t.ltc||'', key: t.key||'', trans: trans,
-      note: ann.note||'', block: currentBlock,
-      uncertain: t.uncertain
-    });
+      ltc: t.ltc||'', key: t.key||'', trans: trans, note: ann.note||'',
+      block: currentBlock, special: t.special, uncertain: t.uncertain });
   });
 
-  const songCount = rows.filter(function(r){ return !r.zugabe; }).length;
-  const dateStr = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const cols = ['#','SONG'];
+  if (showLength) cols.push('DAUER');
+  if (showBpm)    cols.push('BPM');
+  cols.push('LTC');
+  if (showKey)    cols.push('TONART');
+  if (showTrans)  cols.push('ÜBERGÄNGE');
+  if (showNotes)  cols.push('NOTIZ');
+  if (showBlocks) cols.push('GRUPPE');
 
-  const tbody = rows.map(function(r) {
-    if (r.zugabe) {
-      return '<tr><td colspan="9" style="padding:10px 8px;text-align:center;font-size:10px;letter-spacing:.2em;color:#999;border-bottom:1px solid #ddd">— ZUGABE —</td></tr>';
-    }
-    const bg = r.uncertain ? '#fff8f8' : '';
-    return '<tr style="background:' + bg + '">' +
-      '<td style="color:#aaa;font-size:10px;text-align:right;padding-right:12px;white-space:nowrap">' + r.num + '</td>' +
-      '<td style="font-weight:700;font-size:14px">' + r.name + (r.uncertain ? ' <span style="color:#c00;font-size:10px">?</span>' : '') + '</td>' +
-      '<td style="white-space:nowrap">' + r.length + '</td>' +
-      '<td style="white-space:nowrap">' + r.bpm + '</td>' +
-      '<td style="white-space:nowrap;font-family:monospace">' + r.ltc + '</td>' +
-      '<td>' + r.key + '</td>' +
-      '<td style="font-size:11px;color:#555;font-style:italic;line-height:1.7">' + r.trans.join('<br>') + '</td>' +
-      '<td style="font-size:11px;color:#444">' + r.note + '</td>' +
-      '<td style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">' + r.block + '</td>' +
-      '</tr>';
+  const thCells = cols.map(function(c){ return '<th>' + c + '</th>'; }).join('');
+
+  const bodyRows = rows.map(function(r) {
+    const cells = [
+      '<td class="num">' + r.num + '</td>',
+      '<td class="name">' + r.name + (r.uncertain ? ' <span class="unc">?</span>' : '') + '</td>'
+    ];
+    if (showLength) cells.push('<td>' + r.length + '</td>');
+    if (showBpm)    cells.push('<td>' + r.bpm + '</td>');
+    cells.push('<td class="mono">' + r.ltc + '</td>');
+    if (showKey)    cells.push('<td>' + r.key + '</td>');
+    if (showTrans)  cells.push('<td class="trans">' + r.trans.join('<br>') + '</td>');
+    if (showNotes)  cells.push('<td class="note">' + (r.note||'') + '</td>');
+    if (showBlocks) cells.push('<td class="blk">' + (r.block||'') + '</td>');
+    const cls = r.special ? ' class="sp"' : (r.uncertain ? ' class="unc-row"' : '');
+    return '<tr' + cls + '>' + cells.join('') + '</tr>';
   }).join('');
 
-  return '<!DOCTYPE html>' +
-    '<html><head><meta charset="UTF-8">' +
-    '<title>' + title + ' – Technik</title>' +
-    '<style>' +
-      'body{margin:0;padding:32px 40px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#111;background:#fff}' +
-      'h1{font-size:28px;font-weight:900;margin:0 0 4px}' +
-      '.meta{font-size:11px;color:#888;margin-bottom:24px;padding-bottom:12px;border-bottom:2px solid #111}' +
-      'table{width:100%;border-collapse:collapse}' +
-      'th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:#111;color:#fff;padding:7px 10px;text-align:left;font-weight:700}' +
-      'td{padding:8px 10px;border-bottom:1px solid #e8e8e8;vertical-align:top}' +
-      'tr:nth-child(even) td{background:#f7f7f7}' +
-      'tr:nth-child(even) td:first-child{background:#f7f7f7}' +
-      '.foot{font-size:10px;color:#999;margin-top:16px}' +
-      '@media print{' +
-        'body{padding:12mm 15mm}' +
-        'th{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-        '@page{size:A4 landscape;margin:0}' +
-      '}' +
-    '</style></head>' +
-    '<body>' +
-    '<h1>' + title + '</h1>' +
-    '<div class="meta">' + songCount + ' Songs &nbsp;·&nbsp; ' + formatTime(total) + ' &nbsp;·&nbsp; ' + dateStr + '</div>' +
-    '<table>' +
-      '<thead><tr>' +
-        '<th style="width:30px">#</th>' +
-        '<th>Song</th>' +
-        '<th>Dauer</th>' +
-        '<th>BPM</th>' +
-        '<th>LTC</th>' +
-        '<th>Tonart</th>' +
-        '<th>Übergänge</th>' +
-        '<th>Notiz</th>' +
-        '<th>Gruppe</th>' +
-      '</tr></thead>' +
-      '<tbody>' + tbody + '</tbody>' +
-    '</table>' +
-    '<div class="foot">Gesamt: ' + formatTime(total) + ' · ' + songCount + ' Songs · Stand: ' + dateStr + '</div>' +
-    '</body></html>';
+  const dateStr = new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>TecSheet</title>' +
+  '<style>' +
+  '@import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap");' +
+  '*{margin:0;padding:0;box-sizing:border-box}' +
+  'body{font-family:"Space Mono",monospace;background:#fff;color:#111;padding:32px 40px;font-size:11px}' +
+  'header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #111}' +
+  'h1{font-family:"Bebas Neue",sans-serif;font-size:52px;line-height:1}' +
+  '.sub{font-size:9px;letter-spacing:.14em;color:#888;text-transform:uppercase;margin-bottom:4px}' +
+  '.meta{font-size:9px;color:#888;letter-spacing:.1em;text-align:right;line-height:2}' +
+  'table{width:100%;border-collapse:collapse;margin-top:4px}' +
+  'thead th{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:#111;padding:7px 10px;text-align:left;border-right:1px solid #333}' +
+  'thead th:last-child{border-right:none}' +
+  'tbody tr{border-bottom:1px solid #e8e8e8}' +
+  'tbody tr:nth-child(even){background:#f7f7f7}' +
+  'tr.sp{background:#111;color:#fff}' +
+  'tr.unc-row{opacity:.6}' +
+  'td{padding:8px 10px;vertical-align:top;border-right:1px solid #eee}' +
+  'td:last-child{border-right:none}' +
+  'td.num{font-size:9px;color:#aaa;width:28px;white-space:nowrap}' +
+  'td.name{font-weight:700;font-size:12px;min-width:140px}' +
+  'td.mono{font-family:"Space Mono",monospace;font-size:10px;white-space:nowrap}' +
+  'td.trans{font-size:9px;color:#666;font-style:italic;line-height:1.7}' + 'td.note{font-size:9px;color:#555;line-height:1.6}' +
+  'td.blk{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#888}' +
+  'span.unc{color:#cc4400;font-size:9px}' +
+  'tfoot td{font-size:9px;color:#888;padding:10px;border-top:2px solid #111}' +
+  '.wm{margin-top:20px;font-size:8px;color:#ccc;letter-spacing:.1em}' +
+  '@media print{body{padding:15mm 20mm}thead th,tr.sp{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
+  '</style></head><body>' +
+  '<header><div><div class="sub">TECSHEET</div><h1>' + title.toUpperCase() + '</h1></div>' +
+  '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
+  '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
+  '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
+  '</table><div class="wm">SETLIST PLANNER v1.24</div>' +
+  '</body></html>';
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
+</script>
+</body>
+</html>
