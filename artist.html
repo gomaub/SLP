@@ -771,7 +771,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.40</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.41</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -3887,129 +3887,12 @@ window.openPrintView = function openPrintView() {
   window.open(getViewUrl('print'), '_blank');
 }
 window.openTecView = function openTecView() {
-  const title = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist';
-  const total = setlist.reduce(function(s,tid){ return s + toSeconds(getTrack(tid)?.length||''); }, 0);
-  let trackNum = 0, rows = [], currentBlock = '';
-  setlist.forEach(function(tid) {
-    const t = getTrack(tid);
-    if (!t) return;
-    if (typeof blocks !== 'undefined') {
-      const blk = blocks.find(function(b){ return b.startId === tid; });
-      if (blk) currentBlock = blk.label;
-    }
-    if (t.special === 'zugabe') { rows.push({ zugabe:true }); return; }
-    if (!t.special) trackNum++;
-    const ann = (typeof annotations !== 'undefined' && annotations[tid]) || {};
-    const trans = [];
-    if (ann.intro)    trans.push('INTRO: ' + ann.intro);
-    if (ann.transIn)  trans.push('↓ ' + ann.transIn);
-    if (ann.transOut) trans.push('↑ ' + ann.transOut);
-    if (ann.outro)    trans.push('OUTRO: ' + ann.outro);
-    rows.push({
-      num: t.special ? '·' : String(trackNum).padStart(2,'0'),
-      name: t.name, length: t.length||'', bpm: t.bpm||'',
-      ltc: t.ltc||'', key: t.key||'', trans: trans,
-      note: ann.note||'', block: currentBlock,
-      special: t.special, uncertain: t.uncertain
-    });
-  });
-
-  const cols = ['#','SONG','DAUER','BPM','LTC','TONART','ÜBERGÄNGE','NOTIZ','GRUPPE'];
-  const th = cols.map(function(c){ return '<th>' + c + '</th>'; }).join('');
-  const tbody = rows.map(function(r) {
-    if (r.zugabe) return '<tr><td colspan="' + cols.length + '" style="padding:6px 0"><div style="display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.15em;color:#c00"><span style="flex:1;height:1px;background:#c00;opacity:.3"></span>ZUGABE<span style="flex:1;height:1px;background:#c00;opacity:.3"></span></div></td></tr>';
-    const cells = [
-      '<td style="font-size:9px;color:#999;width:24px">' + r.num + '</td>',
-      '<td style="font-weight:700;font-size:14px">' + r.name + (r.uncertain ? ' <span style="color:#c00;font-size:9px">?</span>' : '') + '</td>',
-      '<td>' + r.length + '</td>',
-      '<td>' + r.bpm + '</td>',
-      '<td style="white-space:nowrap">' + r.ltc + '</td>',
-      '<td>' + r.key + '</td>',
-      '<td style="font-size:8px;color:#888;font-style:italic;line-height:1.6">' + r.trans.join('<br>') + '</td>',
-      '<td style="font-size:8px;color:#666">' + r.note + '</td>',
-      '<td style="font-size:8px;color:#aaa;text-transform:uppercase;letter-spacing:.06em">' + r.block + '</td>'
-    ];
-    return '<tr>' + cells.join('') + '</tr>';
-  }).join('');
-
-  const dateStr = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'});
-  const songCount = rows.filter(function(r){ return !r.zugabe && !r.special; }).length;
-
-  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + ' – Technik</title>' +
-    '<style>' +
-    'body{margin:0;padding:32px 40px;font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;font-size:11px}' +
-    'h1{font-size:36px;font-weight:900;margin:0 0 2px 0;letter-spacing:-.5px}' +
-    '.sub{font-size:9px;color:#999;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #111}' +
-    'table{width:100%;border-collapse:collapse}' +
-    'thead th{font-size:8px;letter-spacing:.1em;text-transform:uppercase;background:#111;color:#fff;padding:6px 10px;text-align:left;border-right:1px solid #333}' +
-    'thead th:last-child{border-right:none}' +
-    'tbody td{padding:7px 10px;border-bottom:1px solid #e0e0e0;border-right:1px solid #eee;vertical-align:top}' +
-    'tbody td:last-child{border-right:none}' +
-    'tbody tr:nth-child(even){background:#f5f5f5}' +
-    'tfoot td{font-size:9px;color:#999;padding:8px 10px;border-top:2px solid #111}' +
-    '@media print{body{padding:15mm 18mm}thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 landscape;margin:0}}' +
-    '</style></head><body>' +
-    '<h1>' + title + '</h1>' +
-    '<div class="sub">' + songCount + ' Songs &nbsp;·&nbsp; ' + formatTime(total) + ' &nbsp;·&nbsp; ' + dateStr + '</div>' +
-    '<table>' +
-    '<thead><tr>' + th + '</tr></thead>' +
-    '<tbody>' + tbody + '</tbody>' +
-    '<tfoot><tr><td colspan="' + cols.length + '">Gesamt: ' + formatTime(total) + ' · ' + songCount + ' Songs</td></tr></tfoot>' +
-    '</table></body></html>';
-
+  const html = buildTecHTML();
   const w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
 }
-</script>
 
-<div id="dup-modal">
-  <div class="dup-box">
-    <div class="dup-box-header">Track bereits vorhanden</div>
-    <div class="dup-box-body">
-      <span id="dup-msg"></span>
-    </div>
-    <div class="dup-box-footer">
-      <button onclick="resolveDup('replace')" class="primary">ERSETZEN</button>
-      <button onclick="resolveDup('v2')">ALS V2</button>
-      <button onclick="resolveDup('cancel')">ABBRECHEN</button>
-    </div>
-  </div>
-</div>
-
-<!-- ALS IMPORT MODAL -->
-<div class="modal-overlay" id="als-import-modal" style="display:none">
-  <div style="max-width:540px;width:100%;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;max-height:90vh">
-    <div style="overflow-y:auto;flex:1;padding:24px 24px 0">
-      <h3 style="margin:0 0 4px">ALS IMPORT</h3>
-      <p style="font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.04em">Ableton .als Datei laden — Pool wird aktualisiert, Setlist bleibt unberührt</p>
-      <div id="als-drop-zone" style="border:2px dashed var(--line);padding:32px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:16px;position:relative">
-        <input type="file" id="als-file-input" accept=".als" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
-        <div style="font-size:20px;color:var(--muted);margin-bottom:8px">◈</div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:.06em">.als Datei hier ablegen</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.08em;text-transform:uppercase">Drag &amp; Drop oder klicken</div>
-      </div>
-      <div id="als-error" style="display:none;background:rgba(212,52,28,.15);border:1px solid var(--accent);padding:10px 14px;font-size:10px;color:var(--accent);margin-bottom:12px"></div>
-      <div id="als-preview" style="display:none;margin-bottom:16px">
-        <div id="als-preview-meta" style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px"></div>
-        <div id="als-preview-list" style="border:1px solid var(--line)"></div>
-      </div>
-    </div>
-    <div style="flex-shrink:0;padding:14px 24px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;background:var(--card)">
-      <button class="btn-secondary" onclick="closeAlsImportModal()">ABBRECHEN</button>
-      <button class="btn-primary" id="als-confirm-btn" style="display:none">[ ✓ IMPORTIEREN ]</button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ── ALS IMPORT v1.40 ─────────────────────────────────────────
-// Completely isolated block — does not touch main script
-
-let _alsImportData = [];
-let _alsDetectedTracks = {};
-
-// Make alsShowStructure globally accessible for inline onclick handlers
 window.alsShowStructure = function(trackId, btn) { alsShowStructure(trackId, btn); };
 
 const ALS_VALID_KEYS = new Set([
@@ -4562,24 +4445,16 @@ window.checkViewMode = function checkViewMode() {
   const view = params.get('view');
   if (!view) return;
 
-  // Hide the whole app shell
-  const shell = document.querySelector('.shell');
-  const footer = document.querySelector('footer');
-  if (shell) shell.style.display = 'none';
-  if (footer) footer.style.display = 'none';
+  // Completely replace page with clean HTML (no app CSS)
+  let html = '';
+  if (view === 'print') html = buildPrintHTML();
+  else if (view === 'tec') html = buildTecHTML();
+  else return;
 
-  // Render view into body
-  const container = document.createElement('div');
-  container.id = 'view-mode-container';
-  document.body.appendChild(container);
+  document.open();
+  document.write(html);
+  document.close();
 
-  if (view === 'print') {
-    container.innerHTML = buildPrintHTML();
-  } else if (view === 'tec') {
-    container.innerHTML = buildTecHTML();
-  }
-
-  // Auto print dialog option
   if (params.get('autoprint') === '1') window.print();
 }
 
@@ -4612,12 +4487,12 @@ window.buildPrintHTML = function buildPrintHTML() {
 }
 
 window.buildTecHTML = function buildTecHTML() {
-  // Full tec sheet built inline (same as exportTecSheet but returns HTML string)
-  const opts = { bpm:true, length:true, transitions:true, notes:true, blocks:true };
-  const showKey = true;
-  const title = (typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist';
+  const artistName = (typeof ARTIST_ID !== 'undefined' && ARTIST_ID !== 'default') ?
+    (typeof getArtistDisplayName === 'function' ? getArtistDisplayName(ARTIST_ID) : ARTIST_ID) : '';
+  const title = artistName || ((typeof _currentSaveName !== 'undefined' && _currentSaveName) ? _currentSaveName : 'Setlist');
   const total = setlist.reduce(function(s,tid){ return s + toSeconds(getTrack(tid)?.length||''); }, 0);
   let trackNum = 0, rows = [], currentBlock = '';
+
   setlist.forEach(function(tid) {
     const t = getTrack(tid);
     if (!t) return;
@@ -4629,43 +4504,77 @@ window.buildTecHTML = function buildTecHTML() {
     if (!t.special) trackNum++;
     const ann = (typeof annotations !== 'undefined' && annotations[tid]) || {};
     const trans = [];
-    if (ann.intro)    trans.push('INTRO: ' + ann.intro);
+    if (ann.intro)    trans.push('Intro: ' + ann.intro);
     if (ann.transIn)  trans.push('↓ ' + ann.transIn);
     if (ann.transOut) trans.push('↑ ' + ann.transOut);
-    if (ann.outro)    trans.push('OUTRO: ' + ann.outro);
-    rows.push({ num: t.special?'·':String(trackNum).padStart(2,'0'), name:t.name,
-      length:t.length||'', bpm:t.bpm||'', ltc:t.ltc||'', key:t.key||'',
-      trans:trans, note:ann.note||'', block:currentBlock, special:t.special, uncertain:t.uncertain });
+    if (ann.outro)    trans.push('Outro: ' + ann.outro);
+    rows.push({
+      num: t.special ? '·' : String(trackNum).padStart(2,'0'),
+      name: t.name, length: t.length||'', bpm: t.bpm||'',
+      ltc: t.ltc||'', key: t.key||'', trans: trans,
+      note: ann.note||'', block: currentBlock,
+      uncertain: t.uncertain
+    });
   });
-  const cols = ['#','SONG','DAUER','BPM','LTC','TONART','ÜBERGÄNGE','NOTIZ','GRUPPE'];
-  const th = cols.map(function(c){return '<th>'+c+'</th>';}).join('');
+
+  const songCount = rows.filter(function(r){ return !r.zugabe; }).length;
+  const dateStr = new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'});
+
   const tbody = rows.map(function(r) {
-    if (r.zugabe) return '<tr><td colspan="'+cols.length+'" style="padding:4px 0"><div style="display:flex;align-items:center;gap:8px;font-size:8px;letter-spacing:.2em;color:#cc4400"><span style="flex:1;height:1px;background:#cc4400;opacity:.4"></span>ZUGABE<span style="flex:1;height:1px;background:#cc4400;opacity:.4"></span></div></td></tr>';
-    return '<tr' + (r.special?' class="sp"':r.uncertain?' class="ur"':'') + '>' +
-      '<td class="num">'+r.num+'</td><td class="name">'+r.name+(r.uncertain?' <span style="color:#cc4400">?</span>':'')+'</td>' +
-      '<td>'+r.length+'</td><td>'+r.bpm+'</td><td class="mono">'+r.ltc+'</td><td>'+r.key+'</td>' +
-      '<td class="trans">'+r.trans.join('<br>')+'</td><td class="note">'+r.note+'</td><td class="blk">'+r.block+'</td></tr>';
+    if (r.zugabe) {
+      return '<tr><td colspan="9" style="padding:10px 8px;text-align:center;font-size:10px;letter-spacing:.2em;color:#999;border-bottom:1px solid #ddd">— ZUGABE —</td></tr>';
+    }
+    const bg = r.uncertain ? '#fff8f8' : '';
+    return '<tr style="background:' + bg + '">' +
+      '<td style="color:#aaa;font-size:10px;text-align:right;padding-right:12px;white-space:nowrap">' + r.num + '</td>' +
+      '<td style="font-weight:700;font-size:14px">' + r.name + (r.uncertain ? ' <span style="color:#c00;font-size:10px">?</span>' : '') + '</td>' +
+      '<td style="white-space:nowrap">' + r.length + '</td>' +
+      '<td style="white-space:nowrap">' + r.bpm + '</td>' +
+      '<td style="white-space:nowrap;font-family:monospace">' + r.ltc + '</td>' +
+      '<td>' + r.key + '</td>' +
+      '<td style="font-size:11px;color:#555;font-style:italic;line-height:1.7">' + r.trans.join('<br>') + '</td>' +
+      '<td style="font-size:11px;color:#444">' + r.note + '</td>' +
+      '<td style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">' + r.block + '</td>' +
+      '</tr>';
   }).join('');
-  const dateStr = new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
-  return '<style>' +
-    '*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;padding:32px 40px;font-size:11px}' +
-    'header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #111}' +
-    'h1{font-family:Arial,Helvetica,sans-serif;font-size:42px;font-weight:900;line-height:1;letter-spacing:-.5px}.sub{font-size:8px;letter-spacing:.1em;color:#888;text-transform:uppercase;margin-bottom:4px}' +
-    '.meta{font-size:9px;color:#888;text-align:right;line-height:2}' +
-    'table{width:100%;border-collapse:collapse;margin-top:4px}' +
-    'thead th{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#111;padding:6px 10px;text-align:left;border-right:1px solid #333}' +
-    'tbody tr{border-bottom:1px solid #e8e8e8}tbody tr:nth-child(even){background:#f0f0f0}' +
-    'tr.sp{background:#111;color:#fff}tr.ur{opacity:.6}' +
-    'td{padding:7px 10px;vertical-align:top;border-right:1px solid #eee}td:last-child{border-right:none}' +
-    'td.num{font-size:9px;color:#aaa;width:28px}td.name{font-weight:700;font-size:14px;min-width:140px}' +
-    'td.mono{font-size:10px;white-space:nowrap;letter-spacing:.04em}' +
-    'td.trans{font-size:8px;color:#888;font-style:italic;line-height:1.6}td.note{font-size:8px;color:#666}' +
-    'td.blk{font-size:8px;text-transform:uppercase;color:#aaa}' +
-    'tfoot td{font-size:9px;color:#888;padding:10px;border-top:2px solid #111}' +
-    '@media print{body{padding:15mm 20mm}thead th,tr.sp{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
-    '</style>'1.0">
-<meta name="color-scheme" content="light">
-<title>SETLIST PLANNER</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-</body>
-</html>
+
+  return '<!DOCTYPE html>' +
+    '<html><head><meta charset="UTF-8">' +
+    '<title>' + title + ' – Technik</title>' +
+    '<style>' +
+      'body{margin:0;padding:32px 40px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#111;background:#fff}' +
+      'h1{font-size:28px;font-weight:900;margin:0 0 4px}' +
+      '.meta{font-size:11px;color:#888;margin-bottom:24px;padding-bottom:12px;border-bottom:2px solid #111}' +
+      'table{width:100%;border-collapse:collapse}' +
+      'th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:#111;color:#fff;padding:7px 10px;text-align:left;font-weight:700}' +
+      'td{padding:8px 10px;border-bottom:1px solid #e8e8e8;vertical-align:top}' +
+      'tr:nth-child(even) td{background:#f7f7f7}' +
+      'tr:nth-child(even) td:first-child{background:#f7f7f7}' +
+      '.foot{font-size:10px;color:#999;margin-top:16px}' +
+      '@media print{' +
+        'body{padding:12mm 15mm}' +
+        'th{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+        '@page{size:A4 landscape;margin:0}' +
+      '}' +
+    '</style></head>' +
+    '<body>' +
+    '<h1>' + title + '</h1>' +
+    '<div class="meta">' + songCount + ' Songs &nbsp;·&nbsp; ' + formatTime(total) + ' &nbsp;·&nbsp; ' + dateStr + '</div>' +
+    '<table>' +
+      '<thead><tr>' +
+        '<th style="width:30px">#</th>' +
+        '<th>Song</th>' +
+        '<th>Dauer</th>' +
+        '<th>BPM</th>' +
+        '<th>LTC</th>' +
+        '<th>Tonart</th>' +
+        '<th>Übergänge</th>' +
+        '<th>Notiz</th>' +
+        '<th>Gruppe</th>' +
+      '</tr></thead>' +
+      '<tbody>' + tbody + '</tbody>' +
+    '</table>' +
+    '<div class="foot">Gesamt: ' + formatTime(total) + ' · ' + songCount + ' Songs · Stand: ' + dateStr + '</div>' +
+    '</body></html>';
+}
+
