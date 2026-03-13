@@ -771,7 +771,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.33</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.34</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -3838,7 +3838,7 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.33 ─────────────────────────────────────────
+// ── ALS IMPORT v1.34 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -4544,7 +4544,7 @@ function buildTecHTML() {
     '.meta{font-size:9px;color:#888;text-align:right;line-height:2}' +
     'table{width:100%;border-collapse:collapse;margin-top:4px}' +
     'thead th{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#111;padding:6px 10px;text-align:left;border-right:1px solid #333}' +
-    'tbody tr{border-bottom:1px solid #e8e8e8}' +
+    'tbody tr{border-bottom:1px solid #e8e8e8}tbody tr:nth-child(even){background:#f0f0f0}' +
     'tr.sp{background:#111;color:#fff}tr.ur{opacity:.6}' +
     'td{padding:7px 10px;vertical-align:top;border-right:1px solid #eee}td:last-child{border-right:none}' +
     'td.num{font-size:9px;color:#aaa;width:28px}td.name{font-weight:700;font-size:14px;min-width:140px}' +
@@ -5322,7 +5322,7 @@ function buildTecHTML() {
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.33</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v1.34</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -8389,7 +8389,7 @@ initColHeaders();
 </div>
 
 <script>
-// ── ALS IMPORT v1.33 ─────────────────────────────────────────
+// ── ALS IMPORT v1.34 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -9095,7 +9095,7 @@ function buildTecHTML() {
     '.meta{font-size:9px;color:#888;letter-spacing:.1em;text-align:right;line-height:2}' +
     'table{width:100%;border-collapse:collapse;margin-top:4px}' +
     'thead th{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:#111;padding:7px 10px;text-align:left;border-right:1px solid #333}' +
-    'tbody tr{border-bottom:1px solid #e8e8e8}' +
+    'tbody tr{border-bottom:1px solid #e8e8e8}tbody tr:nth-child(even){background:#f0f0f0}' +
     'tr.sp{background:#111;color:#fff}tr.ur{opacity:.6}' +
     'td{padding:8px 10px;vertical-align:top;border-right:1px solid #eee}td:last-child{border-right:none}' +
     'td.num{font-size:9px;color:#aaa;width:28px}td.name{font-weight:700;font-size:12px;min-width:140px}' +
@@ -9193,7 +9193,7 @@ function exportTecSheet(opts) {
   'table{width:100%;border-collapse:collapse;margin-top:4px}' +
   'thead th{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:#111;padding:7px 10px;text-align:left;border-right:1px solid #333}' +
   'thead th:last-child{border-right:none}' +
-  'tbody tr{border-bottom:1px solid #e8e8e8}' +
+  'tbody tr{border-bottom:1px solid #e8e8e8}tbody tr:nth-child(even){background:#f0f0f0}' +
   'tbody tr:nth-child(even){background:#f7f7f7}' +
   'tr.sp{background:#111;color:#fff}' +
   'tr.unc-row{opacity:.6}' +
@@ -9213,7 +9213,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v1.33</div>' +
+  '</table><div class="wm">SETLIST PLANNER v1.34</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
