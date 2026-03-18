@@ -24,14 +24,20 @@
   }
   [data-theme="dark"] {
     --bg: #141414;
-    --fg: #e8e6e0;
+    --fg: #f0ede6;
     --accent: #e8402e;
-    --muted: #888888;
-    --line: #2a2a2a;
-    --card: #1e1e1e;
-    --green: #3aaa4a;
-    --green-bg: rgba(58,170,74,.12);
+    --muted: #aaaaaa;
+    --line: #333333;
+    --card: #222222;
+    --green: #4dc45e;
+    --green-bg: rgba(58,170,74,.15);
   }
+  /* Dark mode specific overrides (for things that can't use variables) */
+  [data-theme="dark"] .track-key:hover    { background:rgba(255,255,255,.08); }
+  [data-theme="dark"] .track-todo-cell:hover { background:rgba(255,255,255,.08); }
+  [data-theme="dark"] .annotation-row     { background:rgba(255,255,255,.02); }
+  [data-theme="dark"] .archive-item-name:hover { text-decoration:underline; }
+  [data-theme="dark"] .pool-sort-btn.active { background:var(--fg); border-color:var(--fg); color:var(--bg); }
   html, body { background: var(--bg); color: var(--fg); }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:var(--bg); color:var(--fg); font-family:var(--font); font-size:13px; line-height:1.5; min-height:100vh; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
@@ -41,7 +47,7 @@
   body.pool-open .shell { margin-left:300px; max-width:calc(1100px + 300px); }
 
   header { display:flex; justify-content:space-between; align-items:flex-start; padding:20px 0 0; }
-  .header-meta { display:flex; gap:48px; color:#333; font-size:10px; letter-spacing:.05em; padding-bottom:14px; }
+  .header-meta { display:flex; gap:48px; color:var(--muted); font-size:10px; letter-spacing:.05em; padding-bottom:14px; }
   .header-right { display:flex; gap:32px; color:var(--muted); font-size:10px; padding-bottom:14px; }
 
 
@@ -87,10 +93,18 @@
   .add-submit-btn:hover { background:#333; }
 
   /* SETLIST */
-  .setlist-wrap { border-top:2px solid var(--fg); }
-  .col-headers { position:relative; display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:9px; letter-spacing:.12em; color:#333; text-transform:uppercase; gap:8px; font-weight:700; }
+  .setlist-wrap { border:1px solid var(--line); border-radius:2px; overflow:hidden; }
+  .col-headers { position:sticky; top:0; z-index:10; display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:6px 10px; border-bottom:2px solid var(--fg); font-size:9px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; gap:0; font-weight:700; background:var(--bg); box-shadow:0 2px 0 var(--line); }
+  .col-headers > * { padding:0 8px; border-right:1px solid var(--line); display:flex; align-items:center; }
+  .col-headers > *:first-child { padding-left:0; }
+  .col-headers > *:last-child { border-right:none; }
 
-  .track-row { display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:var(--track-row-py,4px) 10px; border-bottom:1px solid var(--line); align-items:center; gap:10px; cursor:grab; transition:background .12s; min-height:var(--track-row-h,46px); margin-bottom:2px; border-radius:2px; }
+  .track-row { display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:var(--track-row-py,4px) 0; border-bottom:1px solid var(--line); align-items:center; gap:0; cursor:grab; transition:background .12s; min-height:var(--track-row-h,46px); border-radius:0; }
+  .track-row > * { padding:0 10px; border-right:1px solid var(--line); height:100%; display:flex; align-items:center; }
+  .track-row > *:first-child { padding-left:10px; }
+  .track-row > *:last-child { border-right:none; }
+  .track-row:nth-child(even) { background:rgba(0,0,0,.025); }
+  [data-theme="dark"] .track-row:nth-child(even) { background:rgba(255,255,255,.025); }
   .track-row.in-block { margin-bottom:0; min-height:38px; position:relative; overflow:visible; }
   /* Vertical line */
   .track-row.in-block::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); pointer-events:none; z-index:1; }
@@ -104,7 +118,8 @@
   /* Single-track: both caps via before + after on same element */
   .track-row.block-start.block-end::before { top:-8px; bottom:-8px; }
   .track-row.block-start.block-end::after  { content:''; position:absolute; left:6px; bottom:-8px; width:10px; height:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); border-radius:1px; pointer-events:none; z-index:1; }
-  .track-row:hover { background:rgba(0,0,0,.04); }
+  .track-row:hover { background:rgba(0,0,0,.06); }
+  [data-theme="dark"] .track-row:hover { background:rgba(255,255,255,.06); }
 
   .track-num { color:#888; font-size:var(--cell-fs,10px); cursor:pointer; user-select:none; text-align:center; }
   .track-num:hover { color:var(--accent); }
@@ -128,21 +143,27 @@
 
   .track-num { font-size:9px; color:#555; font-style:italic; }
   .drag-handle { touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; cursor:grab; font-size:18px; color:#888; display:flex; align-items:center; justify-content:center; transition:color .15s; min-width:32px; min-height:44px; padding:0 4px; }
-  .drag-handle:hover { color:#333; }
-  .track-row:hover .drag-handle { color:#666; }
+  .drag-handle:hover { color:var(--fg); }
+  .track-row:hover .drag-handle { color:var(--muted); }
+  @media (max-width:600px) {
+    .drag-handle { font-size:22px; color:#aaa; min-width:36px; opacity:1; }
+    .move-menu { min-width:260px; }
+    .move-menu-btn { padding:16px 18px; font-size:13px; }
+    .move-menu-title { padding:13px 18px; font-size:10px; }
+  }
   .track-name { font-size:var(--track-name-fs,13px); font-weight:600; letter-spacing:.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .track-length { font-size:var(--cell-fs,10px); color:#333; font-variant-numeric:tabular-nums; }
+  .track-length { font-size:var(--cell-fs,10px); color:var(--muted); font-variant-numeric:tabular-nums; }
   .track-note-inline { font-size:var(--cell-fs,10px); color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:grab; user-select:none; padding:1px 4px; border-radius:2px; transition:background .1s; align-self:center; }
   .track-note-inline:hover { background:rgba(0,0,0,.06); }
-  .track-note-inline.has-note { color:#333; }
-  .track-note-inline:focus { outline:1px solid var(--fg); color:#111; background:#fff; white-space:normal; }
-  .track-bpm { font-size:var(--cell-fs,10px); color:#333; font-variant-numeric:tabular-nums; }
+  .track-note-inline.has-note { color:var(--fg); }
+  .track-note-inline:focus { outline:1px solid var(--fg); color:var(--fg); background:var(--bg); white-space:normal; }
+  .track-bpm { font-size:var(--cell-fs,10px); color:var(--muted); font-variant-numeric:tabular-nums; }
   .track-bpm.filled { color:var(--fg); font-weight:700; }
   .uncertain-badge { display:inline-block; width:6px; height:6px; border-radius:50%; background:orange; margin-left:6px; vertical-align:middle; }
 
-  .track-edit-btn { background:none; border:1px solid #888; color:#333; font-family:var(--font-mono); font-size:10px; padding:3px 6px; cursor:pointer; transition:all .15s; touch-action:manipulation; }
+  .track-edit-btn { background:none; border:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:10px; padding:3px 6px; cursor:pointer; transition:all .15s; touch-action:manipulation; }
   .track-edit-btn:hover { border-color:var(--fg); color:var(--fg); }
-  .track-delete-btn { background:none; border:none; color:#555; font-size:13px; cursor:pointer; padding:2px; touch-action:manipulation; opacity:0; transition:opacity .15s; }
+  .track-delete-btn { background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; padding:2px; touch-action:manipulation; opacity:0; transition:opacity .15s; }
   .track-row:hover .track-delete-btn { opacity:1; }
 
   /* ANNOTATION ROWS (intro/outro/transition/note) */
@@ -154,13 +175,13 @@
   .ann-type-intro .ann-arrow  { color:var(--green); }
   .ann-type-outro .ann-arrow  { color:var(--accent); }
   .ann-type-trans .ann-arrow  { color:var(--muted); }
-  .ann-type-note .ann-arrow   { color:#ccc; }
+  .ann-type-note .ann-arrow   { color:var(--muted); }
   .ann-badge { font-size:var(--ann-fs,9px); letter-spacing:.06em; text-transform:uppercase; font-weight:700; padding:2px 6px; flex-shrink:0; flex:1; }
   .ann-badge.intro  { color:var(--green); }
   .ann-badge.outro  { color:var(--accent); }
-  .ann-badge.trans  { color:#333; }
-  .ann-badge.note   { color:#333; font-style:italic; text-transform:none; letter-spacing:.02em; }
-  .ann-remove { background:none; border:none; color:#888; cursor:pointer; font-size:10px; padding:1px 3px; touch-action:manipulation; flex-shrink:0; opacity:0; transition:opacity .15s; }
+  .ann-badge.trans  { color:var(--fg); }
+  .ann-badge.note   { color:var(--fg); font-style:italic; text-transform:none; letter-spacing:.02em; }
+  .ann-remove { background:none; border:none; color:var(--muted); cursor:pointer; font-size:10px; padding:1px 3px; touch-action:manipulation; flex-shrink:0; opacity:0; transition:opacity .15s; }
   .annotation-row:hover .ann-remove { opacity:1; }
   @media(max-width:600px) { .ann-remove { opacity:1; } }
 
@@ -168,8 +189,8 @@
   .setlist-drop-end { min-height:48px; border:2px dashed transparent; transition:all .15s; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
   .setlist-drop-end.drag-over { border-color:var(--accent); color:var(--accent); background:rgba(230,51,35,.04); }
 
-  .totals-row { display:grid; grid-template-columns:36px 1fr 80px 60px 36px; padding:10px 8px; border-top:2px solid var(--fg); gap:8px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
-  .totals-row .label { color:#333; font-weight:700; }
+  .totals-row { display:grid; grid-template-columns:36px 1fr 80px 60px 36px; padding:8px 10px; border-top:2px solid var(--fg); gap:0; font-size:10px; letter-spacing:.08em; text-transform:uppercase; background:var(--card); }
+  .totals-row .label { color:var(--fg); font-weight:700; }
   .totals-row .val { font-weight:700; font-size:12px; }
 
   /* ── EDIT MODAL ── */
@@ -181,27 +202,27 @@
   .em-close { background:none; border:1px solid rgba(255,255,255,.6); color:#fff; font-size:16px; width:30px; height:30px; cursor:pointer; display:flex; align-items:center; justify-content:center; touch-action:manipulation; }
   .em-body { padding:20px; display:flex; flex-direction:column; gap:16px; }
   .em-section { border:1px solid var(--line); }
-  .em-section-header { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--card); cursor:pointer; touch-action:manipulation; user-select:none; color:#111; }
+  .em-section-header { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--card); cursor:pointer; touch-action:manipulation; user-select:none; color:var(--fg); }
   .em-section-header:hover { background:var(--line); }
   .em-section-label { font-size:9px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; }
   .em-section-label.intro  { color:var(--green); }
   .em-section-label.outro  { color:var(--accent); }
-  .em-section-label.trans-in  { color:#333; }
-  .em-section-label.trans-out { color:#333; }
-  .em-section-label.note-lbl  { color:#333; }
-  .em-toggle { font-size:10px; color:#444; }
+  .em-section-label.trans-in  { color:var(--fg); }
+  .em-section-label.trans-out { color:var(--fg); }
+  .em-section-label.note-lbl  { color:var(--fg); }
+  .em-toggle { font-size:10px; color:var(--muted); }
   .em-section-body { display:none; padding:12px; border-top:1px solid var(--line); }
   .em-section-body.open { display:block; }
   .em-textarea { width:100%; background:var(--bg); border:1px solid var(--line); color:var(--fg); font-family:var(--font-mono); font-size:11px; padding:8px 10px; resize:vertical; min-height:60px; outline:none; letter-spacing:.02em; }
   .em-textarea:focus { border-color:var(--fg); }
-  .em-section-hint { font-size:9px; color:#444; margin-bottom:8px; letter-spacing:.03em; }
+  .em-section-hint { font-size:9px; color:var(--muted); margin-bottom:8px; letter-spacing:.03em; }
   .em-footer { padding:14px 20px; border-top:1px solid var(--line); display:flex; gap:8px; }
   .em-footer button { flex:1; padding:10px; font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; border:1px solid var(--fg); background:none; color:var(--fg); touch-action:manipulation; }
   .em-footer button.primary { background:var(--fg); color:var(--bg); }
   .em-footer button:hover { opacity:.8; }
 
 
-  .col-drag-header { cursor:grab; user-select:none; transition:color .15s; color:#333; font-weight:700; font-size:var(--cell-fs,10px); }
+  .col-drag-header { cursor:grab; user-select:none; transition:color .15s; color:var(--muted); font-weight:700; font-size:var(--cell-fs,10px); }
   .col-drag-header:hover { color:var(--fg); }
   .col-drag-header.drag-over-col { color:var(--accent); border-bottom:2px solid var(--accent); }
   .col-drag-header:active { cursor:grabbing; }
@@ -214,6 +235,8 @@
   .view-tabs { display:flex; gap:0; border-bottom:1px solid var(--line); margin-bottom:0; align-items:stretch; margin-top:8px; }
   .view-tab-artist { display:flex; align-items:center; padding:0 14px; font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; font-weight:700; color:var(--accent); text-transform:uppercase; border-bottom:2px solid var(--accent); margin-bottom:-2px; }
   .view-tab-artist:empty { display:none; }
+  .view-tab-menu { display:block; }
+  @media (max-width:600px) { .view-tab-menu { display:none !important; } }
   .file-menu-admin-label { font-size:8px; color:#666; letter-spacing:.1em; text-align:center; padding:6px 0 2px; }
   .view-tab { font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; padding:12px 22px; cursor:pointer; color:var(--muted); background:none; border:none; border-bottom:3px solid transparent; margin-bottom:-2px; transition:all .15s; touch-action:manipulation; text-transform:uppercase; font-weight:500; }
   .view-tab.active { color:var(--fg); border-bottom-color:var(--fg); }
@@ -232,17 +255,17 @@
   .archive-item { display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:16px; padding:14px 8px; border-bottom:1px solid var(--line); transition:background .1s; }
   .archive-item:hover { background:rgba(0,0,0,.03); }
   .archive-item-left { min-width:0; }
-  .archive-item-name { font-size:14px; font-weight:700; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; color:#0a0a0a; }
+  .archive-item-name { font-size:14px; font-weight:700; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; color:var(--fg); }
   .archive-item-name:hover { text-decoration:underline; }
-  .archive-item-meta { font-size:9px; color:#444; letter-spacing:.06em; margin-top:3px; }
-  .archive-item-tracks { font-size:11px; color:#333; white-space:nowrap; text-align:right; font-weight:700; }
+  .archive-item-meta { font-size:9px; color:var(--muted); letter-spacing:.06em; margin-top:3px; }
+  .archive-item-tracks { font-size:11px; color:var(--fg); white-space:nowrap; text-align:right; font-weight:700; }
   .archive-item-time { font-size:14px; font-weight:700; white-space:nowrap; min-width:48px; text-align:right; }
   .archive-item-actions { display:flex; gap:4px; }
   .archive-btn { background:none; border:1.5px solid #888; color:#222; font-family:var(--font-mono); font-size:9px; letter-spacing:.06em; padding:4px 8px; cursor:pointer; text-transform:uppercase; transition:all .15s; touch-action:manipulation; white-space:nowrap; }
   .archive-btn:hover { border-color:var(--fg); color:var(--fg); }
   .archive-btn.danger:hover { border-color:var(--accent); color:var(--accent); }
 
-  .archive-empty { padding:48px 0; text-align:center; color:#444; font-size:11px; letter-spacing:.08em; }
+  .archive-empty { padding:48px 0; text-align:center; color:var(--muted); font-size:11px; letter-spacing:.08em; }
   .archive-track-preview { font-size:9px; color:#444; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-style:italic; }
 
   /* Save modal */
@@ -308,7 +331,7 @@
   .import-badge-skip { font-size:8px; background:var(--muted); color:#fff; padding:1px 5px; letter-spacing:.08em; }
 
   /* COLUMN VISIBILITY */
-  .vis-bar { display:flex; align-items:center; gap:12px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:9px; color:#333; letter-spacing:.08em; flex-wrap:wrap; font-weight:700; }
+  .vis-bar { display:flex; align-items:center; gap:12px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:9px; color:var(--fg); letter-spacing:.08em; flex-wrap:wrap; font-weight:700; }
   .vis-bar label { display:flex; align-items:center; gap:5px; cursor:pointer; text-transform:uppercase; user-select:none; }
   .vis-bar input[type=checkbox] { accent-color:var(--fg); width:11px; height:11px; cursor:pointer; }
 
@@ -318,10 +341,14 @@
   .block-spacer { height:14px; margin-top:8px; margin-bottom:2px; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; }
   .block-spacer-remove { background:none; border:none; color:#ccc; cursor:pointer; font-size:11px; padding:1px 4px; touch-action:manipulation; }
   .block-spacer-remove:hover { color:var(--accent); }
-  .block-label-tag { font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#555; }
-  .block-label-time { font-size:9px; color:#333; font-weight:700; }
+  .block-label-tag { font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .block-label-time { font-size:9px; color:var(--fg); font-weight:700; }
   .block-remove { background:none; border:none; color:#ccc; cursor:pointer; font-size:11px; padding:1px 4px; margin-left:auto; touch-action:manipulation; }
   .block-remove:hover { color:var(--accent); }
+  .block-lock-btn { background:none; border:none; cursor:pointer; font-size:13px; padding:0 5px; opacity:.35; touch-action:manipulation; transition:opacity .15s; line-height:1; }
+  .block-lock-btn:hover { opacity:.8; }
+  .block-lock-btn.locked { opacity:1; }
+  .track-row.locked-block { box-shadow:inset 3px 0 0 var(--accent); }
 
   /* SELECT MODE */
   .track-row.selectable { cursor:pointer; }
@@ -384,13 +411,16 @@
   .pool-item.in-setlist { background:#151513; cursor:default; font-style:italic; }
   .pool-item.pool-dragging { opacity:.25; }
   .pool-drag-icon { font-size:11px; color:#ffffff; flex-shrink:0; font-size:13px; }
-  .pool-item.in-setlist .pool-drag-icon { color:#333; }
+  .pool-item.in-setlist .pool-drag-icon { color:var(--muted); }
   .pool-item-name { flex:1; font-size:12px; font-weight:700; color:#e8e8e8 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
   .pool-item.in-setlist .pool-item-name { color:#444; }
   .pool-item-bpm { font-size:11px; font-weight:700; color:#ff7766 !important; flex-shrink:0; min-width:44px; text-align:right; }
   .pool-item.in-setlist .pool-item-bpm { color:#3a2020; }
   .pool-item-len { font-size:10px; color:#c0c0c0 !important; flex-shrink:0; min-width:34px; text-align:right; }
-  .pool-item.in-setlist .pool-item-len { color:#333; }
+  .pool-item.in-setlist .pool-item-len { color:var(--muted); }
+  body.is-artist .admin-only { display:none !important; }
+  body.is-artist .pool-readonly-hint { display:flex !important; }
+  .pool-readonly-hint { display:none; font-size:9px; color:#888; letter-spacing:.08em; text-align:center; padding:10px 18px 14px; font-family:var(--font-mono); }
   .pool-add { border-top:1px solid #2e2e2a; padding:14px 18px; flex-shrink:0; background:#0a0a08; }
   .pool-add-title { font-size:9px; letter-spacing:.12em; color:#ddd; text-transform:uppercase; margin-bottom:8px; font-weight:700; }
   .pool-add-row { display:grid; grid-template-columns:1fr 56px 56px; gap:5px; margin-bottom:6px; }
@@ -420,10 +450,8 @@
     .hero-title { font-size:22vw; line-height:.88; padding:6px 0 0; }
     .header-meta { gap:16px; font-size:9px; flex-wrap:wrap; }
     .header-right { display:none; }
-    .toolbar { flex-direction:column; align-items:stretch; gap:8px; margin:20px 0 16px; }
-    .toolbar-sep { display:none; }
-    .toolbar button { font-size:12px; padding:14px 16px; text-align:center; }
-    .stats-bar { width:100%; margin-left:0; justify-content:space-between; border-top:1px solid var(--line); padding-top:8px; font-size:10px; }
+    .toolbar { display:none !important; }
+    .stats-bar { display:none; }
     .add-form { flex-direction:column; align-items:stretch; padding:14px 16px; }
     .add-form input, .add-form input.short { width:100%; font-size:14px; padding:10px; }
     .col-headers { display:none; }
@@ -480,6 +508,9 @@
     /* Vis bar: smaller, wrap */
     .vis-bar { font-size:8px; gap:6px; padding:5px 8px; }
     .vis-bar label { gap:4px; }
+    /* Only BPM + Schrift on mobile */
+    .vis-bar > span { display:none; }
+    .vis-bar label:not(.mob) { display:none; }
 
     /* Modals full-screen on mobile */
     .modal { width:95vw !important; max-width:95vw !important; min-width:unset !important; max-height:85vh; overflow-y:auto; }
@@ -493,6 +524,102 @@
     /* Add form */
     .add-form { flex-wrap:wrap; }
     .add-form label { min-width:120px; }
+  }
+
+  /* ── TRACK INFO SHEET (mobile only) ─────────────────────── */
+  .track-info-sheet { display:none; }
+  @media (max-width:600px) {
+    /* Hide all dynamic col cells on mobile — only show length + bpm inline */
+    .track-tc, .track-key, .track-note-inline, .track-todo-cell { display:none !important; }
+    /* Keep length visible inline, BPM only in info sheet */
+    .track-length { display:block !important; }
+    .track-bpm    { display:none !important; }
+    /* Name tap hint */
+    .track-name { cursor:pointer; }
+
+    /* Bottom sheet overlay */
+    .track-info-sheet {
+      display:block; position:fixed; inset:0; z-index:400;
+      background:rgba(0,0,0,.5);
+      opacity:0; pointer-events:none;
+      transition:opacity .2s;
+    }
+    .track-info-sheet.open { opacity:1; pointer-events:all; }
+    .track-info-sheet-box {
+      position:absolute; bottom:0; left:0; right:0;
+      background:var(--bg); border-top:2px solid var(--fg);
+      padding:0 0 env(safe-area-inset-bottom,0px);
+      transform:translateY(100%);
+      transition:transform .25s cubic-bezier(.4,0,.2,1);
+      max-height:75vh; overflow-y:auto;
+    }
+    .track-info-sheet.open .track-info-sheet-box { transform:translateY(0); }
+    .tis-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 18px 12px; border-bottom:1px solid var(--line);
+      position:sticky; top:0; background:var(--bg); z-index:1;
+    }
+    .tis-title { font-size:16px; font-weight:700; letter-spacing:.01em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .tis-num { font-size:10px; color:var(--muted); font-family:var(--font-mono); margin-right:10px; flex-shrink:0; }
+    .tis-close { background:none; border:1px solid var(--line); color:var(--fg); font-size:14px; width:30px; height:30px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .tis-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+    .tis-cell { padding:12px 18px; border-bottom:1px solid var(--line); border-right:1px solid var(--line); }
+    .tis-cell:nth-child(even) { border-right:none; }
+    .tis-label { font-size:8px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:3px; }
+    .tis-val { font-size:14px; font-weight:700; font-family:var(--font-mono); }
+    .tis-val.empty { color:var(--muted); font-weight:400; font-size:12px; }
+    .tis-anns { padding:12px 18px; border-bottom:1px solid var(--line); }
+    .tis-ann-row { font-size:11px; padding:3px 0; color:var(--fg); }
+    .tis-ann-row span { color:var(--muted); font-size:9px; letter-spacing:.1em; text-transform:uppercase; margin-right:6px; }
+    .tis-note { padding:12px 18px 16px; font-size:12px; color:var(--fg); line-height:1.5; }
+    .tis-note-label { font-size:8px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:4px; }
+  }
+
+  /* ── BOTTOM NAV (mobile only) ───────────────────────────── */
+  .bottom-nav { display:none; }
+  @media (max-width:600px) {
+    .shell { padding-bottom:80px; }
+    .bottom-nav {
+      display:flex; position:fixed; bottom:0; left:0; right:0;
+      height:60px; padding-bottom:env(safe-area-inset-bottom,0px);
+      background:var(--fg); border-top:1px solid rgba(128,128,128,.2);
+      z-index:200;
+    }
+    .bn-item {
+      flex:1; display:flex; flex-direction:column; align-items:center;
+      justify-content:center; gap:3px;
+      background:none; border:none; color:var(--bg);
+      font-family:var(--font-mono); font-size:8px; letter-spacing:.1em;
+      text-transform:uppercase; cursor:pointer; opacity:.5;
+      touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+      transition:opacity .1s; position:relative;
+    }
+    .bn-item:active { opacity:1; background:rgba(255,255,255,.07); }
+    .bn-item.bn-active { opacity:1; }
+    .bn-icon { font-size:18px; line-height:1; }
+    .bn-sep { width:1px; background:rgba(128,128,128,.2); margin:12px 0; flex-shrink:0; }
+    /* Popup über der Nav */
+    .bn-popup {
+      display:none; position:fixed; bottom:64px; left:12px; right:12px;
+      background:var(--fg); z-index:300;
+      box-shadow:0 -4px 24px rgba(0,0,0,.4);
+      border:1px solid rgba(128,128,128,.2);
+    }
+    .bn-popup.open { display:block; }
+    .bn-popup-label {
+      font-size:8px; letter-spacing:.14em; color:rgba(128,128,128,.6);
+      padding:10px 16px 6px; text-transform:uppercase;
+      font-family:var(--font-mono); border-bottom:1px solid rgba(128,128,128,.15);
+    }
+    .bn-popup-item {
+      display:block; width:100%; text-align:left; background:none; border:none;
+      color:var(--bg); font-family:var(--font-mono); font-size:11px;
+      letter-spacing:.07em; padding:14px 16px; cursor:pointer;
+      border-bottom:1px solid rgba(128,128,128,.1); touch-action:manipulation;
+    }
+    .bn-popup-item:last-child { border-bottom:none; }
+    .bn-popup-item:active { background:rgba(255,255,255,.1); }
+    .bn-popup-sep { height:1px; background:rgba(128,128,128,.2); margin:2px 0; }
   }
 
 </style>
@@ -520,7 +647,7 @@
     </div>
   </div>
   <div class="pool-list" id="pool-list"></div>
-  <div class="pool-add">
+  <div class="pool-add admin-only">
     <div class="pool-add-title">+ Neuen Track hinzufügen</div>
     <div class="pool-add-row">
       <input type="text" id="pool-inp-name" placeholder="Trackname" />
@@ -528,6 +655,27 @@
       <input type="text" id="pool-inp-bpm" placeholder="BPM" />
     </div>
     <button onclick="addToPool()">In Pool speichern</button>
+  </div>
+  <div class="pool-readonly-hint">NUR-LESEN · Bearbeitung nur im Admin-Modus</div>
+</div>
+
+<!-- Google Sheets Sync Modal -->
+<div class="modal-overlay" id="sheets-modal">
+  <div class="modal" style="min-width:360px;max-width:480px">
+    <div style="font-size:22px;font-weight:900;letter-spacing:.02em;margin-bottom:6px">GOOGLE SHEETS</div>
+    <div style="font-size:10px;color:var(--muted);letter-spacing:.08em;margin-bottom:20px;line-height:1.6">
+      Einmalig: Apps Script Web App URL eintragen.<br>Danach: Setlist mit einem Klick ins Sheet schreiben.
+    </div>
+    <label style="font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:6px">Web App URL</label>
+    <input type="text" id="sheets-url-inp" placeholder="https://script.google.com/macros/s/…/exec"
+      style="width:100%;background:var(--card);border:1px solid var(--line);color:var(--fg);font-family:var(--font-mono);font-size:11px;padding:9px 10px;outline:none;margin-bottom:16px;box-sizing:border-box">
+    <div id="sheets-status" style="font-size:10px;color:var(--muted);min-height:18px;margin-bottom:14px;font-family:var(--font-mono)"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeSheetsModal()" style="background:none;border:1px solid var(--line);color:var(--muted);font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;padding:8px 16px;cursor:pointer;text-transform:uppercase">Abbrechen</button>
+      <button onclick="saveSheetUrl()" style="background:none;border:1px solid var(--line);color:var(--fg);font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;padding:8px 16px;cursor:pointer;text-transform:uppercase">URL Speichern</button>
+      <button onclick="pushAllToSheets()" style="background:none;border:1px solid var(--fg);color:var(--fg);font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;padding:8px 16px;cursor:pointer;text-transform:uppercase">↑ ALLE</button>
+      <button onclick="pushToSheets()" style="background:var(--fg);color:var(--bg);border:none;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;padding:8px 16px;cursor:pointer;text-transform:uppercase;font-weight:700">↑ SYNC</button>
+    </div>
   </div>
 </div>
 
@@ -768,7 +916,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v1.44</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v2.6</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -786,14 +934,25 @@
       <div class="file-menu-dropdown" id="file-menu-dropdown">
         <button onclick="copyShareUrl();closeFileMenu()">⇗ TEILEN</button>
         <button onclick="exportData('artist');closeFileMenu()">↓ BACKUP ARTIST</button>
-        <button onclick="exportData('admin');closeFileMenu()">↓ BACKUP ADMIN</button>
+        <button onclick="exportData('admin');closeFileMenu()" class="admin-only">↓ BACKUP ADMIN</button>
         <div class="file-menu-sep"></div>
-        <button onclick="openAlsImportModal();closeFileMenu()">↑ ALS IMPORT</button>
-        <button onclick="openImportModal();closeFileMenu()">↑ IMPORT TXT</button>
-        <button onclick="importData();closeFileMenu()">↑ IMPORT FILE</button>
+        <button onclick="openAlsImportModal();closeFileMenu()" class="admin-only">↑ ALS IMPORT</button>
+        <button onclick="openImportModal();closeFileMenu()" class="admin-only">↑ IMPORT TXT</button>
+        <button onclick="importData();closeFileMenu()" class="admin-only">↑ IMPORT FILE</button>
         <div class="file-menu-sep"></div>
         <button onclick="quickSave();closeFileMenu()">✦ SPEICHERN</button>
         <button onclick="openSaveModal();closeFileMenu()">✦ SPEICHERN ALS ...</button>
+        <div class="file-menu-sep"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px">
+          <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#ccc">Schriftgrösse</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button onclick="(function(){var el=document.getElementById('track-font-size');el.value=Math.max(10,+el.value-1);updateTrackFontSize(el.value)})()" style="background:none;border:1px solid #555;color:#fff;font-family:var(--font-mono);font-size:12px;width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">−</button>
+            <input type="number" id="track-font-size" min="10" max="24" value="12" step="1"
+              style="width:38px;background:#1a1a1a;border:1px solid #555;color:#fff;font-family:var(--font-mono);font-size:10px;padding:2px 4px;text-align:center;outline:none"
+              oninput="updateTrackFontSize(this.value)">
+            <button onclick="(function(){var el=document.getElementById('track-font-size');el.value=Math.min(24,+el.value+1);updateTrackFontSize(el.value)})()" style="background:none;border:1px solid #555;color:#fff;font-family:var(--font-mono);font-size:12px;width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">+</button>
+          </div>
+        </div>
         <div class="file-menu-sep"></div>
         <div class="file-menu-admin-label">— ADMIN —</div>
         <div id="artist-switcher" style="padding:6px 12px 12px;box-sizing:border-box;width:100%">
@@ -816,7 +975,7 @@
     <button onclick="openPool()" id="pool-btn">[ ◀ POOL ]</button>
     <button id="btn-more" onclick="toggleMoreButtons()" style="display:none">[ ••• ]</button>
     <button onclick="quickSave()" id="main-save-btn" title="Setlist speichern">[ ✦ SAVE ]</button>
-    <button onclick="toggleAddForm()" id="add-btn">[ + ADD ]</button>
+    <button onclick="toggleAddForm()" id="add-btn" class="admin-only">[ + ADD ]</button>
     <button class="accent" onclick="openExportModal()">[ EXPORT ]</button>
     <div style="position:relative;display:inline-block" id="links-dropdown-wrap">
       <button class="toolbar-secondary" onclick="toggleLinksMenu()" id="links-btn">[ ⎘ LINKS ]</button>
@@ -826,6 +985,10 @@
         <button onclick="openTecView();closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">↗ Technik-Ansicht öffnen</button>
         <button onclick="copyViewLink('print');closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">⎘ Druck-Link kopieren</button>
         <button onclick="openPrintView();closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">↗ Druckansicht öffnen</button>
+        <div style="height:1px;background:var(--line);margin:4px 0"></div>
+        <button onclick="exportTecCSV();closeLinksMenu()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">↓ CSV exportieren</button>
+        <div style="height:1px;background:var(--line);margin:4px 0"></div>
+        <button onclick="openSheetsModal();closeLinksMenu()" class="admin-only" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--fg);font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;padding:6px 14px;cursor:pointer" onmouseover="this.style.background='var(--line)'" onmouseout="this.style.background='none'">↑ Google Sheets sync</button>
       </div>
     </div>
     <button class="toolbar-secondary" onclick="autoGenerateLTC()" title="LTC automatisch vergeben (10-Min-Abstand)">[ ⏱ LTC ]</button>
@@ -836,7 +999,6 @@
     <div class="stats-bar">
       <span>TRACKS <b id="stat-tracks">0</b></span>
       <span>LAUFZEIT <b id="stat-time">0:00</b></span>
-      <span>BPM <b id="stat-bpm">—</b></span>
       <span id="save-status" style="font-size:9px;color:#888">—</span>
     </div>
   </div>
@@ -876,7 +1038,7 @@
     <span>ANZEIGEN:</span>
     <label style="font-weight:700"><input type="checkbox" id="vis-all" checked onchange="setAllVis(this.checked)"> Alle</label>
     <span style="color:var(--line);margin:0 2px">|</span>
-    <label><input type="checkbox" id="vis-length" checked onchange="syncAllCheckbox();render()"> Länge</label>
+    <label class="mob"><input type="checkbox" id="vis-length" checked onchange="syncAllCheckbox();render()"> Länge</label>
     <label><input type="checkbox" id="vis-bpm" checked onchange="syncAllCheckbox();render()"> BPM</label>
     <label><input type="checkbox" id="vis-annotations" checked onchange="syncAllCheckbox();render()"> Übergänge</label>
     <label><input type="checkbox" id="vis-notes-col" checked onchange="syncAllCheckbox();render()"> Notiz-Spalte</label>
@@ -885,14 +1047,6 @@
     <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
     <label><input type="checkbox" id="vis-structure" checked onchange="render()"> ABLAUF</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
-    <span style="color:var(--line);margin:0 2px">|</span>
-    <label style="display:flex;align-items:center;gap:6px">
-      SCHRIFT
-      <input type="number" id="track-font-size" min="10" max="24" value="12" step="1"
-        style="width:44px;background:var(--bg);border:1px solid var(--line);color:var(--fg);font-family:var(--font-mono);font-size:9px;padding:2px 4px;text-align:center;outline:none"
-        oninput="updateTrackFontSize(this.value)"
-        onkeydown="if(event.key==='ArrowUp'){event.preventDefault();this.value=Math.min(24,+this.value+1);updateTrackFontSize(this.value)}else if(event.key==='ArrowDown'){event.preventDefault();this.value=Math.max(10,+this.value-1);updateTrackFontSize(this.value)}">
-    </label>
   </div>
 
   <!-- Select mode bar -->
@@ -923,7 +1077,6 @@
       <span></span>
       <span class="label">GESAMT</span>
       <span class="val" id="total-time">—</span>
-      <span class="val" id="total-bpm">—</span>
       <span></span>
     </div>
   </div>
@@ -1157,26 +1310,6 @@ function render() {
       colHeadersRow.appendChild(s);
     });
     colHeadersRow.appendChild(document.createElement('span'));
-    // ── THEME TOGGLE ────────────────────────────────────────────
-function toggleTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-  const btn = document.getElementById('theme-toggle-btn');
-  if (btn) btn.textContent = isDark ? '☀' : '☾';
-  try { localStorage.setItem('slp-theme', isDark ? 'light' : 'dark'); } catch(e) {}
-}
-// Load saved theme
-(function() {
-  try {
-    const saved = localStorage.getItem('slp-theme');
-    if (saved === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      const btn = document.getElementById('theme-toggle-btn');
-      if (btn) btn.textContent = '☾';
-    }
-  } catch(e) {}
-})();
-initColHeaders();
   }
 
   // Track which block label rows have been rendered
@@ -1201,15 +1334,20 @@ initColHeaders();
       renderedBlocks.add(block.id);
       const hasName = block.label && block.label.trim();
       const labelRow = document.createElement('div');
+      const lockIcon = block.locked ? '🔒' : '🔓';
+      const lockTitle = block.locked ? 'Gesperrt — als Block verschieben. Klicken zum Entsperren.' : 'Entsperrt — Klicken zum Sperren';
+      const lockBtn = `<button class="block-lock-btn${block.locked ? ' locked' : ''}" onclick="toggleBlockLock(${block.id})" title="${lockTitle}">${lockIcon}</button>`;
       if (hasName) {
         labelRow.className = 'block-label-row';
         labelRow.innerHTML = `<span class="block-label-tag">${block.label}</span>
+          ${lockBtn}
           ${selectMode ? `<button class="block-remove" onclick="removeBlock(${block.id})">✕</button>` : ''}`;
       } else {
         labelRow.className = 'block-spacer';
         labelRow.dataset.blockId = block.id;
+        labelRow.innerHTML = lockBtn;
         if (selectMode) {
-          labelRow.innerHTML = `<button class="block-remove block-spacer-remove" onclick="removeBlock(${block.id})" title="Gruppe löschen">✕</button>`;
+          labelRow.innerHTML += `<button class="block-remove block-spacer-remove" onclick="removeBlock(${block.id})" title="Gruppe löschen">✕</button>`;
         }
       }
       body.appendChild(labelRow);
@@ -1247,6 +1385,7 @@ initColHeaders();
     row.dataset.id = t.id;
     if (block) {
       row.classList.add('in-block');
+      if (block.locked) row.classList.add('locked-block');
       const bOpacity = block.opacity !== undefined ? block.opacity : 1;
       row.style.setProperty('--block-color', block.color || '#999');
       row.style.setProperty('--block-opacity', bOpacity);
@@ -1276,7 +1415,7 @@ initColHeaders();
         const hasStr = !!(annotations[t.id]||{}).structure;
         const eyeClick = hasStr ? 'onclick="alsShowStructure(' + t.id + ',this);event.stopPropagation()"' : '';
         const eyeCursor = hasStr ? 'pointer' : 'default';
-        const eyeOpacity = hasStr ? '1' : '.25';
+        const eyeOpacity = hasStr ? '1' : '.4';
         const eyeTitle = hasStr ? 'Ablauf anzeigen' : 'kein Ablauf';
         return '<span style="text-align:center;cursor:' + eyeCursor + ';opacity:' + eyeOpacity + ';display:flex;align-items:center;justify-content:center;color:var(--fg)" ' + eyeClick + ' title="' + eyeTitle + '"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>';
       }
@@ -1285,11 +1424,12 @@ initColHeaders();
 
     row.innerHTML = `
       <span class="track-num" onclick="editPosition(this,${t.id})" title="Klicken um Position zu ändern">${t.special ? '·' : String(trackNum).padStart(2,'00')}</span>
-      <span class="track-name">${t.name}${t.uncertain?'<span class="uncertain-badge"></span>':''}${col?`<span class="color-dot" style="background:${col}"></span>`:''}</span>
+      <span class="track-name" onclick="openTIS(${t.id})">${t.name}${t.uncertain?'<span class="uncertain-badge"></span>':''}${col?`<span class="color-dot" style="background:${col}"></span>`:''}</span>
       ${colCells}
       <span style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
-<button class="track-edit-btn" onclick="openEditModal(${t.id})">✎</button>
+<button class="track-edit-btn admin-only" onclick="openEditModal(${t.id})">✎</button>
         <button class="track-delete-btn" onclick="removeFromSetlist(${t.id})">✕</button>
+        <span class="drag-handle" data-id="${t.id}" title="Halten zum Verschieben">⠿</span>
       </span>`;
 
 
@@ -1412,8 +1552,7 @@ initColHeaders();
   document.getElementById('stat-tracks').textContent = setlist.length;
   document.getElementById('footer-count').textContent = setlist.length + ' TRACKS';
   const avg = bpmVals.length ? Math.round(bpmVals.reduce((a,b)=>a+b,0)/bpmVals.length) : null;
-  document.getElementById('total-bpm').textContent = avg ? avg+' avg' : '—';
-  document.getElementById('stat-bpm').textContent = avg || '—';
+
 }
 
 function makeAnnRow(type, label, text, trackId, field) {
@@ -1535,6 +1674,7 @@ function closeEditModal() {
 }
 
 function saveEditModal() {
+  if (!IS_ADMIN) return;
   if (!editingTrackId) return;
   function getVal(id) {
     const ta = document.getElementById(id);
@@ -1665,6 +1805,7 @@ function renderPool() {
 function openPool() { document.getElementById('pool-sidebar').classList.add('open'); document.getElementById('pool-overlay').classList.add('open'); document.body.classList.add('pool-open'); renderPool(); }
 function closePool() { document.getElementById('pool-sidebar').classList.remove('open'); document.getElementById('pool-overlay').classList.remove('open'); document.body.classList.remove('pool-open'); }
 function addToPool() {
+  if (!IS_ADMIN) return;
   const name = document.getElementById('pool-inp-name').value.trim();
   if (!name) return;
   const t = { id:nextId++, name, length:document.getElementById('pool-inp-length').value.trim(), bpm:document.getElementById('pool-inp-bpm').value.trim(), uncertain:false };
@@ -1734,6 +1875,7 @@ function populatePositionSelect() {
 let _pendingNewTrack = null;
 
 function addTrack() {
+  if (!IS_ADMIN) return;
   const name = document.getElementById('inp-name').value.trim(); if (!name) return;
   const length = document.getElementById('inp-length').value.trim();
   const bpm = document.getElementById('inp-bpm').value.trim();
@@ -2361,6 +2503,7 @@ function editNoteInline(el) {
 // ── SUPABASE SYNC ─────────────────────────────────────────────
 const SB_URL   = 'https://opcuiwlyfvrhipsrdftd.supabase.co';
 const SB_KEY   = 'sb_publishable_MT7K3rDdmgJVIsHGB33G2g_TwNgxGPC';
+const IS_ADMIN = true;
 const SB_TABLE = 'setlist_data';
 
 // Artist isolation via ?artist=name URL param
@@ -2410,7 +2553,7 @@ async function loadFromSupabase() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.pool)) {
+      if (parsed && Array.isArray(parsed.pool) && parsed.pool.length > 0) {
         applyFullState(parsed);
         _lastSavedHash = _stateHash(parsed);
         return true;
@@ -2423,7 +2566,7 @@ async function loadFromSupabase() {
     const { data, error } = await _sbClient.from(SB_TABLE).select('data').eq('id', SB_ROW_ID).single();
     if (data && data.data) {
       const parsed = JSON.parse(data.data);
-      if (parsed && Array.isArray(parsed.pool)) {
+      if (parsed && Array.isArray(parsed.pool) && parsed.pool.length > 0) {
         applyFullState(parsed);
         _lastSavedHash = _stateHash(parsed);
         return true;
@@ -2439,7 +2582,14 @@ async function loadFromSupabase() {
     return true;
   }
 
-  // New artist — stay empty
+  // No saved state — load 3 demo tracks for any new artist
+  pool = [
+    { id:1, name:'Song A', length:'3:30', bpm:'120', ltc:'00:00:00', uncertain:false },
+    { id:2, name:'Song B', length:'4:00', bpm:'98',  ltc:'00:03:30', uncertain:false },
+    { id:3, name:'Song C', length:'2:45', bpm:'140', ltc:'00:07:30', uncertain:false },
+  ];
+  setlist = [1, 2, 3];
+  nextId = 4;
   return false;
 }
 
@@ -2469,23 +2619,25 @@ function initRealtimeSync() {
 // Dissolve the group a track belongs to (call before any move)
 function dissolveGroupOf(id) {
   const grp = blocks.find(b => b.trackIds.includes(id));
-  if (grp) blocks = blocks.filter(b => b.id !== grp.id);
+  if (grp && !grp.locked) blocks = blocks.filter(b => b.id !== grp.id);
 }
 
 function moveUp(id) {
-  const idx = setlist.indexOf(id);
-  if (idx <= 0) return;
-  dissolveGroupOf(id);
-  setlist.splice(idx, 1);
-  setlist.splice(idx - 1, 0, id);
+  const ids = getBlockIds(id);
+  const firstIdx = setlist.indexOf(ids[0]);
+  if (firstIdx <= 0) return;
+  // Remove all block tracks, insert one position higher
+  ids.forEach(tid => setlist.splice(setlist.indexOf(tid), 1));
+  ids.forEach((tid, i) => setlist.splice(firstIdx - 1 + i, 0, tid));
   snapshot(); render();
 }
 function moveDown(id) {
-  const idx = setlist.indexOf(id);
-  if (idx === -1 || idx >= setlist.length - 1) return;
-  dissolveGroupOf(id);
-  setlist.splice(idx, 1);
-  setlist.splice(idx + 1, 0, id);
+  const ids = getBlockIds(id);
+  const lastIdx = setlist.indexOf(ids[ids.length - 1]);
+  if (lastIdx === -1 || lastIdx >= setlist.length - 1) return;
+  ids.forEach(tid => setlist.splice(setlist.indexOf(tid), 1));
+  const insertAt = setlist.indexOf(setlist[lastIdx - ids.length + 1]) + 1;
+  ids.forEach((tid, i) => setlist.splice(insertAt + i, 0, tid));
   snapshot(); render();
 }
 
@@ -2582,6 +2734,11 @@ function toggleTC() {
 
 function updateTrackFontSize(val) {
   val = +val;
+  // Sync both inputs
+  const el1 = document.getElementById('track-font-size');
+  const el2 = document.getElementById('track-font-size-mobile');
+  if (el1 && +el1.value !== val) el1.value = val;
+  if (el2 && +el2.value !== val) el2.value = val;
   document.documentElement.style.setProperty('--track-name-fs', val + 'px');
   // Scale cell font proportionally
   const cellFs = Math.max(8, val - 2);
@@ -3161,7 +3318,7 @@ function confirmImport(mode) {
 }
 
 
-const STORAGE_KEY = 'setlist_planner_v1_' + ARTIST_ID;
+const STORAGE_KEY = 'setlist_planner_v2_' + ARTIST_ID;
 
 function getFullState() {
   return {
@@ -3212,7 +3369,7 @@ function exportData(mode) {
     const artists = getKnownArtists();
     const allData = { _type: 'admin_backup', exportedAt: d.toISOString(), artists: [] };
     artists.forEach(function(a) {
-      const key = 'setlist_planner_v1_' + a.id;
+      const key = 'setlist_planner_v2_' + a.id;
       const raw = localStorage.getItem(key);
       allData.artists.push({ id: a.id, name: a.name, data: raw ? JSON.parse(raw) : null });
     });
@@ -3507,6 +3664,8 @@ function toggleSelectMode() {
   selectedTracks.clear();
   document.getElementById('select-mode-bar').classList.toggle('active', selectMode);
   document.getElementById('btn-group').classList.toggle('active', selectMode);
+  const bnBtn = document.getElementById('bn-gruppe-btn');
+  if (bnBtn) bnBtn.classList.toggle('bn-active', selectMode);
   if (selectMode) {
     const row = document.getElementById('block-color-row');
     row.innerHTML = '';
@@ -3542,6 +3701,8 @@ function cancelSelectMode() {
   selectMode = false; selectedTracks.clear();
   document.getElementById('select-mode-bar').classList.remove('active');
   document.getElementById('btn-group').classList.remove('active');
+  const bnBtn = document.getElementById('bn-gruppe-btn');
+  if (bnBtn) bnBtn.classList.remove('bn-active');
   render();
 }
 
@@ -3561,6 +3722,21 @@ function confirmBlock() {
 function removeBlock(id) {
   blocks = blocks.filter(b => b.id !== id);
   snapshot(); render();
+}
+
+function toggleBlockLock(id) {
+  const b = blocks.find(b => b.id === id);
+  if (!b) return;
+  b.locked = !b.locked;
+  snapshot(); render();
+}
+
+// Returns all setlist IDs that must move together with trackId
+function getBlockIds(trackId) {
+  const b = getBlockForTrack(trackId);
+  if (!b || !b.locked) return [trackId];
+  // Return IDs in setlist order
+  return setlist.filter(id => b.trackIds.includes(id));
 }
 
 function getBlockForTrack(tid) {
@@ -3604,6 +3780,8 @@ function visChecked(id) {
   _dataReady = true;
   render(); snapshot();
   initRealtimeSync();
+  // IS_ADMIN: mark body for CSS gating
+  if (!IS_ADMIN) document.body.classList.add('is-artist');
   // Show artist name in header and tab
   initArtistSwitcher(); // sets tab label using display name
   const lbl = document.getElementById('artist-label');
@@ -3670,12 +3848,16 @@ function initDrag() {
     }
 
     if (!dragSrc || dragSrc === toId) return;
-    const fromIdx = setlist.indexOf(dragSrc);
+    const dragIds = getBlockIds(dragSrc);
+    const fromIdx = setlist.indexOf(dragIds[0]);
     if (fromIdx === -1) return;
-    dissolveGroupOf(dragSrc);
-    setlist.splice(fromIdx, 1);
-    const insertAt = above ? toIdx : toIdx + 1;
-    setlist.splice(fromIdx < insertAt ? insertAt - 1 : insertAt, 0, dragSrc);
+    if (!getBlockForTrack(dragSrc)?.locked) dissolveGroupOf(dragSrc);
+    // Remove all dragged tracks
+    dragIds.forEach(tid => setlist.splice(setlist.indexOf(tid), 1));
+    // Recalculate toIdx after removal
+    const newToIdx = setlist.indexOf(toId);
+    const insertAt = above ? newToIdx : newToIdx + 1;
+    dragIds.forEach((tid, i) => setlist.splice(insertAt + i, 0, tid));
     dragSrc = null;
     snapshot(); render();
   });
@@ -3724,16 +3906,19 @@ function openMoveMenu(trackId, x, y) {
 }
 
 function moveTrack(trackId, dir) {
-  const idx = setlist.indexOf(trackId);
-  if (idx === -1) return;
-  let newIdx = idx;
-  if (dir === 'up')     newIdx = Math.max(0, idx - 1);
-  if (dir === 'down')   newIdx = Math.min(setlist.length - 1, idx + 1);
-  if (dir === 'top')    newIdx = 0;
-  if (dir === 'bottom') newIdx = setlist.length - 1;
-  if (newIdx === idx) return;
-  setlist.splice(idx, 1);
-  setlist.splice(newIdx, 0, trackId);
+  const ids = getBlockIds(trackId);
+  const firstIdx = setlist.indexOf(ids[0]);
+  const lastIdx  = setlist.indexOf(ids[ids.length - 1]);
+  if (firstIdx === -1) return;
+  let newFirst = firstIdx;
+  if (dir === 'up')     newFirst = Math.max(0, firstIdx - 1);
+  if (dir === 'down')   newFirst = Math.min(setlist.length - ids.length, lastIdx + 1) - (ids.length - 1);
+  if (dir === 'top')    newFirst = 0;
+  if (dir === 'bottom') newFirst = setlist.length - ids.length;
+  if (newFirst === firstIdx) return;
+  // Remove all, reinsert at new position
+  ids.forEach(tid => setlist.splice(setlist.indexOf(tid), 1));
+  ids.forEach((tid, i) => setlist.splice(newFirst + i, 0, tid));
   snapshot(); render();
   closeMoveMenu();
 }
@@ -3751,27 +3936,31 @@ function openMoveToPosition(trackId) {
   snapshot(); render();
 }
 
-// Attach long-press to drag-handle
+// Attach move menu to drag-handle: tap on mobile, long-press on desktop
 function initLongPress() {
+  // Mobile: single tap on handle opens menu immediately
   document.addEventListener('touchstart', function(e) {
     const handle = e.target.closest('.drag-handle');
     if (!handle) return;
     e.preventDefault();
+    e.stopPropagation();
     const trackId = +handle.dataset.id;
     const touch = e.touches[0];
-    longPressTimer = setTimeout(() => {
-      if (navigator.vibrate) navigator.vibrate(40);
-      openMoveMenu(trackId, touch.clientX, touch.clientY);
-    }, 400);
+    if (navigator.vibrate) navigator.vibrate(30);
+    openMoveMenu(trackId, touch.clientX, touch.clientY);
   }, { passive: false });
 
-  document.addEventListener('touchend', () => {
-    clearTimeout(longPressTimer);
-  }, { passive: true });
-
-  document.addEventListener('touchmove', () => {
-    clearTimeout(longPressTimer);
-  }, { passive: true });
+  // Desktop: long-press
+  document.addEventListener('mousedown', function(e) {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    const trackId = +handle.dataset.id;
+    longPressTimer = setTimeout(() => {
+      openMoveMenu(trackId, e.clientX, e.clientY);
+    }, 400);
+  });
+  document.addEventListener('mouseup',   () => clearTimeout(longPressTimer));
+  document.addEventListener('mousemove', () => clearTimeout(longPressTimer));
 }
 initLongPress();
 initDrag();
@@ -3864,6 +4053,35 @@ function initColHeaders() {
 }
 initColHeaders();
 
+// ── THEME TOGGLE ────────────────────────────────────────────
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    try { localStorage.removeItem('slp-theme'); } catch(e) {}
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    try { localStorage.setItem('slp-theme', 'dark'); } catch(e) {}
+  }
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = isDark ? '☀' : '☾';
+}
+// Load saved theme on startup
+(function() {
+  try {
+    const saved = localStorage.getItem('slp-theme');
+    if (saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      const btn = document.getElementById('theme-toggle-btn');
+      if (btn) btn.textContent = '☾';
+    } else {
+      // Clear any stale value and ensure light mode
+      localStorage.removeItem('slp-theme');
+      document.documentElement.removeAttribute('data-theme');
+    }
+  } catch(e) {}
+})();
+
 // ── LINKS MENU ────────────────────────────────────────────────
 window.toggleLinksMenu = function() {
   const m = document.getElementById('links-menu');
@@ -3910,6 +4128,39 @@ window.openPrintView = function() {
   const w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
+};
+window.exportTecCSV = function() {
+  const artistName = (typeof ARTIST_ID !== 'undefined' && ARTIST_ID !== 'default') ? getArtistDisplayName(ARTIST_ID) : '';
+  const title = artistName || (typeof _currentSaveName !== 'undefined' && _currentSaveName) || 'Setlist';
+  const dateStr = new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const esc = v => '"' + String(v||'').replace(/"/g,'""') + '"';
+  const rows = [['#','Song','Dauer','BPM','LTC','Tonart','Übergänge','Notiz','Gruppe']];
+  let trackNum = 0, currentBlock = '';
+  setlist.forEach(tid => {
+    const t = getTrack(tid); if (!t) return;
+    if (typeof blocks !== 'undefined') { const blk = blocks.find(b => b.startId === tid); if (blk) currentBlock = blk.label; }
+    if (t.special === 'zugabe') { rows.push(['— ZUGABE —','','','','','','','','']); return; }
+    if (!t.special) trackNum++;
+    const ann = (annotations && annotations[tid]) || {};
+    const trans = [];
+    if (ann.intro)    trans.push('Intro: '+ann.intro);
+    if (ann.transIn)  trans.push('↓ '+ann.transIn);
+    if (ann.transOut) trans.push('↑ '+ann.transOut);
+    if (ann.outro)    trans.push('Outro: '+ann.outro);
+    rows.push([
+      t.special ? '·' : String(trackNum).padStart(2,'0'),
+      t.name + (t.uncertain ? ' ?' : ''),
+      t.length||'', t.bpm||'', t.ltc||'', t.key||'',
+      trans.join(' | '), ann.note||'', currentBlock
+    ]);
+  });
+  const csv = rows.map(r => r.map(esc).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = title.replace(/[^a-zA-Z0-9_-]/g,'-') + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
 };
 window.buildPrintHTML = function() {
   const artistName = (typeof ARTIST_ID !== 'undefined' && ARTIST_ID !== 'default') ? getArtistDisplayName(ARTIST_ID) : '';
@@ -4132,7 +4383,7 @@ window.resetAnnStyle = function() {
 </div>
 
 <script>
-// ── ALS IMPORT v1.44 ─────────────────────────────────────────
+// ── ALS IMPORT v2.6 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -4671,7 +4922,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v1.44</div>' +
+  '</table><div class="wm">SETLIST PLANNER v2.6</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
@@ -4679,6 +4930,343 @@ function exportTecSheet(opts) {
   w.document.close();
 }
 
+// ── TRACK INFO SHEET (mobile) ─────────────────────────────────
+window.openTIS = function(trackId) {
+  if (window.innerWidth > 600) return;
+  const t = getTrack(trackId); if (!t) return;
+  const ann = (annotations && annotations[trackId]) || {};
+  const idx = setlist.indexOf(trackId);
+  const num = t.special ? '·' : String(idx + 1).padStart(2, '0');
+
+  document.getElementById('tis-num').textContent = num;
+  document.getElementById('tis-title').textContent = t.name;
+
+  // Grid cells
+  const cells = [
+    { label: 'Dauer',  val: t.length || '—' },
+    { label: 'BPM',    val: t.bpm    || '—' },
+    { label: 'LTC',    val: t.ltc    || '—' },
+    { label: 'Tonart', val: t.key ? (t.key + (t.keyMode === 'minor' ? 'm' : '')) : '—' },
+  ];
+  document.getElementById('tis-grid').innerHTML = cells.map(c =>
+    `<div class="tis-cell"><div class="tis-label">${c.label}</div><div class="tis-val${c.val === '—' ? ' empty' : ''}">${c.val}</div></div>`
+  ).join('');
+
+  // Annotations
+  const annLines = [];
+  if (ann.intro)    annLines.push(`<div class="tis-ann-row"><span>Intro</span>${ann.intro}</div>`);
+  if (ann.transIn)  annLines.push(`<div class="tis-ann-row"><span>↓ Eingang</span>${ann.transIn}</div>`);
+  if (ann.transOut) annLines.push(`<div class="tis-ann-row"><span>↑ Ausgang</span>${ann.transOut}</div>`);
+  if (ann.outro)    annLines.push(`<div class="tis-ann-row"><span>Outro</span>${ann.outro}</div>`);
+  const annEl = document.getElementById('tis-anns');
+  if (annLines.length) { annEl.innerHTML = annLines.join(''); annEl.style.display = ''; }
+  else annEl.style.display = 'none';
+
+  // Note
+  const noteEl = document.getElementById('tis-note');
+  if (ann.note) {
+    noteEl.innerHTML = `<div class="tis-note-label">Notiz</div>${ann.note}`;
+    noteEl.style.display = '';
+  } else noteEl.style.display = 'none';
+
+  document.getElementById('track-info-sheet').classList.add('open');
+};
+window.closeTIS = function(e) {
+  if (e && document.getElementById('tis-box').contains(e.target)) return;
+  document.getElementById('track-info-sheet').classList.remove('open');
+};
+
+
+// ── GOOGLE SHEETS SYNC ───────────────────────────────────────
+const SHEETS_URL_KEY = 'slp_sheets_url';
+
+window.openSheetsModal = function() {
+  const saved = localStorage.getItem(SHEETS_URL_KEY) || '';
+  document.getElementById('sheets-url-inp').value = saved;
+  document.getElementById('sheets-status').textContent = saved ? '✓ URL gespeichert' : '';
+  document.getElementById('sheets-modal').classList.add('open');
+};
+window.closeSheetsModal = function() {
+  document.getElementById('sheets-modal').classList.remove('open');
+};
+window.saveSheetUrl = function() {
+  const url = document.getElementById('sheets-url-inp').value.trim();
+  if (!url) return;
+  localStorage.setItem(SHEETS_URL_KEY, url);
+  document.getElementById('sheets-status').textContent = '✓ URL gespeichert';
+};
+window.pushAllToSheets = async function() {
+  const url = localStorage.getItem(SHEETS_URL_KEY) || document.getElementById('sheets-url-inp').value.trim();
+  if (!url) { document.getElementById('sheets-status').textContent = '⚠ Bitte zuerst URL eintragen'; return; }
+  localStorage.setItem(SHEETS_URL_KEY, url);
+
+  const archive = loadArchive();
+  if (!archive || archive.length === 0) {
+    document.getElementById('sheets-status').textContent = '⚠ Kein Archiv vorhanden';
+    return;
+  }
+
+  const status = document.getElementById('sheets-status');
+  const artistName = (typeof ARTIST_ID !== 'undefined' && ARTIST_ID !== 'default') ? getArtistDisplayName(ARTIST_ID) : 'Setlist';
+
+  status.textContent = '⏳ 0 / ' + archive.length + ' gesendet…';
+
+  let sent = 0, errors = 0;
+  for (const entry of archive) {
+    try {
+      const s = JSON.parse(entry.state);
+      const entryPool = s.pool || pool;
+      const entrySetlist = s.setlist || [];
+      const entryAnnotations = s.annotations || {};
+      const entryBlocks = s.blocks || [];
+
+      const entryDate = new Date(entry.date).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'});
+
+      let trackNum = 0, currentBlock = '';
+      const rows = [];
+      entrySetlist.forEach(tid => {
+        const t = entryPool.find(p => p.id === tid);
+        if (!t) return;
+        const blk = entryBlocks.find(b => b.trackIds && b.trackIds.includes(tid));
+        if (blk) currentBlock = blk.label || '';
+        if (t.special === 'zugabe') { rows.push({ type: 'zugabe' }); return; }
+        if (!t.special) trackNum++;
+        const ann = (entryAnnotations && entryAnnotations[tid]) || {};
+        const trans = [ann.intro&&('Intro: '+ann.intro), ann.transIn&&('> '+ann.transIn), ann.transOut&&('< '+ann.transOut), ann.outro&&('Outro: '+ann.outro)].filter(Boolean).join(' | ');
+        rows.push({ num: t.special ? '.' : String(trackNum).padStart(2,'0'), name: t.name, length: t.length||'', bpm: t.bpm||'', ltc: t.ltc||'', key: t.key||'', transitions: trans, note: ann.note||'', block: currentBlock, uncertain: t.uncertain ? '?' : '' });
+      });
+
+      const payload = { artist: entry.name || artistName, date: entryDate, rows };
+
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        mode: 'no-cors'
+      });
+      sent++;
+      status.textContent = '⏳ ' + sent + ' / ' + archive.length + ' gesendet…';
+      // Small delay to avoid hammering the Script
+      await new Promise(r => setTimeout(r, 600));
+    } catch(e) {
+      errors++;
+    }
+  }
+
+  status.textContent = errors === 0
+    ? '✓ Alle ' + sent + ' Setlists exportiert'
+    : '⚠ ' + sent + ' OK, ' + errors + ' Fehler';
+};
+
+window.pushToSheets = function() {
+  const url = localStorage.getItem(SHEETS_URL_KEY) || document.getElementById('sheets-url-inp').value.trim();
+  if (!url) { document.getElementById('sheets-status').textContent = '⚠ Bitte zuerst URL eintragen'; return; }
+  localStorage.setItem(SHEETS_URL_KEY, url);
+
+  // Build payload
+  const artistName = (typeof ARTIST_ID !== 'undefined' && ARTIST_ID !== 'default') ? getArtistDisplayName(ARTIST_ID) : 'Setlist';
+  const dateStr = new Date().toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'});
+  let trackNum = 0, currentBlock = '';
+  const rows = [];
+  setlist.forEach(tid => {
+    const t = getTrack(tid); if (!t) return;
+    if (typeof blocks !== 'undefined') { const blk = blocks.find(b => b.startId === tid); if (blk) currentBlock = blk.label; }
+    if (t.special === 'zugabe') { rows.push({ type:'zugabe' }); return; }
+    if (!t.special) trackNum++;
+    const ann = (annotations && annotations[tid]) || {};
+    const trans = [ann.intro&&('Intro: '+ann.intro), ann.transIn&&('↓ '+ann.transIn), ann.transOut&&('↑ '+ann.transOut), ann.outro&&('Outro: '+ann.outro)].filter(Boolean).join(' | ');
+    rows.push({ num: t.special ? '·' : String(trackNum).padStart(2,'0'), name: t.name, length: t.length||'', bpm: t.bpm||'', ltc: t.ltc||'', key: t.key||'', transitions: trans, note: (ann.note||''), block: currentBlock, uncertain: t.uncertain ? '?' : '' });
+  });
+
+  const payload = { artist: artistName, date: dateStr, rows };
+  const status = document.getElementById('sheets-status');
+  status.textContent = '⏳ Sende…';
+
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    mode: 'no-cors'
+  })
+  .then(() => { status.textContent = '✓ Erfolgreich gesendet — ' + dateStr; })
+  .catch(e => { status.textContent = '✗ Fehler: ' + e.message; });
+};
+
+// ── MOBILE ARTIST SWITCHER ────────────────────────────────────
+window.bnToggleArtists = function() {
+  const body = document.getElementById('bn-artist-body');
+  const chev = document.getElementById('bn-artist-chevron');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (chev) chev.textContent = open ? '▶' : '▼';
+  if (!open) renderArtistListMobile();
+};
+window.addArtistAndGoMobile = function() {
+  const inp = document.getElementById('new-artist-inp-mobile');
+  if (!inp) return;
+  const val = inp.value.trim(); if (!val) return;
+  inp.value = '';
+  const id = val.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+  const list = getKnownArtists();
+  if (!list.find(a => a.id === id)) { list.push({ id, name: val }); saveKnownArtists(list); }
+  goToArtist(id);
+};
+function renderArtistListMobile() {
+  const el = document.getElementById('artist-list-mobile');
+  if (!el) return;
+  const list = getKnownArtists();
+  el.innerHTML = '';
+  list.forEach(entry => {
+    const isCurrent = entry.id === ARTIST_ID;
+    const btn = document.createElement('button');
+    btn.textContent = entry.name;
+    btn.style.cssText = 'display:block;width:100%;text-align:left;padding:10px 12px;border:none;font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:.04em;margin-bottom:2px;' +
+      (isCurrent ? 'background:rgba(255,255,255,.25);color:var(--bg);font-weight:700;' : 'background:rgba(255,255,255,.08);color:var(--bg);');
+    btn.onclick = () => { goToArtist(entry.id); bnToggleMenu(); };
+    el.appendChild(btn);
+  });
+}
+
+window._bnLinksOpen = false;
+window._bnMenuOpen  = false;
+
+window.bnToggleLinks = function() {
+  const p = document.getElementById('bn-links-popup');
+  const m = document.getElementById('bn-menu-popup');
+  if (!p) return;
+  window._bnLinksOpen = !window._bnLinksOpen;
+  window._bnMenuOpen = false;
+  p.classList.toggle('open', window._bnLinksOpen);
+  if (m) m.classList.remove('open');
+  document.getElementById('bn-links-btn').classList.toggle('bn-active', window._bnLinksOpen);
+  if (window._bnLinksOpen) {
+    setTimeout(() => document.addEventListener('touchstart', _bnOutside, { passive:true, once:true }), 0);
+  }
+};
+window.bnToggleMenu = function() {
+  const p = document.getElementById('bn-menu-popup');
+  const l = document.getElementById('bn-links-popup');
+  if (!p) return;
+  window._bnMenuOpen = !window._bnMenuOpen;
+  window._bnLinksOpen = false;
+  p.classList.toggle('open', window._bnMenuOpen);
+  if (l) l.classList.remove('open');
+  document.getElementById('bn-menu-btn').classList.toggle('bn-active', window._bnMenuOpen);
+  if (window._bnMenuOpen) {
+    setTimeout(() => document.addEventListener('touchstart', _bnOutside, { passive:true, once:true }), 0);
+  }
+};
+function _bnOutside(e) {
+  const lp = document.getElementById('bn-links-popup');
+  const mp = document.getElementById('bn-menu-popup');
+  const nav = document.getElementById('bottom-nav');
+  if (nav && nav.contains(e.target)) return;
+  if (lp) { lp.classList.remove('open'); document.getElementById('bn-links-btn').classList.remove('bn-active'); }
+  if (mp) { mp.classList.remove('open'); document.getElementById('bn-menu-btn').classList.remove('bn-active'); }
+  window._bnLinksOpen = false; window._bnMenuOpen = false;
+}
+
 </script>
+
+<!-- TRACK INFO SHEET (mobile) -->
+<div class="track-info-sheet" id="track-info-sheet" onclick="closeTIS(event)">
+  <div class="track-info-sheet-box" id="tis-box">
+    <div class="tis-header">
+      <span class="tis-num" id="tis-num">01</span>
+      <span class="tis-title" id="tis-title">—</span>
+      <button class="tis-close" onclick="closeTIS()">✕</button>
+    </div>
+    <div class="tis-grid" id="tis-grid"></div>
+    <div class="tis-anns" id="tis-anns" style="display:none"></div>
+    <div class="tis-note" id="tis-note" style="display:none"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bn-item" onclick="openPool()">
+    <span class="bn-icon">◀</span>POOL
+  </button>
+  <div class="bn-sep"></div>
+  <button class="bn-item" onclick="quickSave();showDebug('✓ GESPEICHERT')">
+    <span class="bn-icon">✦</span>SAVE
+  </button>
+  <div class="bn-sep"></div>
+  <button class="bn-item admin-only" onclick="toggleAddForm()">
+    <span class="bn-icon">+</span>ADD
+  </button>
+  <div class="bn-sep admin-only"></div>
+  <button class="bn-item" onclick="toggleSelectMode()" id="bn-gruppe-btn">
+    <span class="bn-icon">⊞</span>GRUPPE
+  </button>
+  <div class="bn-sep"></div>
+  <button class="bn-item" id="bn-links-btn" onclick="bnToggleLinks()">
+    <span class="bn-icon">⎘</span>LINKS
+  </button>
+  <div class="bn-sep"></div>
+  <button class="bn-item" id="bn-menu-btn" onclick="bnToggleMenu()">
+    <span class="bn-icon">≡</span>MENU
+  </button>
+</nav>
+
+<!-- Bottom Nav: Links Popup -->
+<div class="bn-popup" id="bn-links-popup">
+  <div class="bn-popup-label">Links & Export</div>
+  <button class="bn-popup-item" onclick="openTecView();bnToggleLinks()">↗ Technik-Ansicht öffnen</button>
+  <button class="bn-popup-item" onclick="openPrintView();bnToggleLinks()">↗ Druckansicht öffnen</button>
+  <div class="bn-popup-sep"></div>
+  <button class="bn-popup-item" onclick="copyViewLink('tec');bnToggleLinks()">⎘ Technik-Link kopieren</button>
+  <button class="bn-popup-item" onclick="copyViewLink('print');bnToggleLinks()">⎘ Druck-Link kopieren</button>
+  <div class="bn-popup-sep"></div>
+  <button class="bn-popup-item" onclick="exportTecCSV();bnToggleLinks()">↓ CSV exportieren</button>
+  <div class="bn-popup-sep"></div>
+  <button class="bn-popup-item admin-only" onclick="openSheetsModal();bnToggleLinks()">↑ Google Sheets sync</button>
+</div>
+
+<!-- Bottom Nav: Menu Popup -->
+<div class="bn-popup" id="bn-menu-popup">
+  <div class="bn-popup-label">Setlist</div>
+  <button class="bn-popup-item" onclick="switchView('main');bnToggleMenu()">◀ Setlist</button>
+  <button class="bn-popup-item" onclick="switchView('archive');bnToggleMenu()">📁 Archiv</button>
+  <button class="bn-popup-item" onclick="quickSave();bnToggleMenu()">✦ Speichern</button>
+  <button class="bn-popup-item" onclick="openSaveModal();bnToggleMenu()">✦ Speichern als…</button>
+  <div class="bn-popup-sep"></div>
+  <div class="bn-popup-label">Darstellung</div>
+  <button class="bn-popup-item" onclick="toggleTheme();bnToggleMenu()">☀ Hell / Dunkel</button>
+  <div class="bn-popup-item" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px">
+    <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase">Schriftgrösse</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="(function(){var el=document.getElementById('track-font-size');el.value=Math.max(10,+el.value-1);updateTrackFontSize(el.value)})()" style="background:none;border:1px solid rgba(255,255,255,.3);color:var(--bg);font-size:14px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;border-radius:2px">−</button>
+      <input type="number" id="track-font-size-mobile" min="10" max="24" value="12" step="1"
+        style="width:38px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:var(--bg);font-family:var(--font-mono);font-size:11px;padding:3px 4px;text-align:center;outline:none"
+        oninput="updateTrackFontSize(this.value)">
+      <button onclick="(function(){var el=document.getElementById('track-font-size');el.value=Math.min(24,+el.value+1);updateTrackFontSize(el.value)})()" style="background:none;border:1px solid rgba(255,255,255,.3);color:var(--bg);font-size:14px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;border-radius:2px">+</button>
+    </div>
+  </div>
+  <div class="bn-popup-sep"></div>
+  <div class="bn-popup-label">Daten</div>
+  <button class="bn-popup-item" onclick="copyShareUrl();bnToggleMenu()">⇗ Teilen</button>
+  <button class="bn-popup-item" onclick="exportData('artist');bnToggleMenu()">↓ Backup Artist</button>
+  <button class="bn-popup-item admin-only" onclick="exportData('admin');bnToggleMenu()">↓ Backup Admin</button>
+  <button class="bn-popup-item admin-only" onclick="openAlsImportModal();bnToggleMenu()">↑ ALS Import</button>
+  <button class="bn-popup-item admin-only" onclick="openImportModal();bnToggleMenu()">↑ Import TXT</button>
+  <button class="bn-popup-item admin-only" onclick="importData();bnToggleMenu()">↑ Import File</button>
+  <div class="bn-popup-sep admin-only"></div>
+  <div class="admin-only" id="bn-artist-section">
+    <button class="bn-popup-item" style="display:flex;justify-content:space-between;align-items:center" onclick="bnToggleArtists()">
+      <span>🎤 Artist wechseln</span><span id="bn-artist-chevron" style="font-size:10px;opacity:.6">▶</span>
+    </button>
+    <div id="bn-artist-body" style="display:none;padding:0 0 6px">
+      <div id="artist-list-mobile" style="display:flex;flex-direction:column;gap:3px;padding:4px 12px"></div>
+      <div style="display:flex;align-items:center;gap:6px;padding:8px 12px 4px">
+        <input id="new-artist-inp-mobile" type="text" placeholder="Neuer Artist…"
+          style="flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:var(--bg);font-family:var(--font-mono);font-size:11px;padding:7px 10px;outline:none">
+        <button onclick="addArtistAndGoMobile()" style="background:var(--bg);color:var(--fg);border:none;font-family:var(--font-mono);font-size:10px;padding:7px 12px;cursor:pointer;white-space:nowrap;letter-spacing:.06em">+ ADD</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
