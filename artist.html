@@ -917,7 +917,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v2.7</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v2.8</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -3406,14 +3406,34 @@ function importData() {
     reader.onload = ev => {
       try {
         const s = JSON.parse(ev.target.result);
+
+        // ── Admin Backup ──────────────────────────────────────
+        if (s._type === 'admin_backup') {
+          const artists = s.artists || [];
+          if (!confirm('Admin-Backup wiederherstellen?\n\n' + artists.length + ' Artists enthalten.\n\nAlle vorhandenen Daten dieser Artists werden ersetzt!')) return;
+          let restored = 0;
+          artists.forEach(function(a) {
+            if (!a.id || !a.data) return;
+            const key = 'setlist_planner_v2_' + a.id;
+            localStorage.setItem(key, JSON.stringify(a.data));
+            restored++;
+          });
+          if (s.artistList) {
+            localStorage.setItem('setlist_artists_v2', JSON.stringify(s.artistList));
+          }
+          showDebug('✓ Admin-Backup: ' + restored + ' Artists wiederhergestellt');
+          if (confirm(restored + ' Artists wiederhergestellt. Seite neu laden?')) location.reload();
+          return;
+        }
+
+        // ── Artist Backup ─────────────────────────────────────
         if (!s.pool) { showDebug('Ungültige Datei — kein Pool gefunden'); return; }
         const poolCount = (s.pool||[]).length;
         const archiveCount = (s.archiveStore||[]).length;
-        if (!confirm(`Backup wiederherstellen?\n\n${poolCount} Songs im Pool\n${archiveCount} gespeicherte Setlisten\n\nAlle aktuellen Daten werden ersetzt!`)) return;
-        if (!confirm('Alle aktuellen Daten werden ersetzt. Fortfahren?')) return;
+        if (!confirm('Artist-Backup wiederherstellen?\n\n' + poolCount + ' Songs im Pool\n' + archiveCount + ' gespeicherte Setlisten\n\nAlle aktuellen Daten werden ersetzt!')) return;
         applyFullState(s);
         autoSaveToStorage(); render();
-        showDebug('Daten importiert');
+        showDebug('✓ Backup importiert: ' + poolCount + ' Songs, ' + archiveCount + ' Setlisten');
       } catch(err) { showDebug('Fehler: ' + err.message); }
     };
     reader.readAsText(file);
@@ -4384,7 +4404,7 @@ window.resetAnnStyle = function() {
 </div>
 
 <script>
-// ── ALS IMPORT v2.7 ─────────────────────────────────────────
+// ── ALS IMPORT v2.8 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -4923,7 +4943,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v2.7</div>' +
+  '</table><div class="wm">SETLIST PLANNER v2.8</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
