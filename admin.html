@@ -46,6 +46,11 @@
   .licht-picker-swatch:hover { transform:scale(1.15); border-color:rgba(255,255,255,.6); }
   .licht-picker-clear { width:100%; padding:5px 0; background:rgba(255,255,255,.1); border:none; color:var(--bg); font-family:var(--font-mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; text-align:center; }
   .licht-picker-clear:hover { background:rgba(255,255,255,.2); }
+  /* AUTOTUNE COLUMN */
+  .autotune-cell { display:flex; align-items:center; justify-content:center; width:100%; height:100%; cursor:pointer; transition:background .15s; }
+  .autotune-cell.on { background:rgba(220,50,50,.15); }
+  .autotune-cb { width:16px; height:16px; accent-color:#cc2211; cursor:pointer; }
+  [data-theme="dark"] .autotune-cell.on { background:rgba(220,50,50,.25); }
   /* Dark mode specific overrides (for things that can't use variables) */
   [data-theme="dark"] .track-key:hover    { background:rgba(255,255,255,.08); }
   [data-theme="dark"] .track-todo-cell:hover { background:rgba(255,255,255,.08); }
@@ -238,6 +243,8 @@
   .col-drag-header:hover { color:var(--fg); }
   .col-drag-header.drag-over-col { color:var(--accent); border-bottom:2px solid var(--accent); }
   .col-drag-header:active { cursor:grabbing; }
+  .col-drag-header.resize-edge { cursor:col-resize; }
+  .col-drag-header.resizing { cursor:col-resize !important; }
   .col-ctx-menu { position:fixed; background:var(--fg); color:var(--bg); font-family:var(--font-mono); font-size:10px; z-index:9999; box-shadow:0 4px 16px rgba(0,0,0,.3); display:none; min-width:180px; }
   .col-ctx-menu.open { display:block; }
   .col-ctx-label { font-size:8px; letter-spacing:.12em; text-transform:uppercase; padding:8px 12px 5px; opacity:.5; border-bottom:1px solid rgba(255,255,255,.15); }
@@ -949,7 +956,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v2.11</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v2.15</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -1080,6 +1087,7 @@
     <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
     <label><input type="checkbox" id="vis-structure" checked onchange="render()"> ABLAUF</label>
     <label><input type="checkbox" id="vis-licht" checked onchange="render()"> LICHT</label>
+    <label><input type="checkbox" id="vis-autotune" checked onchange="render()"> AT</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
   </div>
 
@@ -1181,8 +1189,10 @@ let pool = [];
 let annotations = {};
 let trackColors = {};
 let lichtData = {}; // { [trackId]: { color:'#hex', text:'' } }
+let autotuneData = {}; // { [trackId]: true/false }
 let annStyles = {}; // {intro:{color,fs}, outro:{...}, trans:{...}, note:{...}}
-let colOrder = ['ltc','key','notes','todo','structure','licht','length','bpm']; // full column order
+let colOrder = ['ltc','key','notes','todo','structure','licht','autotune','length','bpm']; // full column order
+let colCustomWidths = {}; // { colName: px } — user-resized widths
 let _currentSaveId = null;
 let todos = {}; // trackId -> [{id, text, done, doneAt}]  // ID of last saved archive entry (for quick-save overwrite)
 let _currentSaveName = '';  // name of last saved entry
@@ -1203,7 +1213,7 @@ let editingTrackId = null;
 // ── UNDO/REDO ─────────────────────────────────────────────────
 let undoHistory = [], historyIndex = -1;
 function snapshot() {
-  const state = JSON.stringify({ setlist, annotations, annStyles, trackColors, lichtData, columnOrder, blocks, fontSize: +(document.getElementById('track-font-size')?.value||12) });
+  const state = JSON.stringify({ setlist, annotations, annStyles, trackColors, lichtData, autotuneData, colCustomWidths, columnOrder, blocks, fontSize: +(document.getElementById('track-font-size')?.value||12) });
   undoHistory = undoHistory.slice(0, historyIndex + 1);
   undoHistory.push(state);
   if (undoHistory.length > 60) undoHistory.shift();
@@ -1232,6 +1242,8 @@ function restore(state) {
   annStyles = s.annStyles || {}; applyAnnStyles();
   trackColors = s.trackColors||{};
   lichtData = s.lichtData||{};
+  autotuneData = s.autotuneData||{};
+  colCustomWidths = s.colCustomWidths||{};
   columnOrder = s.columnOrder||['length','bpm'];
   if (s.fontSize) { const el = document.getElementById('track-font-size'); if(el){ el.value=s.fontSize; updateTrackFontSize(s.fontSize); } }
   blocks = s.blocks||[];
@@ -1323,11 +1335,12 @@ function render() {
   const showTodo = visChecked('vis-todo');
   const showStructure = visChecked('vis-structure');
   const showLicht = visChecked('vis-licht');
-  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, structure:showStructure, licht:showLicht, length:showLength, bpm:showBpm };
-  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', structure:'36px', licht:'120px', length:'80px', bpm:'60px' };
-  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', structure:'◎ ⠿', licht:'LICHT ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
+  const showAutotune = visChecked('vis-autotune');
+  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, structure:showStructure, licht:showLicht, autotune:showAutotune, length:showLength, bpm:showBpm };
+  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', structure:'36px', licht:'120px', autotune:'70px', length:'80px', bpm:'60px' };
+  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', structure:'◎ ⠿', licht:'LICHT ⠿', autotune:'AT ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
   const visCols = colOrder.filter(c => COL_VISIBLE[c]);
-  const gridTpl = '36px 1fr ' + visCols.map(c => COL_WIDTHS[c]).join(' ') + ' 36px';
+  const gridTpl = '36px 1fr ' + visCols.map(c => (colCustomWidths[c] ? colCustomWidths[c]+'px' : COL_WIDTHS[c])).join(' ') + ' 36px';
 
   // Scale cell font-size with number of visible columns
   const cellFs = visCols.length <= 2 ? '10px' : visCols.length === 3 ? '9px' : '8px';
@@ -1443,6 +1456,7 @@ function render() {
     // Build data cells in colOrder
     const colCells = visCols.map(c => {
       if (c === 'licht')    return renderLichtCell(t);
+      if (c === 'autotune')  return renderAutotuneCell(t);
       if (c === 'ltc')    return `<span class="track-tc track-inline-edit" contenteditable="true" data-field="ltc" data-id="${t.id}" draggable="false">${t.ltc || '—'}</span>`;
       if (c === 'key')    return renderKeyCell(t);
       if (c === 'todo')   return renderTodoCell(t);
@@ -3360,7 +3374,7 @@ const STORAGE_KEY = 'setlist_planner_v2_' + ARTIST_ID;
 
 function getFullState() {
   return {
-    todos, pool, setlist, annotations, annStyles, trackColors, lichtData, columnOrder, blocks, archiveStore,
+    todos, pool, setlist, annotations, annStyles, trackColors, lichtData, autotuneData, colCustomWidths, columnOrder, blocks, archiveStore,
     fontSize: +(document.getElementById('track-font-size')?.value||12), version: 1 };
 }
 
@@ -3501,6 +3515,7 @@ function loadFromHash() {
         annotations = s.annotations || {};
         trackColors = s.trackColors || {};
         lichtData = s.lichtData || {};
+        autotuneData = s.autotuneData || {};
         columnOrder = s.columnOrder || ['length','bpm'];
         blocks = s.blocks || [];
         nextId = pool.length ? Math.max(1, ...pool.map(t => t.id + 1)) : 1;
@@ -4112,6 +4127,69 @@ function initColHeaders() {
 }
 initColHeaders();
 
+// ── COLUMN RESIZE ─────────────────────────────────────────────
+(function() {
+  const EDGE = 6; // px from right edge to trigger resize cursor
+  let resizeCol = null, resizeStartX = 0, resizeStartW = 0;
+
+  function getHeaderRow() { return document.getElementById('col-headers-row'); }
+
+  function findEdgeCol(e) {
+    const headers = document.querySelectorAll('.col-drag-header');
+    for (const h of headers) {
+      const rect = h.getBoundingClientRect();
+      if (e.clientX >= rect.right - EDGE && e.clientX <= rect.right + 2) {
+        return h;
+      }
+    }
+    return null;
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    const row = getHeaderRow();
+    if (!row) return;
+    if (resizeCol) {
+      // Currently resizing
+      const delta = e.clientX - resizeStartX;
+      const newW = Math.max(36, Math.round(resizeStartW + delta));
+      colCustomWidths[resizeCol] = newW;
+      const cols = Array.from(document.querySelectorAll('.col-drag-header')).map(h => h.dataset.col);
+      const COL_WIDTHS_BASE = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', structure:'36px', licht:'120px', autotune:'70px', length:'80px', bpm:'60px' };
+      const tpl = '36px 1fr ' + cols.map(c => (colCustomWidths[c] ? colCustomWidths[c]+'px' : COL_WIDTHS_BASE[c]||'80px')).join(' ') + ' 36px';
+      document.querySelectorAll('.col-headers, .track-row').forEach(r => r.style.gridTemplateColumns = tpl);
+      return;
+    }
+    // Hover: show col-resize cursor when near edge
+    const edgeH = findEdgeCol(e);
+    document.querySelectorAll('.col-drag-header').forEach(h => h.classList.remove('resize-edge'));
+    if (edgeH) edgeH.classList.add('resize-edge');
+  });
+
+  document.addEventListener('mousedown', function(e) {
+    if (e.button !== 0) return;
+    const edgeH = findEdgeCol(e);
+    if (!edgeH) return;
+    e.preventDefault();
+    e.stopPropagation();
+    resizeCol = edgeH.dataset.col;
+    resizeStartX = e.clientX;
+    resizeStartW = edgeH.getBoundingClientRect().width;
+    edgeH.classList.add('resizing');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mouseup', function(e) {
+    if (!resizeCol) return;
+    document.querySelectorAll('.col-drag-header').forEach(h => h.classList.remove('resizing'));
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    resizeCol = null;
+    snapshot();
+    render();
+  });
+})();
+
 // ── COL HEADER CONTEXT MENU (font size) ──────────────────────
 (function() {
   const menu = document.getElementById('col-ctx-menu');
@@ -4477,7 +4555,7 @@ window.resetAnnStyle = function() {
 </div>
 
 <script>
-// ── ALS IMPORT v2.11 ─────────────────────────────────────────
+// ── ALS IMPORT v2.15 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -5016,7 +5094,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v2.11</div>' +
+  '</table><div class="wm">SETLIST PLANNER v2.15</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
@@ -5070,6 +5148,24 @@ window.closeTIS = function(e) {
   document.getElementById('track-info-sheet').classList.remove('open');
 };
 
+
+// ── AUTOTUNE COLUMN ───────────────────────────────────────────
+function renderAutotuneCell(t) {
+  const on = !!(autotuneData[t.id]);
+  return `<div class="autotune-cell${on?' on':''}" onclick="toggleAutotune(${t.id},this)">` +
+    `<input class="autotune-cb" type="checkbox" ${on?'checked':''} ` +
+    `onclick="event.stopPropagation();toggleAutotune(${t.id},this.closest('.autotune-cell'))">` +
+    `</div>`;
+}
+window.toggleAutotune = function(trackId, cell) {
+  autotuneData[trackId] = !autotuneData[trackId];
+  if (cell) {
+    cell.classList.toggle('on', !!autotuneData[trackId]);
+    const cb = cell.querySelector('.autotune-cb');
+    if (cb) cb.checked = !!autotuneData[trackId];
+  }
+  snapshot();
+};
 
 // ── LICHT COLUMN ─────────────────────────────────────────────
 const LICHT_COLORS = [
