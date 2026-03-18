@@ -32,6 +32,20 @@
     --green: #4dc45e;
     --green-bg: rgba(58,170,74,.15);
   }
+  /* LICHT COLUMN */
+  .licht-cell { display:flex; align-items:center; gap:5px; width:100%; cursor:pointer; min-height:100%; }
+  .licht-swatch { width:16px; height:16px; border-radius:3px; border:1.5px solid rgba(0,0,0,.15); flex-shrink:0; cursor:pointer; transition:transform .1s; }
+  .licht-swatch:hover { transform:scale(1.2); }
+  .licht-swatch.empty { background:transparent; border:1.5px dashed var(--line); }
+  .licht-text { flex:1; font-size:var(--cell-fs,10px); font-family:var(--font-mono); color:var(--fg); outline:none; background:transparent; border:none; padding:0; min-width:0; cursor:text; }
+  .licht-text::placeholder { color:var(--muted); opacity:.5; }
+  /* Licht color picker popup */
+  .licht-picker { position:fixed; z-index:9000; background:var(--fg); padding:8px; box-shadow:0 4px 20px rgba(0,0,0,.35); display:none; flex-wrap:wrap; gap:5px; width:136px; }
+  .licht-picker.open { display:flex; }
+  .licht-picker-swatch { width:24px; height:24px; border-radius:3px; border:2px solid transparent; cursor:pointer; transition:transform .1s; }
+  .licht-picker-swatch:hover { transform:scale(1.15); border-color:rgba(255,255,255,.6); }
+  .licht-picker-clear { width:100%; padding:5px 0; background:rgba(255,255,255,.1); border:none; color:var(--bg); font-family:var(--font-mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; text-align:center; }
+  .licht-picker-clear:hover { background:rgba(255,255,255,.2); }
   /* Dark mode specific overrides (for things that can't use variables) */
   [data-theme="dark"] .track-key:hover    { background:rgba(255,255,255,.08); }
   [data-theme="dark"] .track-todo-cell:hover { background:rgba(255,255,255,.08); }
@@ -94,14 +108,12 @@
 
   /* SETLIST */
   .setlist-wrap { border:1px solid var(--line); border-radius:2px; overflow:hidden; }
-  .col-headers { position:sticky; top:0; z-index:10; display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:6px 10px; border-bottom:2px solid var(--fg); font-size:9px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; gap:0; font-weight:700; background:var(--bg); box-shadow:0 2px 0 var(--line); }
-  .col-headers > * { padding:0 8px; border-right:1px solid var(--line); display:flex; align-items:center; }
-  .col-headers > *:first-child { padding-left:0; }
+  .col-headers { position:sticky; top:0; z-index:10; display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:0; border-bottom:2px solid var(--fg); font-size:9px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; gap:0; font-weight:700; background:var(--bg); }
+  .col-headers > * { padding:7px 10px; border-right:1px solid var(--line); display:flex; align-items:center; }
   .col-headers > *:last-child { border-right:none; }
 
-  .track-row { display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:var(--track-row-py,4px) 0; border-bottom:1px solid var(--line); align-items:center; gap:0; cursor:grab; transition:background .12s; min-height:var(--track-row-h,46px); border-radius:0; }
+  .track-row { display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:0; border-bottom:1px solid var(--line); align-items:center; gap:0; cursor:grab; transition:background .12s; min-height:var(--track-row-h,46px); border-radius:0; }
   .track-row > * { padding:0 10px; border-right:1px solid var(--line); height:100%; display:flex; align-items:center; }
-  .track-row > *:first-child { padding-left:10px; }
   .track-row > *:last-child { border-right:none; }
   .track-row:nth-child(even) { background:rgba(0,0,0,.025); }
   [data-theme="dark"] .track-row:nth-child(even) { background:rgba(255,255,255,.025); }
@@ -226,6 +238,13 @@
   .col-drag-header:hover { color:var(--fg); }
   .col-drag-header.drag-over-col { color:var(--accent); border-bottom:2px solid var(--accent); }
   .col-drag-header:active { cursor:grabbing; }
+  .col-ctx-menu { position:fixed; background:var(--fg); color:var(--bg); font-family:var(--font-mono); font-size:10px; z-index:9999; box-shadow:0 4px 16px rgba(0,0,0,.3); display:none; min-width:180px; }
+  .col-ctx-menu.open { display:block; }
+  .col-ctx-label { font-size:8px; letter-spacing:.12em; text-transform:uppercase; padding:8px 12px 5px; opacity:.5; border-bottom:1px solid rgba(255,255,255,.15); }
+  .col-ctx-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; gap:8px; }
+  .col-ctx-btn { background:none; border:1px solid rgba(255,255,255,.3); color:var(--bg); font-family:var(--font-mono); font-size:14px; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+  .col-ctx-btn:hover { background:rgba(255,255,255,.15); }
+  .col-ctx-val { font-size:13px; font-weight:700; min-width:28px; text-align:center; }
 
 
 
@@ -660,6 +679,19 @@
   <div class="pool-readonly-hint">NUR-LESEN · Bearbeitung nur im Admin-Modus</div>
 </div>
 
+<!-- Licht Color Picker -->
+<div class="licht-picker" id="licht-picker"></div>
+
+<!-- Col Header Context Menu -->
+<div class="col-ctx-menu" id="col-ctx-menu">
+  <div class="col-ctx-label">Schriftgrösse</div>
+  <div class="col-ctx-row">
+    <button class="col-ctx-btn" onclick="colCtxFS(-1)">−</button>
+    <span class="col-ctx-val" id="col-ctx-fs-val">12</span>
+    <button class="col-ctx-btn" onclick="colCtxFS(+1)">+</button>
+  </div>
+</div>
+
 <!-- Google Sheets Sync Modal -->
 <div class="modal-overlay" id="sheets-modal">
   <div class="modal" style="min-width:360px;max-width:480px">
@@ -917,7 +949,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v2.9</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v2.11</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -1047,6 +1079,7 @@
     <label><input type="checkbox" id="vis-key" checked onchange="render()"> TONART</label>
     <label><input type="checkbox" id="vis-todo" checked onchange="render()"> TO DO</label>
     <label><input type="checkbox" id="vis-structure" checked onchange="render()"> ABLAUF</label>
+    <label><input type="checkbox" id="vis-licht" checked onchange="render()"> LICHT</label>
     <label><input type="checkbox" id="vis-blocks" checked onchange="syncAllCheckbox();render()"> Blöcke</label>
   </div>
 
@@ -1147,8 +1180,9 @@ let pool = [];
 // annotations[trackId] = { intro, outro, transIn, transOut, note }
 let annotations = {};
 let trackColors = {};
+let lichtData = {}; // { [trackId]: { color:'#hex', text:'' } }
 let annStyles = {}; // {intro:{color,fs}, outro:{...}, trans:{...}, note:{...}}
-let colOrder = ['ltc','key','notes','todo','structure','length','bpm']; // full column order
+let colOrder = ['ltc','key','notes','todo','structure','licht','length','bpm']; // full column order
 let _currentSaveId = null;
 let todos = {}; // trackId -> [{id, text, done, doneAt}]  // ID of last saved archive entry (for quick-save overwrite)
 let _currentSaveName = '';  // name of last saved entry
@@ -1169,7 +1203,7 @@ let editingTrackId = null;
 // ── UNDO/REDO ─────────────────────────────────────────────────
 let undoHistory = [], historyIndex = -1;
 function snapshot() {
-  const state = JSON.stringify({ setlist, annotations, annStyles, trackColors, columnOrder, blocks, fontSize: +(document.getElementById('track-font-size')?.value||12) });
+  const state = JSON.stringify({ setlist, annotations, annStyles, trackColors, lichtData, columnOrder, blocks, fontSize: +(document.getElementById('track-font-size')?.value||12) });
   undoHistory = undoHistory.slice(0, historyIndex + 1);
   undoHistory.push(state);
   if (undoHistory.length > 60) undoHistory.shift();
@@ -1197,6 +1231,7 @@ function restore(state) {
   annotations = s.annotations;
   annStyles = s.annStyles || {}; applyAnnStyles();
   trackColors = s.trackColors||{};
+  lichtData = s.lichtData||{};
   columnOrder = s.columnOrder||['length','bpm'];
   if (s.fontSize) { const el = document.getElementById('track-font-size'); if(el){ el.value=s.fontSize; updateTrackFontSize(s.fontSize); } }
   blocks = s.blocks||[];
@@ -1287,9 +1322,10 @@ function render() {
   const showKey = visChecked('vis-key');
   const showTodo = visChecked('vis-todo');
   const showStructure = visChecked('vis-structure');
-  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, structure:showStructure, length:showLength, bpm:showBpm };
-  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', structure:'36px', length:'80px', bpm:'60px' };
-  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', structure:'◎ ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
+  const showLicht = visChecked('vis-licht');
+  const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, structure:showStructure, licht:showLicht, length:showLength, bpm:showBpm };
+  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', structure:'36px', licht:'120px', length:'80px', bpm:'60px' };
+  const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', structure:'◎ ⠿', licht:'LICHT ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
   const visCols = colOrder.filter(c => COL_VISIBLE[c]);
   const gridTpl = '36px 1fr ' + visCols.map(c => COL_WIDTHS[c]).join(' ') + ' 36px';
 
@@ -1406,6 +1442,7 @@ function render() {
 
     // Build data cells in colOrder
     const colCells = visCols.map(c => {
+      if (c === 'licht')    return renderLichtCell(t);
       if (c === 'ltc')    return `<span class="track-tc track-inline-edit" contenteditable="true" data-field="ltc" data-id="${t.id}" draggable="false">${t.ltc || '—'}</span>`;
       if (c === 'key')    return renderKeyCell(t);
       if (c === 'todo')   return renderTodoCell(t);
@@ -3323,7 +3360,7 @@ const STORAGE_KEY = 'setlist_planner_v2_' + ARTIST_ID;
 
 function getFullState() {
   return {
-    todos, pool, setlist, annotations, annStyles, trackColors, columnOrder, blocks, archiveStore,
+    todos, pool, setlist, annotations, annStyles, trackColors, lichtData, columnOrder, blocks, archiveStore,
     fontSize: +(document.getElementById('track-font-size')?.value||12), version: 1 };
 }
 
@@ -3463,6 +3500,7 @@ function loadFromHash() {
         pool = s.pool; setlist = s.setlist;
         annotations = s.annotations || {};
         trackColors = s.trackColors || {};
+        lichtData = s.lichtData || {};
         columnOrder = s.columnOrder || ['length','bpm'];
         blocks = s.blocks || [];
         nextId = pool.length ? Math.max(1, ...pool.map(t => t.id + 1)) : 1;
@@ -4074,6 +4112,41 @@ function initColHeaders() {
 }
 initColHeaders();
 
+// ── COL HEADER CONTEXT MENU (font size) ──────────────────────
+(function() {
+  const menu = document.getElementById('col-ctx-menu');
+  if (!menu) return;
+
+  function closeCtx() { menu.classList.remove('open'); }
+
+  document.getElementById('col-headers-row').addEventListener('contextmenu', function(e) {
+    if (!e.target.closest('.col-drag-header') && !e.target.closest('#col-headers-row')) return;
+    e.preventDefault();
+    const fs = +(document.getElementById('track-font-size')?.value || 12);
+    document.getElementById('col-ctx-fs-val').textContent = fs;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const mw = 180, mh = 80;
+    menu.style.left = Math.min(e.clientX, vw - mw - 8) + 'px';
+    menu.style.top  = Math.min(e.clientY, vh - mh - 8) + 'px';
+    menu.classList.add('open');
+    setTimeout(() => {
+      document.addEventListener('click', closeCtx, { once: true });
+      document.addEventListener('contextmenu', closeCtx, { once: true });
+    }, 0);
+  });
+})();
+
+window.colCtxFS = function(delta) {
+  const el = document.getElementById('track-font-size');
+  const elM = document.getElementById('track-font-size-mobile');
+  const cur = +(el?.value || 12);
+  const next = Math.min(24, Math.max(10, cur + delta));
+  if (el) el.value = next;
+  if (elM) elM.value = next;
+  updateTrackFontSize(next);
+  document.getElementById('col-ctx-fs-val').textContent = next;
+};
+
 // ── THEME TOGGLE ────────────────────────────────────────────
 function toggleTheme() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -4404,7 +4477,7 @@ window.resetAnnStyle = function() {
 </div>
 
 <script>
-// ── ALS IMPORT v2.9 ─────────────────────────────────────────
+// ── ALS IMPORT v2.11 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -4943,7 +5016,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v2.9</div>' +
+  '</table><div class="wm">SETLIST PLANNER v2.11</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
@@ -4997,6 +5070,75 @@ window.closeTIS = function(e) {
   document.getElementById('track-info-sheet').classList.remove('open');
 };
 
+
+// ── LICHT COLUMN ─────────────────────────────────────────────
+const LICHT_COLORS = [
+  '#ff4444','#ff8800','#ffcc00','#44cc44',
+  '#44aaff','#aa44ff','#ff44aa','#ffffff',
+  '#00ffff','#ff6600','#88ff00','#0044ff',
+];
+
+function renderLichtCell(t) {
+  const d = lichtData[t.id] || {};
+  const color = d.color || '';
+  const text  = d.text  || '';
+  const swatchStyle = color
+    ? `background:${color};border-color:rgba(0,0,0,.2)`
+    : '';
+  return `<div class="licht-cell" onclick="event.stopPropagation()">` +
+    `<span class="licht-swatch${color?'':' empty'}" style="${swatchStyle}" ` +
+    `onclick="openLichtPicker(event,${t.id})" title="Farbe wählen"></span>` +
+    `<input class="licht-text" type="text" value="${(text||'').replace(/"/g,'&quot;')}" ` +
+    `placeholder="Notiz…" ` +
+    `style="${color ? `background:${color}22;` : ''}" ` +
+    `onchange="setLichtText(${t.id},this.value)" ` +
+    `onclick="event.stopPropagation()" ` +
+    `oninput="setLichtText(${t.id},this.value)">` +
+    `</div>`;
+}
+
+let _lichtPickerTarget = null;
+window.openLichtPicker = function(e, trackId) {
+  e.stopPropagation();
+  _lichtPickerTarget = trackId;
+  const picker = document.getElementById('licht-picker');
+  picker.innerHTML = '';
+  LICHT_COLORS.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'licht-picker-swatch';
+    sw.style.background = c;
+    const cur = (lichtData[trackId]||{}).color;
+    if (cur === c) sw.style.borderColor = '#fff';
+    sw.onclick = (ev) => { ev.stopPropagation(); setLichtColor(trackId, c); };
+    picker.appendChild(sw);
+  });
+  const clear = document.createElement('button');
+  clear.className = 'licht-picker-clear';
+  clear.textContent = '✕ Farbe entfernen';
+  clear.onclick = (ev) => { ev.stopPropagation(); setLichtColor(trackId, ''); };
+  picker.appendChild(clear);
+
+  const vw = window.innerWidth, vh = window.innerHeight;
+  picker.style.left = Math.min(e.clientX, vw - 150) + 'px';
+  picker.style.top  = Math.min(e.clientY + 4, vh - 120) + 'px';
+  picker.classList.add('open');
+  setTimeout(() => {
+    document.addEventListener('click', () => picker.classList.remove('open'), { once: true });
+  }, 0);
+};
+
+window.setLichtColor = function(trackId, color) {
+  if (!lichtData[trackId]) lichtData[trackId] = { color:'', text:'' };
+  lichtData[trackId].color = color;
+  document.getElementById('licht-picker').classList.remove('open');
+  snapshot(); render();
+};
+
+window.setLichtText = function(trackId, text) {
+  if (!lichtData[trackId]) lichtData[trackId] = { color:'', text:'' };
+  lichtData[trackId].text = text;
+  snapshot();
+};
 
 // ── GOOGLE SHEETS SYNC ───────────────────────────────────────
 const SHEETS_URL_KEY = 'slp_sheets_url';
