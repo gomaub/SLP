@@ -37,7 +37,7 @@
   .licht-swatch { width:16px; height:16px; border-radius:3px; border:1.5px solid rgba(0,0,0,.15); flex-shrink:0; cursor:pointer; transition:transform .1s; }
   .licht-swatch:hover { transform:scale(1.2); }
   .licht-swatch.empty { background:transparent; border:1.5px dashed var(--line); }
-  .licht-text { flex:1; font-size:var(--cell-fs,10px); font-family:var(--font-mono); color:var(--fg); outline:none; background:transparent; border:none; padding:0; min-width:0; cursor:text; }
+  .licht-text { flex:1; font-size:var(--cell-fs,10px); font-family:var(--font-mono); color:var(--fg); outline:none; background:transparent; border:none; padding:0; min-width:0; cursor:text; white-space:normal; word-break:break-word; }
   .licht-text::placeholder { color:var(--muted); opacity:.5; }
   /* Licht color picker popup */
   .licht-picker { position:fixed; z-index:9000; background:var(--fg); padding:8px; box-shadow:0 4px 20px rgba(0,0,0,.35); display:none; flex-wrap:wrap; gap:5px; width:136px; }
@@ -112,14 +112,26 @@
   .add-submit-btn:hover { background:#333; }
 
   /* SETLIST */
-  .setlist-wrap { border:1px solid var(--line); border-radius:2px; overflow:hidden; }
-  .col-headers { position:sticky; top:0; z-index:10; display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:0; border-bottom:2px solid var(--fg); font-size:9px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; gap:0; font-weight:700; background:var(--bg); }
-  .col-headers > * { padding:7px 10px; border-right:1px solid var(--line); display:flex; align-items:center; }
+  .setlist-wrap { border:1px solid var(--line); border-radius:2px; overflow-x:auto; overflow-y:visible; }
+  .col-headers { position:sticky; top:0; z-index:10; display:grid; padding:0; border-bottom:2px solid var(--fg); font-size:9px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; gap:0; font-weight:700; background:var(--bg); min-width:max-content; }
+  .col-headers > * { padding:7px 10px; border-right:1px solid var(--line); display:flex; align-items:center; white-space:nowrap; box-sizing:border-box; }
   .col-headers > *:last-child { border-right:none; }
+  /* Sticky # and TRACK columns */
+  .col-headers > *:nth-child(1) { position:sticky; left:0; z-index:2; background:var(--bg); }
+  .col-headers > *:nth-child(2) { position:sticky; left:36px; z-index:2; background:var(--bg); box-shadow:2px 0 4px rgba(0,0,0,.08); }
 
-  .track-row { display:grid; grid-template-columns:36px 1fr 1fr 80px 60px 36px; padding:0; border-bottom:1px solid var(--line); align-items:center; gap:0; cursor:grab; transition:background .12s; min-height:var(--track-row-h,46px); border-radius:0; }
-  .track-row > * { padding:0 10px; border-right:1px solid var(--line); height:100%; display:flex; align-items:center; }
+  .track-row { display:grid; padding:0; border-bottom:1px solid var(--line); align-items:stretch; gap:0; cursor:grab; transition:background .12s; min-height:var(--track-row-h,46px); border-radius:0; min-width:max-content; }
+  .track-row > * { padding:6px 10px; border-right:1px solid var(--line); display:flex; align-items:center; box-sizing:border-box; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .track-row > *:last-child { border-right:none; }
+  /* Sticky # and TRACK in rows */
+  .track-row > *:nth-child(1) { position:sticky; left:0; z-index:1; background:var(--bg); }
+  .track-row > *:nth-child(2) { position:sticky; left:36px; z-index:1; background:var(--bg); box-shadow:2px 0 4px rgba(0,0,0,.08); }
+  .track-row:nth-child(even) > *:nth-child(1),
+  .track-row:nth-child(even) > *:nth-child(2) { background:rgba(0,0,0,.025); }
+  [data-theme="dark"] .track-row > *:nth-child(1),
+  [data-theme="dark"] .track-row > *:nth-child(2) { background:var(--bg); }
+  [data-theme="dark"] .track-row:nth-child(even) > *:nth-child(1),
+  [data-theme="dark"] .track-row:nth-child(even) > *:nth-child(2) { background:rgba(255,255,255,.025); }
   .track-row:nth-child(even) { background:rgba(0,0,0,.025); }
   [data-theme="dark"] .track-row:nth-child(even) { background:rgba(255,255,255,.025); }
   .track-row.in-block { margin-bottom:0; min-height:38px; position:relative; overflow:visible; }
@@ -168,13 +180,13 @@
     .move-menu-btn { padding:16px 18px; font-size:13px; }
     .move-menu-title { padding:13px 18px; font-size:10px; }
   }
-  .track-name { font-size:var(--track-name-fs,13px); font-weight:600; letter-spacing:.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .track-length { font-size:var(--cell-fs,10px); color:var(--muted); font-variant-numeric:tabular-nums; }
-  .track-note-inline { font-size:var(--cell-fs,10px); color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:grab; user-select:none; padding:1px 4px; border-radius:2px; transition:background .1s; align-self:center; }
+  .track-name { font-size:var(--track-name-fs,13px); font-weight:600; letter-spacing:.01em; white-space:normal; word-break:break-word; line-height:1.3; width:100%; }
+  .track-length { font-size:var(--cell-fs,10px); color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .track-note-inline { font-size:var(--cell-fs,10px); color:#888; white-space:normal; word-break:break-word; line-height:1.4; cursor:pointer; padding:1px 4px; border-radius:2px; transition:background .1s; align-self:center; }
   .track-note-inline:hover { background:rgba(0,0,0,.06); }
   .track-note-inline.has-note { color:var(--fg); }
   .track-note-inline:focus { outline:1px solid var(--fg); color:var(--fg); background:var(--bg); white-space:normal; }
-  .track-bpm { font-size:var(--cell-fs,10px); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .track-bpm { font-size:var(--cell-fs,10px); color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
   .track-bpm.filled { color:var(--fg); font-weight:700; }
   .uncertain-badge { display:inline-block; width:6px; height:6px; border-radius:50%; background:orange; margin-left:6px; vertical-align:middle; }
 
@@ -186,14 +198,14 @@
   /* ANNOTATION ROWS (intro/outro/transition/note) */
   :root { --ann-color-intro:''; --ann-color-outro:''; --ann-color-trans:''; --ann-color-note:''; --ann-fs-intro:''; --ann-fs-outro:''; --ann-fs-trans:''; --ann-fs-note:''; }
 
-  .annotation-row { display:flex; align-items:center; gap:6px; padding:3px 6px 3px 16px; border-bottom:1px solid var(--line); position:relative; overflow:visible; background:rgba(0,0,0,.02); min-height:0; line-height:1.5; }
+  .annotation-row { display:flex; align-items:flex-start; gap:6px; padding:4px 6px 4px 16px; border-bottom:1px solid var(--line); position:relative; overflow:visible; background:rgba(0,0,0,.02); min-height:0; line-height:1.5; flex-wrap:wrap; }
   .annotation-row.in-block::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); pointer-events:none; z-index:1; }
   .ann-arrow { flex-shrink:0; font-size:var(--ann-fs,9px); line-height:1; width:14px; text-align:center; opacity:.7; }
   .ann-type-intro .ann-arrow  { color:var(--green); }
   .ann-type-outro .ann-arrow  { color:var(--accent); }
   .ann-type-trans .ann-arrow  { color:var(--muted); }
   .ann-type-note .ann-arrow   { color:var(--muted); }
-  .ann-badge { font-size:var(--ann-fs,9px); letter-spacing:.06em; text-transform:uppercase; font-weight:700; padding:2px 6px; flex-shrink:0; flex:1; }
+  .ann-badge { font-size:var(--ann-fs,9px); letter-spacing:.06em; text-transform:uppercase; font-weight:700; padding:2px 6px; flex-shrink:0; white-space:normal; word-break:break-word; line-height:1.4; }
   .ann-badge.intro  { color:var(--green); }
   .ann-badge.outro  { color:var(--accent); }
   .ann-badge.trans  { color:var(--fg); }
@@ -206,9 +218,9 @@
   .setlist-drop-end { min-height:48px; border:2px dashed transparent; transition:all .15s; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
   .setlist-drop-end.drag-over { border-color:var(--accent); color:var(--accent); background:rgba(230,51,35,.04); }
 
-  .totals-row { display:grid; grid-template-columns:36px 1fr 80px 60px 36px; padding:8px 10px; border-top:2px solid var(--fg); gap:0; font-size:10px; letter-spacing:.08em; text-transform:uppercase; background:var(--card); }
+  .totals-row { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-top:2px solid var(--fg); font-size:10px; letter-spacing:.08em; text-transform:uppercase; background:var(--card); }
   .totals-row .label { color:var(--fg); font-weight:700; }
-  .totals-row .val { font-weight:700; font-size:12px; }
+  .totals-row .val { font-weight:700; font-size:13px; margin-left:8px; }
 
   /* ── EDIT MODAL ── */
   .edit-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; align-items:center; justify-content:center; padding:20px; }
@@ -239,7 +251,7 @@
   .em-footer button:hover { opacity:.8; }
 
 
-  .col-drag-header { cursor:grab; user-select:none; transition:color .15s; color:var(--muted); font-weight:700; font-size:var(--cell-fs,10px); }
+  .col-drag-header { cursor:grab; user-select:none; transition:color .15s; color:var(--muted); font-weight:700; font-size:var(--cell-fs,10px); white-space:normal; word-break:break-word; line-height:1.3; }
   .col-drag-header:hover { color:var(--fg); }
   .col-drag-header.drag-over-col { color:var(--accent); border-bottom:2px solid var(--accent); }
   .col-drag-header:active { cursor:grabbing; }
@@ -304,13 +316,13 @@
 
 
 
-  .track-tc { font-size:var(--cell-fs,10px); color:#666; font-family:var(--font-mono); letter-spacing:.01em; white-space:nowrap; line-height:1; user-select:none; cursor:grab; }
-  .track-todo-cell { font-size:var(--cell-fs,10px); color:#888; font-family:var(--font-mono); cursor:pointer; padding:2px 4px; border-radius:2px; display:flex; align-items:center; justify-content:center; }
-  .track-todo-cell:hover { background:rgba(0,0,0,.08); }
-  .todo-badge { background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:10px; font-family:var(--font-mono); }
+  .track-tc { font-size:var(--cell-fs,10px); color:var(--muted); font-family:var(--font-mono); letter-spacing:.01em; white-space:nowrap; line-height:1; user-select:none; cursor:grab; }
   .track-key { font-size:var(--cell-fs,10px); color:#888; font-family:var(--font-mono); letter-spacing:.04em; white-space:nowrap; cursor:pointer; padding:2px 4px; border-radius:2px; }
   .track-key:hover { background:rgba(0,0,0,.08); color:#111; }
   .track-key.has-key { color:#c87020; font-weight:700; }
+  .track-todo-cell { font-size:var(--cell-fs,10px); color:#888; font-family:var(--font-mono); cursor:pointer; padding:2px 4px; border-radius:2px; display:flex; align-items:center; justify-content:center; }
+  .track-todo-cell:hover { background:rgba(0,0,0,.08); }
+  .todo-badge { background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:10px; font-family:var(--font-mono); }
   .track-tc.tc-conflict { color:#cc2211 !important; font-weight:700; }
   .tc-conflict-banner { background:#cc2211; color:#fff; font-size:10px; padding:6px 12px; letter-spacing:.08em; text-align:center; display:none; }
   .tc-conflict-banner.active { display:block; }
@@ -489,7 +501,7 @@
     .track-edit-btn { flex-shrink:0; margin-left:8px; padding:6px 10px; font-size:11px; }
     .track-delete-btn { opacity:1; font-size:17px; padding:5px 7px; margin-left:4px; }
     .annotation-row { padding-left:28px; }
-    .totals-row { display:flex; justify-content:space-between; padding:12px 0; font-size:10px; }
+    .totals-row { padding:10px 0; font-size:10px; }
     .totals-row .val { font-size:13px; }
     .crosshair { display:none; }
     .pool-sidebar { width:85vw; max-width:320px; }
@@ -686,16 +698,32 @@
   <div class="pool-readonly-hint">NUR-LESEN · Bearbeitung nur im Admin-Modus</div>
 </div>
 
+<!-- TC Conflict Detail Modal -->
+<div class="modal-overlay" id="tc-conflict-modal">
+  <div class="modal" style="min-width:380px;max-width:520px">
+    <div style="font-size:22px;font-weight:900;letter-spacing:.02em;margin-bottom:4px;color:var(--accent)">⚠ TC-KONFLIKTE</div>
+    <div style="font-size:10px;color:var(--muted);letter-spacing:.08em;margin-bottom:18px">Folgende Tracks überschneiden sich zeitlich:</div>
+    <div id="tc-conflict-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px"></div>
+    <div style="display:flex;justify-content:flex-end">
+      <button onclick="document.getElementById('tc-conflict-modal').classList.remove('open')"
+        style="background:var(--fg);color:var(--bg);border:none;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;padding:8px 20px;cursor:pointer;text-transform:uppercase;font-weight:700">OK</button>
+    </div>
+  </div>
+</div>
+
 <!-- Licht Color Picker -->
 <div class="licht-picker" id="licht-picker"></div>
 
 <!-- Col Header Context Menu -->
 <div class="col-ctx-menu" id="col-ctx-menu">
-  <div class="col-ctx-label">Schriftgrösse</div>
+  <div class="col-ctx-label" id="col-ctx-col-name">SPALTE</div>
   <div class="col-ctx-row">
-    <button class="col-ctx-btn" onclick="colCtxFS(-1)">−</button>
-    <span class="col-ctx-val" id="col-ctx-fs-val">12</span>
-    <button class="col-ctx-btn" onclick="colCtxFS(+1)">+</button>
+    <button class="col-ctx-btn" onmousedown="colCtxFS(-1);event.stopPropagation()">−</button>
+    <span class="col-ctx-val" id="col-ctx-fs-val">10</span>
+    <button class="col-ctx-btn" onmousedown="colCtxFS(+1);event.stopPropagation()">+</button>
+  </div>
+  <div style="padding:0 12px 8px">
+    <button onmousedown="colCtxFSReset();event.stopPropagation()" style="width:100%;background:rgba(255,255,255,.1);border:none;color:var(--bg);font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px;cursor:pointer">↺ Reset</button>
   </div>
 </div>
 
@@ -956,7 +984,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v2.16</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v2.24</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -1073,7 +1101,7 @@
 
   <!-- Visibility toggles -->
   
-<div class="tc-conflict-banner" id="tc-conflict-banner">⚠ TIMECODE KONFLIKT — Startpunkte überlappen sich</div>
+<div class="tc-conflict-banner" id="tc-conflict-banner" onclick="showTCConflictDetails()" style="cursor:pointer">⚠ TIMECODE KONFLIKT — Startpunkte überlappen sich &nbsp;·&nbsp; <u>Details anzeigen</u></div>
 <div class="vis-bar" id="vis-bar">
     <span>ANZEIGEN:</span>
     <label style="font-weight:700"><input type="checkbox" id="vis-all" checked onchange="setAllVis(this.checked)"> Alle</label>
@@ -1110,16 +1138,14 @@
   </div>
 
   <div class="setlist-wrap">
-    <div class="col-headers" id="col-headers-row">
-      <span>#</span><span>TRACK</span>
+    <div class="col-headers" id="col-headers-row" style="grid-template-columns:36px 1fr 36px">
+      <span class="col-drag-header" data-col="num" title="Nummer">#</span><span class="col-drag-header" data-col="track" title="Trackname">TRACK</span>
     </div>
     <div id="setlist-body"></div>
     <div class="setlist-drop-end" id="setlist-drop-end">— HIER ABLEGEN —</div>
     <div class="totals-row">
-      <span></span>
       <span class="label">GESAMT</span>
       <span class="val" id="total-time">—</span>
-      <span></span>
     </div>
   </div>
 
@@ -1193,6 +1219,7 @@ let autotuneData = {}; // { [trackId]: true/false }
 let annStyles = {}; // {intro:{color,fs}, outro:{...}, trans:{...}, note:{...}}
 let colOrder = ['ltc','key','notes','todo','structure','licht','autotune','length','bpm']; // full column order
 let colCustomWidths = {}; // { colName: px } — user-resized widths
+let colFontSizes = {};  // { colName: px } — per-column font size
 let _currentSaveId = null;
 let todos = {}; // trackId -> [{id, text, done, doneAt}]  // ID of last saved archive entry (for quick-save overwrite)
 let _currentSaveName = '';  // name of last saved entry
@@ -1213,7 +1240,7 @@ let editingTrackId = null;
 // ── UNDO/REDO ─────────────────────────────────────────────────
 let undoHistory = [], historyIndex = -1;
 function snapshot() {
-  const state = JSON.stringify({ setlist, annotations, annStyles, trackColors, lichtData, autotuneData, colCustomWidths, columnOrder, blocks, fontSize: +(document.getElementById('track-font-size')?.value||12) });
+  const state = JSON.stringify({ setlist, annotations, annStyles, trackColors, lichtData, autotuneData, colCustomWidths, colFontSizes, columnOrder, blocks, fontSize: +(document.getElementById('track-font-size')?.value||12) });
   undoHistory = undoHistory.slice(0, historyIndex + 1);
   undoHistory.push(state);
   if (undoHistory.length > 60) undoHistory.shift();
@@ -1244,6 +1271,7 @@ function restore(state) {
   lichtData = s.lichtData||{};
   autotuneData = s.autotuneData||{};
   colCustomWidths = s.colCustomWidths||{};
+  colFontSizes = s.colFontSizes||{};
   columnOrder = s.columnOrder||['length','bpm'];
   if (s.fontSize) { const el = document.getElementById('track-font-size'); if(el){ el.value=s.fontSize; updateTrackFontSize(s.fontSize); } }
   blocks = s.blocks||[];
@@ -1337,10 +1365,11 @@ function render() {
   const showLicht = visChecked('vis-licht');
   const showAutotune = visChecked('vis-autotune');
   const COL_VISIBLE = { ltc:on, key:showKey, notes:showNotesCol, todo:showTodo, structure:showStructure, licht:showLicht, autotune:showAutotune, length:showLength, bpm:showBpm };
-  const COL_WIDTHS  = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', structure:'36px', licht:'120px', autotune:'70px', length:'80px', bpm:'60px' };
+  const COL_WIDTHS  = { ltc:'90px', key:'80px', notes:'160px', todo:'60px', structure:'44px', licht:'120px', autotune:'50px', length:'80px', bpm:'60px' };
   const COL_LABELS  = { ltc:'LTC ⠿', key:'TONART ⠿', notes:'NOTIZ ⠿', todo:'TO DO ⠿', structure:'◎ ⠿', licht:'LICHT ⠿', autotune:'AT ⠿', length:'LÄNGE ⠿', bpm:'BPM ⠿' };
   const visCols = colOrder.filter(c => COL_VISIBLE[c]);
-  const gridTpl = '36px 1fr ' + visCols.map(c => (colCustomWidths[c] ? colCustomWidths[c]+'px' : COL_WIDTHS[c])).join(' ') + ' 36px';
+  const trackColW = colCustomWidths['track'] ? colCustomWidths['track'] + 'px' : '200px';
+  const gridTpl = '36px ' + trackColW + ' ' + visCols.map(c => (colCustomWidths[c] ? colCustomWidths[c]+'px' : COL_WIDTHS[c])).join(' ') + ' 80px';
 
   // Scale cell font-size with number of visible columns
   const cellFs = visCols.length <= 2 ? '10px' : visCols.length === 3 ? '9px' : '8px';
@@ -1453,30 +1482,32 @@ function render() {
     const col = trackColors[t.id];
     if (col) { row.style.borderLeft = `3px solid ${col}`; row.style.background = hexToRgba(col, 0.06); }
 
-    // Build data cells in colOrder
+    // Build data cells in colOrder — each wrapped with data-col-cell for per-col font size
     const colCells = visCols.map(c => {
-      if (c === 'licht')    return renderLichtCell(t);
-      if (c === 'autotune')  return renderAutotuneCell(t);
-      if (c === 'ltc')    return `<span class="track-tc track-inline-edit" contenteditable="true" data-field="ltc" data-id="${t.id}" draggable="false">${t.ltc || '—'}</span>`;
-      if (c === 'key')    return renderKeyCell(t);
-      if (c === 'todo')   return renderTodoCell(t);
-      if (c === 'notes')  return `<span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)">${ann.note||'—'}</span>`;
-      if (c === 'length') return `<span class="track-length track-inline-edit" contenteditable="true" data-field="length" data-id="${t.id}">${t.length||'—'}</span>`;
-      if (c === 'bpm')    return `<span class="track-bpm track-inline-edit ${t.bpm?'filled':''}" contenteditable="true" data-field="bpm" data-id="${t.id}">${t.bpm||'—'}</span>`;
-      if (c === 'structure') {
+      let inner = '';
+      if (c === 'licht')    inner = renderLichtCell(t);
+      else if (c === 'autotune')  inner = renderAutotuneCell(t);
+      else if (c === 'ltc')    inner = `<span class="track-tc track-inline-edit" contenteditable="true" data-field="ltc" data-id="${t.id}" draggable="false">${t.ltc || '—'}</span>`;
+      else if (c === 'key')    inner = renderKeyCell(t);
+      else if (c === 'todo')   inner = renderTodoCell(t);
+      else if (c === 'notes')  inner = `<span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)">${ann.note||'—'}</span>`;
+      else if (c === 'length') inner = `<span class="track-length track-inline-edit" contenteditable="true" data-field="length" data-id="${t.id}">${t.length||'—'}</span>`;
+      else if (c === 'bpm')    inner = `<span class="track-bpm track-inline-edit ${t.bpm?'filled':''}" contenteditable="true" data-field="bpm" data-id="${t.id}">${t.bpm||'—'}</span>`;
+      else if (c === 'structure') {
         const hasStr = !!(annotations[t.id]||{}).structure;
         const eyeClick = hasStr ? 'onclick="alsShowStructure(' + t.id + ',this);event.stopPropagation()"' : '';
         const eyeCursor = hasStr ? 'pointer' : 'default';
         const eyeOpacity = hasStr ? '1' : '.4';
         const eyeTitle = hasStr ? 'Ablauf anzeigen' : 'kein Ablauf';
-        return '<span style="text-align:center;cursor:' + eyeCursor + ';opacity:' + eyeOpacity + ';display:flex;align-items:center;justify-content:center;color:var(--fg)" ' + eyeClick + ' title="' + eyeTitle + '"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>';
+        inner = '<span style="text-align:center;cursor:' + eyeCursor + ';opacity:' + eyeOpacity + ';display:flex;align-items:center;justify-content:center;color:var(--fg)" ' + eyeClick + ' title="' + eyeTitle + '"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>';
       }
-      return '';
+      const fs = colFontSizes[c];
+      return `<span data-col-cell="${c}"${fs ? ` style="font-size:${fs}px"` : ''}>${inner}</span>`;
     }).join('');
 
     row.innerHTML = `
-      <span class="track-num" onclick="editPosition(this,${t.id})" title="Klicken um Position zu ändern">${t.special ? '·' : String(trackNum).padStart(2,'00')}</span>
-      <span class="track-name" onclick="openTIS(${t.id})">${t.name}${t.uncertain?'<span class="uncertain-badge"></span>':''}${col?`<span class="color-dot" style="background:${col}"></span>`:''}</span>
+      <span class="track-num" data-col-cell="num" onclick="editPosition(this,${t.id})" title="Klicken um Position zu ändern"${colFontSizes['num'] ? ` style="font-size:${colFontSizes['num']}px"` : ''}>${t.special ? '·' : String(trackNum).padStart(2,'00')}</span>
+      <span class="track-name" data-col-cell="track" onclick="openTIS(${t.id})"${colFontSizes['track'] ? ` style="font-size:${colFontSizes['track']}px"` : ''}>${t.name}${t.uncertain?'<span class="uncertain-badge"></span>':''}${col?`<span class="color-dot" style="background:${col}"></span>`:''}</span>
       ${colCells}
       <span style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
 <button class="track-edit-btn admin-only" onclick="openEditModal(${t.id})">✎</button>
@@ -3374,7 +3405,7 @@ const STORAGE_KEY = 'setlist_planner_v2_' + ARTIST_ID;
 
 function getFullState() {
   return {
-    todos, pool, setlist, annotations, annStyles, trackColors, lichtData, autotuneData, colCustomWidths, columnOrder, blocks, archiveStore,
+    todos, pool, setlist, annotations, annStyles, trackColors, lichtData, autotuneData, colCustomWidths, colFontSizes, columnOrder, blocks, archiveStore,
     fontSize: +(document.getElementById('track-font-size')?.value||12), version: 1 };
 }
 
@@ -4145,18 +4176,22 @@ initColHeaders();
     return null;
   }
 
+  function applyGridTpl(tpl) {
+    document.querySelectorAll('.col-headers, .track-row').forEach(r => r.style.gridTemplateColumns = tpl);
+  }
+
   document.addEventListener('mousemove', function(e) {
     const row = getHeaderRow();
     if (!row) return;
     if (resizeCol) {
-      // Currently resizing
       const delta = e.clientX - resizeStartX;
       const newW = Math.max(36, Math.round(resizeStartW + delta));
       colCustomWidths[resizeCol] = newW;
-      const cols = Array.from(document.querySelectorAll('.col-drag-header')).map(h => h.dataset.col);
-      const COL_WIDTHS_BASE = { ltc:'70px', key:'90px', notes:'1fr', todo:'60px', structure:'36px', licht:'120px', autotune:'70px', length:'80px', bpm:'60px' };
-      const tpl = '36px 1fr ' + cols.map(c => (colCustomWidths[c] ? colCustomWidths[c]+'px' : COL_WIDTHS_BASE[c]||'80px')).join(' ') + ' 36px';
-      document.querySelectorAll('.col-headers, .track-row').forEach(r => r.style.gridTemplateColumns = tpl);
+      const cols = Array.from(document.querySelectorAll('.col-drag-header')).map(h => h.dataset.col).filter(c => c && c !== 'num' && c !== 'track');
+      const COL_WIDTHS_BASE = { ltc:'90px', key:'80px', notes:'160px', todo:'60px', structure:'44px', licht:'120px', autotune:'50px', length:'80px', bpm:'60px' };
+      const trackW = colCustomWidths['track'] ? colCustomWidths['track']+'px' : '200px';
+      const tpl = '36px ' + trackW + ' ' + cols.map(c => (colCustomWidths[c] ? colCustomWidths[c]+'px' : COL_WIDTHS_BASE[c]||'80px')).join(' ') + ' 80px';
+      applyGridTpl(tpl);
       return;
     }
     // Hover: show col-resize cursor when near edge
@@ -4191,39 +4226,80 @@ initColHeaders();
 })();
 
 // ── COL HEADER CONTEXT MENU (font size) ──────────────────────
-(function() {
-  const menu = document.getElementById('col-ctx-menu');
-  if (!menu) return;
+// ── COL HEADER CONTEXT MENU (per-column font size) ──────────
+let _colCtxActiveCol = null;
+const _colCtxMenu = document.getElementById('col-ctx-menu');
+const COL_LABELS_DISPLAY = { num:'#', track:'Track', ltc:'LTC', key:'Tonart', notes:'Notiz', todo:'To Do', structure:'Ablauf', licht:'Licht', autotune:'AT', length:'Länge', bpm:'BPM' };
 
-  function closeCtx() { menu.classList.remove('open'); }
+function _colCtxOpen(col, x, y) {
+  _colCtxActiveCol = col;
+  const cur = colFontSizes[col] || +(document.getElementById('track-font-size')?.value || 12);
+  document.getElementById('col-ctx-fs-val').textContent = cur;
+  document.getElementById('col-ctx-col-name').textContent = (COL_LABELS_DISPLAY[col] || col).toUpperCase() + ' — Schriftgrösse';
+  const vw = window.innerWidth, vh = window.innerHeight;
+  _colCtxMenu.style.left = Math.min(x, vw - 200) + 'px';
+  _colCtxMenu.style.top  = Math.min(y, vh - 120) + 'px';
+  _colCtxMenu.classList.add('open');
+}
 
-  document.getElementById('col-headers-row').addEventListener('contextmenu', function(e) {
-    if (!e.target.closest('.col-drag-header') && !e.target.closest('#col-headers-row')) return;
-    e.preventDefault();
-    const fs = +(document.getElementById('track-font-size')?.value || 12);
-    document.getElementById('col-ctx-fs-val').textContent = fs;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const mw = 180, mh = 80;
-    menu.style.left = Math.min(e.clientX, vw - mw - 8) + 'px';
-    menu.style.top  = Math.min(e.clientY, vh - mh - 8) + 'px';
-    menu.classList.add('open');
-    setTimeout(() => {
-      document.addEventListener('click', closeCtx, { once: true });
-      document.addEventListener('contextmenu', closeCtx, { once: true });
-    }, 0);
-  });
-})();
+function _colCtxClose() {
+  _colCtxMenu.classList.remove('open');
+  _colCtxActiveCol = null;
+}
+
+document.getElementById('col-headers-row').addEventListener('contextmenu', function(e) {
+  const h = e.target.closest('.col-drag-header');
+  if (!h) return;
+  e.preventDefault();
+  e.stopPropagation();
+  _colCtxOpen(h.dataset.col, e.clientX, e.clientY);
+});
+
+// Close when clicking outside the menu
+document.addEventListener('mousedown', function(e) {
+  if (_colCtxMenu.classList.contains('open') && !_colCtxMenu.contains(e.target)) {
+    _colCtxClose();
+  }
+});
+
+// Close on right-click outside menu
+document.addEventListener('contextmenu', function(e) {
+  if (_colCtxMenu.classList.contains('open') && !_colCtxMenu.contains(e.target) && !e.target.closest('.col-drag-header')) {
+    _colCtxClose();
+  }
+});
 
 window.colCtxFS = function(delta) {
-  const el = document.getElementById('track-font-size');
-  const elM = document.getElementById('track-font-size-mobile');
-  const cur = +(el?.value || 12);
-  const next = Math.min(24, Math.max(10, cur + delta));
-  if (el) el.value = next;
-  if (elM) elM.value = next;
-  updateTrackFontSize(next);
+  if (!_colCtxActiveCol) return;
+  const base = +(document.getElementById('track-font-size')?.value || 12);
+  const cur = colFontSizes[_colCtxActiveCol] || base;
+  const next = Math.min(24, Math.max(7, cur + delta));
+  colFontSizes[_colCtxActiveCol] = next;
   document.getElementById('col-ctx-fs-val').textContent = next;
+  _applyColFontSizes();
+  snapshot();
 };
+
+window.colCtxFSReset = function() {
+  if (!_colCtxActiveCol) return;
+  delete colFontSizes[_colCtxActiveCol];
+  const base = +(document.getElementById('track-font-size')?.value || 12);
+  document.getElementById('col-ctx-fs-val').textContent = base;
+  _applyColFontSizes();
+  snapshot();
+};
+
+function _applyColFontSizes() {
+  Object.entries(colFontSizes).forEach(([col, fs]) => {
+    document.querySelectorAll(`[data-col-cell="${col}"]`).forEach(el => {
+      el.style.setProperty('font-size', fs + 'px', 'important');
+      // Also apply to direct child spans (inner content)
+      el.querySelectorAll('span, input').forEach(child => {
+        child.style.setProperty('font-size', fs + 'px', 'important');
+      });
+    });
+  });
+}
 
 // ── THEME TOGGLE ────────────────────────────────────────────
 function toggleTheme() {
@@ -4555,7 +4631,7 @@ window.resetAnnStyle = function() {
 </div>
 
 <script>
-// ── ALS IMPORT v2.16 ─────────────────────────────────────────
+// ── ALS IMPORT v2.24 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -5094,7 +5170,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v2.16</div>' +
+  '</table><div class="wm">SETLIST PLANNER v2.24</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
@@ -5148,6 +5224,52 @@ window.closeTIS = function(e) {
   document.getElementById('track-info-sheet').classList.remove('open');
 };
 
+
+// ── TC CONFLICT DETAILS ───────────────────────────────────────
+window.showTCConflictDetails = function() {
+  const conflicts = checkLTCConflicts();
+  const list = document.getElementById('tc-conflict-list');
+  if (!list) return;
+
+  if (conflicts.length === 0) {
+    // Try calcTimecodes-style conflicts (same TC start)
+    const tcData = calcTimecodes();
+    if (tcData.conflicts.length === 0) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:11px">Keine Konflikte gefunden.</div>';
+    } else {
+      list.innerHTML = tcData.conflicts.map(id => {
+        const t = getTrack(id);
+        return `<div style="background:rgba(204,34,17,.1);border-left:3px solid var(--accent);padding:10px 12px;font-family:var(--font-mono);font-size:11px">
+          <div style="font-weight:700;color:var(--fg)">${t ? t.name : 'Track #'+id}</div>
+          <div style="color:var(--muted);font-size:9px;margin-top:3px;letter-spacing:.06em">Gleicher Startpunkt wie vorheriger Track</div>
+        </div>`;
+      }).join('');
+    }
+  } else {
+    list.innerHTML = conflicts.map(c => {
+      // Find which tracks in setlist are affected
+      const aTrack = pool.find(t => t.name === c.a);
+      const bTrack = pool.find(t => t.name === c.b);
+      const aNum = aTrack ? setlist.indexOf(aTrack.id) + 1 : '?';
+      const bNum = bTrack ? setlist.indexOf(bTrack.id) + 1 : '?';
+      return `<div style="background:rgba(204,34,17,.1);border-left:3px solid var(--accent);padding:10px 12px;font-family:var(--font-mono);font-size:11px">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+          <span style="color:var(--muted);font-size:9px">#${String(aNum).padStart(2,'0')}</span>
+          <span style="font-weight:700;color:var(--fg)">${c.a}</span>
+          <span style="color:var(--muted);font-size:9px">${c.aLtc}</span>
+        </div>
+        <div style="color:var(--accent);font-size:9px;letter-spacing:.1em;margin-bottom:6px">↕ ÜBERSCHNEIDUNG</div>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="color:var(--muted);font-size:9px">#${String(bNum).padStart(2,'0')}</span>
+          <span style="font-weight:700;color:var(--fg)">${c.b}</span>
+          <span style="color:var(--muted);font-size:9px">${c.bLtc}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('tc-conflict-modal').classList.add('open');
+};
 
 // ── AUTOTUNE COLUMN ───────────────────────────────────────────
 function renderAutotuneCell(t) {
