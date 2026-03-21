@@ -134,19 +134,9 @@
   [data-theme="dark"] .track-row:nth-child(even) > *:nth-child(2) { background:rgba(255,255,255,.025); }
   .track-row:nth-child(even) { background:rgba(0,0,0,.025); }
   [data-theme="dark"] .track-row:nth-child(even) { background:rgba(255,255,255,.025); }
-  .track-row.in-block { margin-bottom:0; min-height:38px; position:relative; overflow:visible; }
-  /* Vertical line */
-  .track-row.in-block::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); pointer-events:none; z-index:1; }
-  /* Top cap */
-  .track-row.block-start::before { top:-8px; }
-  .track-row.block-start::after  { content:''; position:absolute; left:6px; top:-8px; width:10px; height:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); border-radius:1px; pointer-events:none; z-index:1; }
-  /* Bottom cap — ::after on block-end only conflicts if also block-start (single track), handled below */
-  .track-row.block-end { margin-bottom:12px; }
-  .track-row.block-end::before { bottom:-8px; }
-  .track-row.block-end:not(.block-start)::after { content:''; position:absolute; left:6px; bottom:-8px; width:10px; height:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); border-radius:1px; pointer-events:none; z-index:1; }
-  /* Single-track: both caps via before + after on same element */
-  .track-row.block-start.block-end::before { top:-8px; bottom:-8px; }
-  .track-row.block-start.block-end::after  { content:''; position:absolute; left:6px; bottom:-8px; width:10px; height:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); border-radius:1px; pointer-events:none; z-index:1; }
+  .track-row.in-block { border-left:3px solid var(--block-color,#999); background:rgba(var(--block-color-rgb,150,150,150), calc(var(--block-opacity,1) * 0.06)); }
+  .track-row.block-end { margin-bottom:8px; }
+  .annotation-row.in-block { border-left:3px solid var(--block-color,#999); background:rgba(var(--block-color-rgb,150,150,150), calc(var(--block-opacity,1) * 0.04)); }
   .track-row:hover { background:rgba(0,0,0,.06); }
   [data-theme="dark"] .track-row:hover { background:rgba(255,255,255,.06); }
 
@@ -199,7 +189,6 @@
   :root { --ann-color-intro:''; --ann-color-outro:''; --ann-color-trans:''; --ann-color-note:''; --ann-fs-intro:''; --ann-fs-outro:''; --ann-fs-trans:''; --ann-fs-note:''; }
 
   .annotation-row { display:flex; align-items:flex-start; gap:6px; padding:4px 6px 4px 16px; border-bottom:1px solid var(--line); position:relative; overflow:visible; background:rgba(0,0,0,.02); min-height:0; line-height:1.5; flex-wrap:wrap; }
-  .annotation-row.in-block::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--block-color,#999); opacity:var(--block-opacity,1); pointer-events:none; z-index:1; }
   .ann-arrow { flex-shrink:0; font-size:var(--ann-fs,9px); line-height:1; width:14px; text-align:center; opacity:.7; }
   .ann-type-intro .ann-arrow  { color:var(--green); }
   .ann-type-outro .ann-arrow  { color:var(--accent); }
@@ -375,8 +364,9 @@
 
   /* BLOCK STYLES */
   .block-wrap { position:relative; margin:0; }
-  .block-label-row { display:flex; align-items:center; gap:8px; padding:3px 8px; margin-top:14px; margin-bottom:2px; }
-  .block-spacer { height:14px; margin-top:8px; margin-bottom:2px; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; }
+  .block-label-row { display:flex; align-items:center; gap:8px; padding:5px 10px 5px 12px; margin-top:16px; margin-bottom:0; border-left:3px solid var(--block-color,#999); background:rgba(0,0,0,.03); border-top:1px solid var(--line); }
+  [data-theme="dark"] .block-label-row { background:rgba(255,255,255,.03); }
+  .block-spacer { height:16px; margin-top:8px; margin-bottom:0; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; border-left:3px solid var(--block-color,#999); }
   .block-spacer-remove { background:none; border:none; color:#ccc; cursor:pointer; font-size:11px; padding:1px 4px; touch-action:manipulation; }
   .block-spacer-remove:hover { color:var(--accent); }
   .block-label-tag { font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
@@ -984,7 +974,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v2.24</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v2.25</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -1291,6 +1281,11 @@ function hexToRgba(hex, alpha) {
   const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
+function hexToRgbStr(hex) {
+  if (!hex || hex.length < 7) return null;
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
 
 const COLOR_PALETTE = [
   '#e63323','#e07b20','#d4c020','#5a9a5e','#2e86c1',
@@ -1435,12 +1430,12 @@ function render() {
     // — Annotation rows BEFORE track —
     if (showAnn && ann.intro) {
       const ar = makeAnnRow('intro', '↳ INTRO', ann.intro, tid, 'intro');
-      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); }
+      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); const _rgb=hexToRgbStr(block.color||'#999999'); if(_rgb) ar.style.setProperty('--block-color-rgb',_rgb); }
       body.appendChild(ar);
     }
     if (showAnn && ann.transIn) {
       const ar = makeAnnRow('trans', '← ÜBERGANG', ann.transIn, tid, 'transIn');
-      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); }
+      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); const _rgb=hexToRgbStr(block.color||'#999999'); if(_rgb) ar.style.setProperty('--block-color-rgb',_rgb); }
       body.appendChild(ar);
     }
 
@@ -1466,8 +1461,12 @@ function render() {
       row.classList.add('in-block');
       if (block.locked) row.classList.add('locked-block');
       const bOpacity = block.opacity !== undefined ? block.opacity : 1;
-      row.style.setProperty('--block-color', block.color || '#999');
+      const bColor = block.color || '#999999';
+      row.style.setProperty('--block-color', bColor);
       row.style.setProperty('--block-opacity', bOpacity);
+      // Set RGB for rgba() background
+      const rgb = hexToRgbStr(bColor);
+      if (rgb) row.style.setProperty('--block-color-rgb', rgb);
       // first track in block?
       const prevTid = setlist[i - 1];
       const prevBlock = prevTid ? getBlockForTrack(prevTid) : null;
@@ -1619,12 +1618,12 @@ function render() {
     // — Annotation rows AFTER track —
     if (showAnn && ann.outro) {
       const ar = makeAnnRow('outro', '↲ OUTRO', ann.outro, tid, 'outro');
-      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); }
+      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); const _rgb=hexToRgbStr(block.color||'#999999'); if(_rgb) ar.style.setProperty('--block-color-rgb',_rgb); }
       body.appendChild(ar);
     }
     if (showAnn && ann.transOut) {
       const ar = makeAnnRow('trans', '→ ÜBERGANG', ann.transOut, tid, 'transOut');
-      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); }
+      if (block) { ar.classList.add('in-block'); ar.style.setProperty('--block-color', block.color||'#999'); ar.style.setProperty('--block-opacity', block.opacity !== undefined ? block.opacity : 1); const _rgb=hexToRgbStr(block.color||'#999999'); if(_rgb) ar.style.setProperty('--block-color-rgb',_rgb); }
       body.appendChild(ar);
     }
 
@@ -1671,7 +1670,7 @@ function makeAnnRow(type, label, text, trackId, field) {
     if (!annotations[tid]) annotations[tid] = {};
     annotations[tid][fld] = val || def;
     if (!val) this.textContent = def;
-    snapshot();
+    snapshot(); render();
   });
   badge.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
@@ -4631,7 +4630,7 @@ window.resetAnnStyle = function() {
 </div>
 
 <script>
-// ── ALS IMPORT v2.24 ─────────────────────────────────────────
+// ── ALS IMPORT v2.25 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -5170,7 +5169,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v2.24</div>' +
+  '</table><div class="wm">SETLIST PLANNER v2.25</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
