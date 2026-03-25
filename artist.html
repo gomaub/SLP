@@ -46,7 +46,18 @@
   .licht-picker-swatch:hover { transform:scale(1.15); border-color:rgba(255,255,255,.6); }
   .licht-picker-clear { width:100%; padding:5px 0; background:rgba(255,255,255,.1); border:none; color:var(--bg); font-family:var(--font-mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; text-align:center; }
   .licht-picker-clear:hover { background:rgba(255,255,255,.2); }
-  /* AUTOTUNE COLUMN */
+  /* GAP ROW */
+  .gap-row { display:flex; align-items:center; gap:8px; padding:5px 10px; border-bottom:1px solid var(--line); background:rgba(0,0,0,.02); min-height:32px; }
+  [data-theme="dark"] .gap-row { background:rgba(255,255,255,.02); }
+  .gap-row-input { flex:1; background:transparent; border:none; border-bottom:1px dashed var(--line); color:var(--fg); font-family:var(--font-mono); font-size:10px; padding:2px 4px; outline:none; }
+  .gap-row-input:focus { border-bottom-color:var(--fg); }
+  .gap-row-input::placeholder { color:var(--muted); opacity:.6; }
+  .gap-row-type { background:var(--card); border:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:9px; padding:3px 6px; cursor:pointer; letter-spacing:.06em; text-transform:uppercase; }
+  .gap-row-type:hover { border-color:var(--fg); color:var(--fg); }
+  .gap-row-icon { font-size:11px; color:var(--muted); flex-shrink:0; }
+  .gap-checkbox-wrap { display:flex; align-items:center; justify-content:center; }
+  .gap-checkbox { width:14px; height:14px; cursor:pointer; accent-color:var(--fg); flex-shrink:0; }
+  .track-row.has-gap { border-bottom:none; }
   .autotune-cell { display:flex; align-items:center; justify-content:center; width:100%; height:100%; cursor:pointer; transition:background .15s; }
   .autotune-cell.on { background:rgba(220,50,50,.15); }
   .autotune-cb { width:16px; height:16px; accent-color:#cc2211; cursor:pointer; }
@@ -984,7 +995,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v2.28</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v2.29</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -1523,8 +1534,11 @@ function render() {
       <span class="track-name" data-col-cell="track" onclick="openTIS(${t.id})"${colFontSizes['track'] ? ` style="font-size:${colFontSizes['track']}px"` : ''}>${t.name}${t.uncertain?'<span class="uncertain-badge"></span>':''}${col?`<span class="color-dot" style="background:${col}"></span>`:''}</span>
       ${colCells}
       <span style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
-<button class="track-edit-btn admin-only" onclick="openEditModal(${t.id})">✎</button>
+        <button class="track-edit-btn admin-only" onclick="openEditModal(${t.id})">✎</button>
         <button class="track-delete-btn" onclick="removeFromSetlist(${t.id})">✕</button>
+        <span class="gap-checkbox-wrap" title="Abstand nach diesem Track">
+          <input type="checkbox" class="gap-checkbox" ${ann.gap?'checked':''} onchange="toggleGap(${t.id},this.checked)">
+        </span>
         <span class="drag-handle" data-id="${t.id}" title="Halten zum Verschieben">⠿</span>
       </span>`;
 
@@ -1628,6 +1642,29 @@ function render() {
     }
 
     body.appendChild(row);
+
+    // — Gap row (if checkbox checked) —
+    if (ann.gap) {
+      row.classList.add('has-gap');
+      const gapRow = document.createElement('div');
+      gapRow.className = 'gap-row';
+      const gapType = ann.gapType || 'trans';
+      const gapText = ann.gapText || '';
+      const typeLabels = { trans:'→ Übergang', ansage:'🎤 Ansage', pause:'⏸ Pause', note:'· Notiz' };
+      gapRow.innerHTML = `
+        <span class="gap-row-icon">${gapType === 'ansage' ? '🎤' : gapType === 'pause' ? '⏸' : gapType === 'note' ? '·' : '→'}</span>
+        <input class="gap-row-input" type="text" value="${gapText.replace(/"/g,'&quot;')}" placeholder="Beschreibung…"
+          onchange="setGapText(${tid},this.value)" oninput="setGapText(${tid},this.value)">
+        <select class="gap-row-type" onchange="setGapType(${tid},this.value)" title="Typ">
+          <option value="trans" ${gapType==='trans'?'selected':''}>Übergang</option>
+          <option value="ansage" ${gapType==='ansage'?'selected':''}>Ansage</option>
+          <option value="pause" ${gapType==='pause'?'selected':''}>Pause</option>
+          <option value="note" ${gapType==='note'?'selected':''}>Notiz</option>
+        </select>
+        <button onclick="clearAnnotation(${tid},'gap');clearAnnotation(${tid},'gapType');clearAnnotation(${tid},'gapText');snapshot();render()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 4px" title="Abstand entfernen">✕</button>`;
+      if (block) { gapRow.classList.add('in-block'); gapRow.style.setProperty('--block-color', block.color||'#999'); }
+      body.appendChild(gapRow);
+    }
 
     // — Annotation rows AFTER track —
     if (showAnn && ann.outro) {
@@ -4658,7 +4695,7 @@ window.resetAnnStyle = function() {
 </div>
 
 <script>
-// ── ALS IMPORT v2.28 ─────────────────────────────────────────
+// ── ALS IMPORT v2.29 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -5197,7 +5234,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v2.28</div>' +
+  '</table><div class="wm">SETLIST PLANNER v2.29</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
@@ -5251,6 +5288,30 @@ window.closeTIS = function(e) {
   document.getElementById('track-info-sheet').classList.remove('open');
 };
 
+
+// ── GAP / ABSTAND SYSTEM ─────────────────────────────────────
+window.toggleGap = function(trackId, checked) {
+  if (!annotations[trackId]) annotations[trackId] = {};
+  if (checked) {
+    annotations[trackId].gap = true;
+    if (!annotations[trackId].gapType) annotations[trackId].gapType = 'trans';
+  } else {
+    delete annotations[trackId].gap;
+    delete annotations[trackId].gapType;
+    delete annotations[trackId].gapText;
+  }
+  snapshot(); render();
+};
+window.setGapText = function(trackId, val) {
+  if (!annotations[trackId]) annotations[trackId] = {};
+  annotations[trackId].gapText = val;
+  snapshot();
+};
+window.setGapType = function(trackId, type) {
+  if (!annotations[trackId]) annotations[trackId] = {};
+  annotations[trackId].gapType = type;
+  snapshot(); render();
+};
 
 // ── LTC SLOT PICKER ──────────────────────────────────────────
 let _ltcPickerTrackId = null;
