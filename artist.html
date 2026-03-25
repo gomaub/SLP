@@ -702,6 +702,13 @@
 </div>
 
 <!-- Licht Color Picker -->
+<!-- LTC Slot Picker -->
+<div id="ltc-picker" style="display:none;position:fixed;z-index:9000;background:var(--fg);color:var(--bg);font-family:var(--font-mono);font-size:10px;box-shadow:0 4px 24px rgba(0,0,0,.4);min-width:160px;max-height:280px;overflow-y:auto;border:1px solid rgba(128,128,128,.2)">
+  <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;padding:8px 12px 5px;opacity:.5;border-bottom:1px solid rgba(128,128,128,.2)">LTC-SLOT WÄHLEN</div>
+  <div id="ltc-picker-list"></div>
+  <button onclick="closeLTCPicker()" style="display:block;width:100%;background:rgba(128,128,128,.2);border:none;color:var(--bg);font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:8px;cursor:pointer;border-top:1px solid rgba(128,128,128,.2)">✕ Abbrechen</button>
+</div>
+
 <div class="licht-picker" id="licht-picker"></div>
 
 <!-- Col Header Context Menu -->
@@ -845,11 +852,14 @@
       <!-- COLOR -->
       <div class="em-section">
         <div class="em-section-header" onclick="toggleSection('sec-color')">
-          <span class="em-section-label" style="color:var(--muted)">● FARBE</span>
+          <span class="em-section-label" style="display:flex;align-items:center;gap:8px">
+            <span id="sec-color-dot" style="width:12px;height:12px;border-radius:50%;background:var(--line);border:1.5px solid rgba(0,0,0,.15);flex-shrink:0"></span>
+            FARBE
+          </span>
           <span class="em-toggle" id="sec-color-indicator">+ auswählen</span>
         </div>
-        <div class="em-section-body" id="sec-color">
-          <p class="em-section-hint">Farbliche Markierung für diesen Track</p>
+        <div class="em-section-body open" id="sec-color">
+          <p class="em-section-hint">Farbliche Markierung für diesen Track (Row + Pool)</p>
           <div class="color-swatches" id="color-swatches"></div>
         </div>
       </div>
@@ -974,7 +984,7 @@
   <header>
     <div class="header-meta">
       <span id="clock-display">—</span>
-      <span>SETLIST PLANNER v2.25</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
+      <span>SETLIST PLANNER v2.28</span><span id="artist-label" style="font-weight:700;letter-spacing:.05em"></span><span id="current-setlist-label" style="color:var(--muted);font-size:9px;letter-spacing:.08em;margin-left:16px;opacity:.7"></span>
       <span style="display:flex;align-items:center;gap:6px;font-size:9px;color:#888">
         <span id="sync-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .4s" title="Sync-Status"></span>SYNC
       </span>
@@ -1033,7 +1043,7 @@
     <button onclick="openPool()" id="pool-btn">[ ◀ POOL ]</button>
     <button id="btn-more" onclick="toggleMoreButtons()" style="display:none">[ ••• ]</button>
     <button onclick="quickSave()" id="main-save-btn" title="Setlist speichern">[ ✦ SAVE ]</button>
-    <button onclick="toggleAddForm()" id="add-btn" class="admin-only">[ + ADD ]</button>
+    <button onclick="toggleAddForm()" id="add-btn">[ + ADD ]</button>
     <button class="accent" onclick="openExportModal()">[ EXPORT ]</button>
     <div style="position:relative;display:inline-block" id="links-dropdown-wrap">
       <button class="toolbar-secondary" onclick="toggleLinksMenu()" id="links-btn">[ ⎘ LINKS ]</button>
@@ -1296,12 +1306,16 @@ function renderColorSwatches(trackId) {
   const wrap = document.getElementById('color-swatches');
   wrap.innerHTML = '';
   const current = trackColors[trackId] || null;
+  const updateDot = (hex) => {
+    const dot = document.getElementById('sec-color-dot');
+    if (dot) dot.style.background = hex || 'var(--line)';
+  };
   // Clear option
   const clear = document.createElement('div');
   clear.className = 'color-swatch clear' + (!current ? ' selected' : '');
   clear.title = 'Keine Farbe';
   clear.textContent = '✕';
-  clear.onclick = () => { document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected')); clear.classList.add('selected'); };
+  clear.onclick = () => { document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected')); clear.classList.add('selected'); updateDot(''); };
   clear.dataset.color = '';
   wrap.appendChild(clear);
   COLOR_PALETTE.forEach(hex => {
@@ -1310,7 +1324,7 @@ function renderColorSwatches(trackId) {
     s.style.background = hex;
     s.dataset.color = hex;
     s.title = hex;
-    s.onclick = () => { document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('selected')); s.classList.add('selected'); };
+    s.onclick = () => { document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('selected')); s.classList.add('selected'); updateDot(hex); };
     wrap.appendChild(s);
   });
 }
@@ -1486,7 +1500,7 @@ function render() {
       let inner = '';
       if (c === 'licht')    inner = renderLichtCell(t);
       else if (c === 'autotune')  inner = renderAutotuneCell(t);
-      else if (c === 'ltc')    inner = `<span class="track-tc track-inline-edit" contenteditable="true" data-field="ltc" data-id="${t.id}" draggable="false">${t.ltc || '—'}</span>`;
+      else if (c === 'ltc') inner = `<span class="track-tc" data-id="${t.id}" onclick="openLTCPicker(event,${t.id})" title="LTC-Slot wählen" style="cursor:pointer">${t.ltc || '—'}</span>`;
       else if (c === 'key')    inner = renderKeyCell(t);
       else if (c === 'todo')   inner = renderTodoCell(t);
       else if (c === 'notes')  inner = `<span class="track-note-inline ${ann.note?'has-note':''}" data-id="${t.id}" draggable="false" onclick="editNoteInline(this)">${ann.note||'—'}</span>`;
@@ -1745,8 +1759,16 @@ function openEditModal(trackId) {
   }
   const secColor = document.getElementById('sec-color');
   const secColorInd = document.getElementById('sec-color-indicator');
-  if (trackColors[trackId]) { secColor.classList.add('open'); secColorInd.textContent = '— entfernen'; }
-  else { secColor.classList.remove('open'); secColorInd.textContent = '+ auswählen'; }
+  const secColorDot = document.getElementById('sec-color-dot');
+  if (trackColors[trackId]) {
+    secColor.classList.add('open');
+    secColorInd.textContent = '— entfernen';
+    if (secColorDot) secColorDot.style.background = trackColors[trackId];
+  } else {
+    secColor.classList.remove('open');
+    secColorInd.textContent = '+ auswählen';
+    if (secColorDot) secColorDot.style.background = 'var(--line)';
+  }
   document.getElementById('edit-modal').style.cssText='display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;padding:20px;';
 }
 
@@ -1957,8 +1979,14 @@ function populatePositionSelect() {
 let _pendingNewTrack = null;
 
 function addTrack() {
-  if (!IS_ADMIN) return;
-  const name = document.getElementById('inp-name').value.trim(); if (!name) return;
+  let name = document.getElementById('inp-name').value.trim();
+  // Auto-default for special types if no name given
+  if (!name) {
+    if (_addType === 'intro')  name = 'Intro';
+    else if (_addType === 'outro')  name = 'Outro';
+    else if (_addType === 'ansage') name = 'Ansage';
+    else return; // song must have a name
+  }
   const length = document.getElementById('inp-length').value.trim();
   const bpm = document.getElementById('inp-bpm').value.trim();
   const uncertain = document.getElementById('inp-uncertain').checked;
@@ -4630,7 +4658,7 @@ window.resetAnnStyle = function() {
 </div>
 
 <script>
-// ── ALS IMPORT v2.25 ─────────────────────────────────────────
+// ── ALS IMPORT v2.28 ─────────────────────────────────────────
 // Completely isolated block — does not touch main script
 
 let _alsImportData = [];
@@ -5169,7 +5197,7 @@ function exportTecSheet(opts) {
   '<div class="meta">' + rows.filter(function(r){return !r.special;}).length + ' SONGS<br>GESAMT: ' + formatTime(total) + '<br>' + dateStr + '</div></header>' +
   '<table><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody>' +
   '<tfoot><tr><td colspan="' + cols.length + '">GESAMT: ' + formatTime(total) + ' &nbsp;·&nbsp; ' + rows.filter(function(r){return !r.special;}).length + ' SONGS</td></tr></tfoot>' +
-  '</table><div class="wm">SETLIST PLANNER v2.25</div>' +
+  '</table><div class="wm">SETLIST PLANNER v2.28</div>' +
   '</body></html>';
 
   const w = window.open('', '_blank');
@@ -5224,6 +5252,107 @@ window.closeTIS = function(e) {
 };
 
 
+// ── LTC SLOT PICKER ──────────────────────────────────────────
+let _ltcPickerTrackId = null;
+
+function _buildLTCSlots() {
+  // Build all available 10-min slots from 00:00 to 05:50
+  const slots = [];
+  for (let h = 0; h <= 5; h++) {
+    for (let m = 0; m < 60; m += 10) {
+      const tc = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':00:00';
+      slots.push(tc);
+    }
+  }
+  return slots;
+}
+
+function _getOccupiedSlots(excludeId) {
+  // Returns map of {tc: trackName} for all tracks except excludeId
+  const occupied = {};
+  pool.forEach(t => {
+    if (t.ltc && t.id !== excludeId) {
+      // Mark all slots this track occupies (start + duration range)
+      const startSecs = tcStringToSecs(t.ltc);
+      const durSecs = toSeconds(t.length || '0:00');
+      const endSecs = startSecs + durSecs;
+      _buildLTCSlots().forEach(slot => {
+        const slotSecs = tcStringToSecs(slot);
+        if (slotSecs >= startSecs && slotSecs < endSecs) {
+          if (!occupied[slot]) occupied[slot] = [];
+          occupied[slot].push(t.name);
+        }
+      });
+    }
+  });
+  return occupied;
+}
+
+window.openLTCPicker = function(e, trackId) {
+  e.stopPropagation();
+  _ltcPickerTrackId = trackId;
+  const t = getTrack(trackId);
+  const picker = document.getElementById('ltc-picker');
+  const list = document.getElementById('ltc-picker-list');
+  const occupied = _getOccupiedSlots(trackId);
+  const slots = _buildLTCSlots();
+  const curLtc = t.ltc || '';
+
+  list.innerHTML = slots.map(slot => {
+    const isCur = slot === curLtc || (curLtc && curLtc.startsWith(slot.slice(0,5)));
+    const blockers = occupied[slot];
+    const isBlocked = blockers && blockers.length > 0;
+    const label = slot.slice(0, 5); // HH:MM
+    return `<div onclick="${isBlocked ? '' : `setLTCSlot('${slot}')`}"
+      style="padding:8px 14px;cursor:${isBlocked?'not-allowed':'pointer'};
+      opacity:${isBlocked?'.35':'1'};
+      background:${isCur?'rgba(255,255,255,.2)':'none'};
+      border-bottom:1px solid rgba(128,128,128,.1);
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      color:${isBlocked?'rgba(255,255,255,.4)':'var(--bg)'};"
+      title="${isBlocked ? 'Belegt: '+blockers.join(', ') : ''}"
+    >
+      <span style="font-weight:${isCur?'700':'400'}">${label}${isCur?' ◀':''}</span>
+      ${isBlocked ? `<span style="font-size:8px;letter-spacing:.06em">${blockers[0].slice(0,12)}${blockers[0].length>12?'…':''}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  // Position
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const rect = e.target.getBoundingClientRect();
+  picker.style.left = Math.min(rect.left, vw - 170) + 'px';
+  picker.style.top  = Math.min(rect.bottom + 2, vh - 290) + 'px';
+  picker.style.display = 'block';
+
+  // Scroll to current
+  setTimeout(() => {
+    const cur = list.querySelector('[style*="rgba(255,255,255,.2)"]');
+    if (cur) cur.scrollIntoView({ block:'center' });
+  }, 0);
+
+  setTimeout(() => document.addEventListener('mousedown', _ltcPickerOutside, { once:true }), 0);
+};
+
+function _ltcPickerOutside(e) {
+  const picker = document.getElementById('ltc-picker');
+  if (!picker.contains(e.target)) picker.style.display = 'none';
+}
+
+window.closeLTCPicker = function() {
+  document.getElementById('ltc-picker').style.display = 'none';
+};
+
+window.setLTCSlot = function(tc) {
+  const t = getTrack(_ltcPickerTrackId);
+  if (!t) return;
+  t.ltc = tc;
+  document.getElementById('ltc-picker').style.display = 'none';
+  snapshot(); render();
+  // Check for any remaining conflicts
+  const conflicts = checkLTCConflicts();
+  if (conflicts.length > 0) showTCConflictDetails();
+};
+
 // ── TC CONFLICT DETAILS ───────────────────────────────────────
 window.showTCConflictDetails = function() {
   const conflicts = checkLTCConflicts();
@@ -5231,37 +5360,37 @@ window.showTCConflictDetails = function() {
   if (!list) return;
 
   if (conflicts.length === 0) {
-    // Try calcTimecodes-style conflicts (same TC start)
-    const tcData = calcTimecodes();
-    if (tcData.conflicts.length === 0) {
-      list.innerHTML = '<div style="color:var(--muted);font-size:11px">Keine Konflikte gefunden.</div>';
-    } else {
-      list.innerHTML = tcData.conflicts.map(id => {
-        const t = getTrack(id);
-        return `<div style="background:rgba(204,34,17,.1);border-left:3px solid var(--accent);padding:10px 12px;font-family:var(--font-mono);font-size:11px">
-          <div style="font-weight:700;color:var(--fg)">${t ? t.name : 'Track #'+id}</div>
-          <div style="color:var(--muted);font-size:9px;margin-top:3px;letter-spacing:.06em">Gleicher Startpunkt wie vorheriger Track</div>
-        </div>`;
-      }).join('');
-    }
+    list.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px 0">✓ Keine Konflikte gefunden.</div>';
   } else {
     list.innerHTML = conflicts.map(c => {
-      // Find which tracks in setlist are affected
       const aTrack = pool.find(t => t.name === c.a);
       const bTrack = pool.find(t => t.name === c.b);
-      const aNum = aTrack ? setlist.indexOf(aTrack.id) + 1 : '?';
-      const bNum = bTrack ? setlist.indexOf(bTrack.id) + 1 : '?';
-      return `<div style="background:rgba(204,34,17,.1);border-left:3px solid var(--accent);padding:10px 12px;font-family:var(--font-mono);font-size:11px">
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
-          <span style="color:var(--muted);font-size:9px">#${String(aNum).padStart(2,'0')}</span>
-          <span style="font-weight:700;color:var(--fg)">${c.a}</span>
-          <span style="color:var(--muted);font-size:9px">${c.aLtc}</span>
+      const aNum = aTrack && setlist.includes(aTrack.id) ? '#' + String(setlist.indexOf(aTrack.id)+1).padStart(2,'0') : '(Pool)';
+      const bNum = bTrack && setlist.includes(bTrack.id) ? '#' + String(setlist.indexOf(bTrack.id)+1).padStart(2,'0') : '(Pool)';
+      // Calculate overlap duration
+      const aStart = tcStringToSecs(c.aLtc);
+      const aDur = toSeconds(aTrack?.length||'0:00');
+      const bStart = tcStringToSecs(c.bLtc);
+      const bDur = toSeconds(bTrack?.length||'0:00');
+      const overlapStart = Math.max(aStart, bStart);
+      const overlapEnd = Math.min(aStart+aDur, bStart+bDur);
+      const overlapSecs = Math.round(overlapEnd - overlapStart);
+      const overlapStr = overlapSecs > 0 ? `${overlapSecs}s Überschneidung` : 'gleicher Startpunkt';
+
+      return `<div style="background:rgba(204,34,17,.08);border-left:3px solid var(--accent);padding:10px 14px;margin-bottom:8px">
+        <div style="font-size:9px;letter-spacing:.1em;color:var(--accent);text-transform:uppercase;margin-bottom:6px">⚠ ${overlapStr}</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+          <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono)">${aNum}</span>
+          <span style="font-weight:700;font-size:12px;color:var(--fg)">${c.a}</span>
+          <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono)">${c.aLtc.slice(0,5)}</span>
+          ${aTrack?.length ? `<span style="font-size:9px;color:var(--muted)">Dauer ${aTrack.length}</span>` : ''}
         </div>
-        <div style="color:var(--accent);font-size:9px;letter-spacing:.1em;margin-bottom:6px">↕ ÜBERSCHNEIDUNG</div>
+        <div style="font-size:9px;color:var(--muted);margin:2px 0 4px 16px">↕ überschneidet sich mit</div>
         <div style="display:flex;align-items:baseline;gap:8px">
-          <span style="color:var(--muted);font-size:9px">#${String(bNum).padStart(2,'0')}</span>
-          <span style="font-weight:700;color:var(--fg)">${c.b}</span>
-          <span style="color:var(--muted);font-size:9px">${c.bLtc}</span>
+          <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono)">${bNum}</span>
+          <span style="font-weight:700;font-size:12px;color:var(--fg)">${c.b}</span>
+          <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono)">${c.bLtc.slice(0,5)}</span>
+          ${bTrack?.length ? `<span style="font-size:9px;color:var(--muted)">Dauer ${bTrack.length}</span>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -5573,10 +5702,10 @@ function _bnOutside(e) {
     <span class="bn-icon">✦</span>SAVE
   </button>
   <div class="bn-sep"></div>
-  <button class="bn-item admin-only" onclick="toggleAddForm()">
+  <button class="bn-item" onclick="toggleAddForm()">
     <span class="bn-icon">+</span>ADD
   </button>
-  <div class="bn-sep admin-only"></div>
+  <div class="bn-sep"></div>
   <button class="bn-item" onclick="toggleSelectMode()" id="bn-gruppe-btn">
     <span class="bn-icon">⊞</span>GRUPPE
   </button>
